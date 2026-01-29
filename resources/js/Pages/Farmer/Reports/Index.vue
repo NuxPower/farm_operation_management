@@ -20,16 +20,53 @@
             <option value="365">Last Year</option>
             <option value="all">All Time</option>
           </select>
-          <button 
-            @click="exportReport"
-            :disabled="loading || !!loadError"
-            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Export Report
-          </button>
+          <div class="relative">
+            <button 
+              @click="showExportMenu = !showExportMenu"
+              :disabled="loading || !!loadError"
+              class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export Report
+              <svg class="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div 
+              v-if="showExportMenu"
+              class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 py-1 border border-gray-100"
+            >
+              <button
+                @click="handleExport('pdf')"
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-green-600"
+              >
+                Export as PDF
+              </button>
+              <button
+                @click="handleExport('csv')"
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-green-600"
+              >
+                Export as CSV
+              </button>
+              <button
+                @click="handleExport('json')"
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-green-600"
+              >
+                Export as JSON
+              </button>
+            </div>
+            
+            <!-- Backdrop to close -->
+            <div 
+              v-if="showExportMenu" 
+              @click="showExportMenu = false" 
+              class="fixed inset-0 z-40"
+            ></div>
+          </div>
         </div>
       </div>
 
@@ -366,7 +403,10 @@ import { useMarketplaceStore } from '@/stores/marketplace';
 import LineChart from '@/Components/Charts/LineChart.vue';
 import BarChart from '@/Components/Charts/BarChart.vue';
 import PieChart from '@/Components/Charts/PieChart.vue';
+
 import { formatCurrency } from '@/utils/format';
+import { pdfExport } from '@/utils/pdfExport';
+import { csvExport } from '@/utils/csvExport';
 
 const farmStore = useFarmStore();
 const weatherStore = useWeatherStore();
@@ -876,42 +916,128 @@ const pieChartOptions = {
   }
 };
 
-const exportReport = () => {
-  if (loading.value || loadError.value) {
-    return;
-  }
 
-  const payload = {
-    generated_at: new Date().toISOString(),
-    period: selectedPeriod.value,
-    totals: {
-      yield_kg: Number(totalYield.value) || 0,
-      average_yield_per_hectare: Number(averageYieldPerHectare.value) || 0,
-      best_variety: bestVariety.value,
-      harvest_count: totalHarvests.value,
-      revenue: Number(totalRevenue.value) || 0,
-      expenses: Number(totalExpenses.value) || 0,
-      net_profit: Number(netProfit.value) || 0,
-      profit_margin: Number(profitMargin.value) || 0,
-    },
-    weather: {
-      average_rainfall_mm: Number(averageRainfall.value) || 0,
-      average_temperature_c: Number(averageTemperature.value) || 0,
-      favorable_conditions_percent: Number(weatherImpact.value) || 0,
-    },
-    generated_from: 'FarmerReportsIndex',
+
+  // Export Button State
+  const showExportMenu = ref(false);
+
+  const handleExport = (type) => {
+    showExportMenu.value = false;
+    
+    if (loading.value || loadError.value) return;
+
+    // JSON Export
+    if (type === 'json') {
+      const payload = {
+        generated_at: new Date().toISOString(),
+        period: selectedPeriod.value,
+        totals: {
+          yield_kg: Number(totalYield.value) || 0,
+          average_yield_per_hectare: Number(averageYieldPerHectare.value) || 0,
+          best_variety: bestVariety.value,
+          harvest_count: totalHarvests.value,
+          revenue: Number(totalRevenue.value) || 0,
+          expenses: Number(totalExpenses.value) || 0,
+          net_profit: Number(netProfit.value) || 0,
+          profit_margin: Number(profitMargin.value) || 0,
+        },
+        weather: {
+          average_rainfall_mm: Number(averageRainfall.value) || 0,
+          average_temperature_c: Number(averageTemperature.value) || 0,
+          favorable_conditions_percent: Number(weatherImpact.value) || 0,
+        },
+        generated_from: 'FarmerReportsIndex',
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `farmer-report-${selectedPeriod.value}-${Date.now()}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    // PDF or CSV Export
+    if (activeTab.value === 'financial') {
+      const data = {
+        totalRevenue: formatCurrency(totalRevenue.value),
+        totalExpenses: formatCurrency(totalExpenses.value),
+        netProfit: formatCurrency(netProfit.value),
+        expensesByCategory: expensesList.value.reduce((acc, expense) => {
+             // Simple grouping for display
+             const cat = expense.category || 'Uncategorized';
+             const existing = acc.find(i => i.category === cat);
+             if (existing) {
+                 existing.amount += Number(expense.amount);
+             } else {
+                 acc.push({ category: cat, amount: Number(expense.amount), percentage: 0 }); // calc percentage later
+             }
+             return acc;
+        }, []).map(item => {
+            item.percentage = totalExpenses.value > 0 ? (item.amount / totalExpenses.value) * 100 : 0;
+            return item;
+        })
+      };
+      
+      if (type === 'pdf') {
+        pdfExport.exportFinancialReport(data, { title: 'Financial Report', period: selectedPeriod.value });
+      } else if (type === 'csv') {
+        csvExport.exportFinancialReport(data, { title: 'Financial Report' });
+      }
+      
+    } else if (activeTab.value === 'yield') {
+      const data = {
+        totalHarvests: totalHarvests.value,
+        totalYield: totalYield.value,
+        avgYieldPerHa: Number(averageYieldPerHectare.value),
+        harvests: harvests.value.map(h => ({
+            harvest_date: h.harvest_date,
+            field_name: h.planting?.field?.name || 'Unknown',
+            variety_name: h.planting?.crop_type || 'Unknown',
+            yield: h.yield,
+            quality_grade: h.quality || 'N/A'
+        }))
+      };
+
+      if (type === 'pdf') {
+        pdfExport.exportCropYieldReport(data, { title: 'Yield Report' });
+      } else if (type === 'csv') {
+        csvExport.exportCropYieldReport(data, { title: 'Yield Report' });
+      }
+
+    } else if (activeTab.value === 'weather') {
+      const data = {
+          current: {
+              // Mock current as we iterate over history usually
+             temperature: averageTemperature.value,
+             humidity: 'N/A', // Not in current aggregations
+             wind_speed: 'N/A',
+             conditions: 'N/A'
+          }, 
+          gdd: {
+              total: 0, // Placeholder
+              weekly_avg: 0
+          }
+      };
+      
+      if (type === 'pdf') {
+        pdfExport.exportWeatherReport(data, { title: 'Weather Report' });
+      } else if (type === 'csv') {
+        csvExport.exportWeatherReport(data, { title: 'Weather Report' });
+      }
+    }
   };
 
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `farmer-report-${selectedPeriod.value}-${Date.now()}.json`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-};
+  /*
+  const exportReport = () => {
+    // ... removed old implementation
+  };
+  */
+
 
 watch(selectedPeriod, () => {
   loadReportData();

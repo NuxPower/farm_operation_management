@@ -438,9 +438,24 @@ class DataAnalysisController extends Controller
             ->take(5)
             ->get();
 
+        // Get recently resolved incidents (last 14 days) to prevent duplicate warnings
+        $recentlyResolved = PestIncident::whereIn('planting_id', $plantingIds)
+            ->where('status', PestIncident::STATUS_RESOLVED)
+            ->where('updated_at', '>=', now()->subDays(14))
+            ->get();
+
         $forecasts = [];
         foreach ($activeFields as $field) {
-            $risks = $this->pestPredictionService->predictRisks($field);
+            // Filter resolved incidents relevant to this field (if needed, but for now passing all recent resolved)
+            // Ideally we should filter by field, but since pests move, farm-wide resolved might be relevant. 
+            // However, let's filter by field's plantings to be more precise if possible, OR just pass the collection
+            // The logic in service filters by name, which is good.
+
+            $fieldResolved = $recentlyResolved->filter(function ($incident) use ($field) {
+                return $incident->planting && $incident->planting->field_id == $field->id;
+            });
+
+            $risks = $this->pestPredictionService->predictRisks($field, $fieldResolved);
             if (!empty($risks)) {
                 $forecasts[] = [
                     'field_id' => $field->id,

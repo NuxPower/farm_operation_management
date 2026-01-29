@@ -296,6 +296,11 @@ class RiceMarketplaceController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            \Log::error('Product creation failed: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'payload' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'message' => 'Failed to create rice product',
                 'error' => $e->getMessage()
@@ -360,6 +365,12 @@ class RiceMarketplaceController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Product update failed: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'product_id' => $id,
+                'payload' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'message' => 'Failed to update rice product',
                 'error' => $e->getMessage()

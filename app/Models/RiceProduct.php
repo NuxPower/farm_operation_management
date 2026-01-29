@@ -47,7 +47,7 @@ class RiceProduct extends Model
         'minimum_order_quantity' => 'decimal:2',
         'harvest_date' => 'date',
         'available_from' => 'date',
-        // Note: 'images' cast removed - handled by accessor below
+        'images' => 'array',
         'location' => 'array',
         'packaging_options' => 'array',
         'delivery_options' => 'array',

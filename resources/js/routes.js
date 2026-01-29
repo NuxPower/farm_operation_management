@@ -19,6 +19,7 @@ import PlantingsShow from '@/Pages/Farmer/Plantings/Show.vue';
 import PlantingsEdit from '@/Pages/Farmer/Plantings/Edit.vue';
 import TasksIndex from '@/Pages/Farmer/Tasks/Index.vue';
 import TasksCreate from '@/Pages/Farmer/Tasks/Create.vue';
+import TasksEdit from '@/Pages/Farmer/Tasks/Edit.vue';
 import TasksShow from '@/Pages/Farmer/Tasks/Show.vue';
 import TasksCalendar from '@/Pages/Farmer/Tasks/Calendar.vue';
 import HarvestsIndex from '@/Pages/Farmer/Harvests/Index.vue';
@@ -176,6 +177,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
   {
+    path: '/seed-plantings/:id/edit',
+    name: 'seed-plantings-edit',
+    component: () => import('@/Pages/SeedPlantings/Edit.vue'),
+    meta: { requiresAuth: true, roles: ['farmer'] }
+  },
+  {
     path: '/tasks',
     name: 'tasks',
     component: TasksIndex,
@@ -185,6 +192,12 @@ const routes = [
     path: '/tasks/create',
     name: 'tasks-create',
     component: TasksCreate,
+    meta: { requiresAuth: true, roles: ['farmer'] }
+  },
+  {
+    path: '/tasks/:id/edit',
+    name: 'tasks-edit',
+    component: TasksEdit,
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
   {

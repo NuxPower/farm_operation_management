@@ -201,6 +201,61 @@ export const pdfExport = {
         }
 
         doc.save(`${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+    },
+
+    /**
+     * Export Inventory Report to PDF
+     */
+    exportInventoryReport(items, options = {}) {
+        const doc = new jsPDF('l') // Landscape orientation for more columns
+        const { title = 'Inventory Report' } = options
+
+        // Header
+        doc.setFontSize(20)
+        doc.setTextColor(22, 101, 52)
+        doc.text('ANIBUKID', 14, 20)
+
+        doc.setFontSize(16)
+        doc.setTextColor(0, 0, 0)
+        doc.text(title, 14, 30)
+
+        doc.setFontSize(10)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 38)
+        doc.text(`Total Items: ${items.length}`, 14, 44)
+
+        // Inventory Table
+        if (items && items.length > 0) {
+            const yPos = 50
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Name', 'Category', 'Stock', 'Unit', 'Min Stock', 'Price (₱)', 'Location', 'Status']],
+                body: items.map(item => [
+                    item.name,
+                    item.category,
+                    item.current_stock,
+                    item.unit,
+                    item.minimum_stock,
+                    Number(item.unit_price).toFixed(2),
+                    item.location || '-',
+                    this._getStockStatus(item)
+                ]),
+                theme: 'striped',
+                headStyles: { fillColor: [22, 101, 52] }
+            })
+        }
+
+        doc.save(`${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+    },
+
+    _getStockStatus(item) {
+        const stock = Number(item.current_stock || 0)
+        const min = Number(item.minimum_stock || 0)
+
+        if (stock <= 0) return 'Out of Stock'
+        if (stock <= min) return 'Low Stock'
+        return 'In Stock'
     }
 }
 

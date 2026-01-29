@@ -18,6 +18,15 @@
             Export CSV
           </button>
           <button
+            @click="exportPdf"
+            class="flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-lg hover:bg-red-700 transition-colors shadow-sm font-medium"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Export PDF
+          </button>
+          <button
             @click="router.push('/inventory/create')"
             class="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium"
           >
@@ -146,6 +155,7 @@ import { useRouter } from 'vue-router'
 import { useInventoryStore } from '@/stores/inventory'
 import FormAlert from '@/Components/UI/FormAlert.vue'
 import { formatCurrency } from '@/utils/format'
+import { pdfExport } from '@/utils/pdfExport'
 import axios from 'axios'
 
 const router = useRouter()
@@ -207,6 +217,12 @@ const exportCsv = async () => {
     console.error('Failed to export:', err)
     alert('Failed to export CSV')
   }
+}
+
+const exportPdf = () => {
+  pdfExport.exportInventoryReport(filteredItems.value, {
+    title: 'Inventory Report'
+  })
 }
 
 // Visual Helpers
