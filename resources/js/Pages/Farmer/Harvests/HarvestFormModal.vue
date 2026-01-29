@@ -11,10 +11,10 @@
           </div>
           <div>
             <h2 class="text-xl font-bold text-gray-900">
-              {{ isEditMode ? 'Edit Harvest Log' : 'Add New Harvest' }}
+              {{ isTaskCompletion ? 'Complete Harvest Task' : (isEditMode ? 'Edit Harvest Log' : 'Add New Harvest') }}
             </h2>
             <p class="text-xs text-gray-600 mt-0.5">
-              {{ isEditMode ? 'Update harvest details and records' : 'Record your harvest details and track yield' }}
+              {{ isTaskCompletion ? 'Record harvest details to complete the task' : (isEditMode ? 'Update harvest details and records' : 'Record your harvest details and track yield') }}
             </p>
           </div>
         </div>
@@ -377,6 +377,10 @@ const props = defineProps({
   harvest: {
     type: Object,
     default: null
+  },
+  isTaskCompletion: {
+    type: Boolean,
+    default: false
   }
 })
 

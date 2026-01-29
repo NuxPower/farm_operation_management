@@ -143,8 +143,8 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Planting</label>
               <select v-model="form.planting_id" required class="w-full px-3 py-2 border rounded-lg">
                 <option value="">Select planting</option>
-                <option v-for="p in plantings" :key="p.id" :value="p.id">
-                  {{ p.field?.name }} - {{ p.rice_variety?.name }}
+                <option v-for="p in activePlantings" :key="p.id" :value="p.id">
+                  {{ p.field?.name }} - {{ p.rice_variety?.name }} ({{ p.status }} - {{ formatDate(p.planting_date) }})
                 </option>
               </select>
             </div>
@@ -182,13 +182,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 
 const loading = ref(true)
 const incidents = ref([])
 const stats = ref({ total: 0, active: 0, treated: 0, resolved: 0 })
 const plantings = ref([])
+
+const activePlantings = computed(() => {
+  return plantings.value.filter(p => ['planted', 'growing', 'ready'].includes(p.status))
+})
+
 const showCreateModal = ref(false)
 const submitting = ref(false)
 const filter = ref({ status: '', severity: '' })

@@ -20,7 +20,7 @@ class PestPredictionService
      * @param Field $field
      * @return array
      */
-    public function predictRisks(Field $field): array
+    public function predictRisks(Field $field, $resolvedIncidents = []): array
     {
         // Get field coordinates
         $lat = $field->location['lat'] ?? $field->field_coordinates['lat'] ?? null;
@@ -43,6 +43,20 @@ class PestPredictionService
         foreach ($forecast['list'] as $day) {
             $risks = $this->analyzeDailyRisk($day);
 
+            // Filter out resolved risks
+            $risks = array_filter($risks, function ($risk) use ($resolvedIncidents) {
+                foreach ($resolvedIncidents as $incident) {
+                    // Match by exact pest name or similar pest type
+                    if (
+                        strcasecmp($incident->pest_name, $risk['pest_name']) === 0 ||
+                        (strcasecmp($incident->pest_type, $risk['type']) === 0 && abs(now()->diffInDays($incident->updated_at)) < 7)
+                    ) {
+                        return false; // This risk is already resolved recently
+                    }
+                }
+                return true;
+            });
+
             if (!empty($risks)) {
                 $predictions[] = [
                     'date' => date('Y-m-d', $day['dt']),
@@ -52,7 +66,7 @@ class PestPredictionService
                         'humidity' => $day['main']['humidity'],
                         'condition' => $day['weather'][0]['main'] ?? 'Clear'
                     ],
-                    'risks' => $risks
+                    'risks' => array_values($risks) // Re-index array
                 ];
             }
         }

@@ -32,6 +32,7 @@ class InventoryItem extends Model
         'minimum_stock' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'expiry_date' => 'date',
     ];
 
     /**

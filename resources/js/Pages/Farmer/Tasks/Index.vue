@@ -272,6 +272,7 @@
     <HarvestFormModal
       :show="showHarvestModal"
       :initial-planting-id="selectedHarvestTask?.planting_id"
+      :is-task-completion="isTaskCompletion"
       @close="closeHarvestModal"
       @saved="handleHarvestSaved"
     />
@@ -298,6 +299,7 @@ const filters = ref({
 });
 
 const showHarvestModal = ref(false);
+const isTaskCompletion = ref(false);
 const selectedHarvestTask = ref(null);
 
 const tasks = computed(() => farmStore.tasks);
@@ -375,6 +377,7 @@ const completeTask = async (task) => {
   // If it's a harvesting task, open the harvest modal first
   if (task.task_type === 'harvesting') {
     selectedHarvestTask.value = task;
+    isTaskCompletion.value = true;
     showHarvestModal.value = true;
     return;
   }
@@ -389,6 +392,7 @@ const completeTask = async (task) => {
 const closeHarvestModal = () => {
   showHarvestModal.value = false;
   selectedHarvestTask.value = null;
+  isTaskCompletion.value = false;
 };
 
 const handleHarvestSaved = async () => {
