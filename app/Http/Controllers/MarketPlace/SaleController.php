@@ -19,30 +19,30 @@ class SaleController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         $query = Sale::where('user_id', $user->id);
-        
+
         // Apply filters
         if ($request->has('buyer_id')) {
             $query->where('buyer_id', $request->buyer_id);
         }
-        
+
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-        
+
         if ($request->has('date_from')) {
             $query->where('sale_date', '>=', $request->date_from);
         }
-        
+
         if ($request->has('date_to')) {
             $query->where('sale_date', '<=', $request->date_to);
         }
-        
-        $sales = $query->with(['harvest.planting.field', 'harvest.planting.crop', 'buyer'])
+
+        $sales = $query->with(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
             ->orderBy('sale_date', 'desc')
             ->get();
-        
+
         return response()->json([
             'sales' => $sales
         ]);
@@ -77,7 +77,7 @@ class SaleController extends Controller
         // Check if user owns the harvest
         $harvest = Harvest::with('planting.field')->findOrFail($request->harvest_id);
         $user = $request->user();
-        
+
         if ($harvest->planting->field->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access to harvest'
@@ -121,12 +121,12 @@ class SaleController extends Controller
 
             return response()->json([
                 'message' => 'Sale created successfully',
-                'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.crop', 'buyer'])
+                'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             return response()->json([
                 'message' => 'Failed to create sale',
                 'error' => $e->getMessage()
@@ -140,14 +140,14 @@ class SaleController extends Controller
     public function show(Request $request, Sale $sale): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($sale->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
             ], 403);
         }
 
-        $sale->load(['harvest.planting.field', 'harvest.planting.crop', 'buyer']);
+        $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer']);
 
         return response()->json([
             'sale' => $sale
@@ -160,7 +160,7 @@ class SaleController extends Controller
     public function update(Request $request, Sale $sale): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($sale->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -187,14 +187,20 @@ class SaleController extends Controller
         }
 
         $sale->update($request->only([
-            'quantity', 'unit_price', 'total_amount', 'sale_date',
-            'payment_method', 'payment_status', 'delivery_date',
-            'delivery_address', 'notes'
+            'quantity',
+            'unit_price',
+            'total_amount',
+            'sale_date',
+            'payment_method',
+            'payment_status',
+            'delivery_date',
+            'delivery_address',
+            'notes'
         ]));
 
         return response()->json([
             'message' => 'Sale updated successfully',
-            'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.crop', 'buyer'])
+            'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
         ]);
     }
 
@@ -204,7 +210,7 @@ class SaleController extends Controller
     public function destroy(Request $request, Sale $sale): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($sale->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -224,7 +230,7 @@ class SaleController extends Controller
     public function updatePaymentStatus(Request $request, Sale $sale): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($sale->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -246,7 +252,7 @@ class SaleController extends Controller
 
         return response()->json([
             'message' => 'Payment status updated successfully',
-            'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.crop', 'buyer'])
+            'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
         ]);
     }
 
@@ -256,13 +262,13 @@ class SaleController extends Controller
     public function summary(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         $query = Sale::where('user_id', $user->id);
-        
+
         if ($request->has('date_from')) {
             $query->where('sale_date', '>=', $request->date_from);
         }
-        
+
         if ($request->has('date_to')) {
             $query->where('sale_date', '<=', $request->date_to);
         }
@@ -270,7 +276,7 @@ class SaleController extends Controller
         $totalSales = $query->sum('total_amount');
         $totalQuantity = $query->sum('quantity');
         $salesCount = $query->count();
-        
+
         $paymentStatusSummary = $query->selectRaw('payment_status, COUNT(*) as count, SUM(total_amount) as amount')
             ->groupBy('payment_status')
             ->get();

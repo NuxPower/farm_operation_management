@@ -34,7 +34,7 @@
               <span class="text-blue-600 text-2xl">📦</span>
             </div>
             <div class="ml-4">
-              <div class="text-2xl font-bold text-gray-900">{{ formatNumber(summary.total_quantity) }} kg</div>
+              <div class="text-2xl font-bold text-gray-900">{{ formatNumber(summary.total_quantity) }}</div>
               <div class="text-sm text-gray-600">Total Quantity Sold</div>
             </div>
           </div>
@@ -158,10 +158,10 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatNumber(sale.quantity) }} kg
+                {{ formatNumber(sale.quantity) }} {{ sale.harvest?.unit || 'kg' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ₱{{ formatNumber(sale.unit_price) }}/kg
+                ₱{{ formatNumber(sale.unit_price) }}/{{ sale.harvest?.unit || 'kg' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                 ₱{{ formatNumber(sale.total_amount) }}
@@ -206,18 +206,21 @@
               <select v-model="form.harvest_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                 <option value="">Select a harvest</option>
                 <option v-for="harvest in harvests" :key="harvest.id" :value="harvest.id">
-                  {{ harvest.planting?.crop_type || 'Rice' }} - {{ harvest.quantity }} kg ({{ formatDate(harvest.harvest_date) }})
+                  {{ harvest.planting?.crop_type || 'Rice' }} - {{ harvest.quantity }} {{ harvest.unit || 'kg' }} ({{ formatDate(harvest.harvest_date) }})
                 </option>
               </select>
+              <p v-if="errors.harvest_id" class="text-xs text-red-600 mt-1">{{ errors.harvest_id[0] }}</p>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Quantity (kg) *</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Quantity ({{ selectedHarvestUnit }}) *</label>
                 <input v-model.number="form.quantity" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                <p v-if="errors.quantity" class="text-xs text-red-600 mt-1">{{ errors.quantity[0] }}</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price (₱/kg) *</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price (₱/{{ selectedHarvestUnit }}) *</label>
                 <input v-model.number="form.unit_price" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                <p v-if="errors.unit_price" class="text-xs text-red-600 mt-1">{{ errors.unit_price[0] }}</p>
               </div>
             </div>
             <div>
@@ -229,6 +232,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Sale Date *</label>
               <input v-model="form.sale_date" type="date" required class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+              <p v-if="errors.sale_date" class="text-xs text-red-600 mt-1">{{ errors.sale_date[0] }}</p>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -303,6 +307,15 @@ const form = ref({
   payment_status: 'paid',
   buyer_name: '',
   notes: ''
+})
+
+// Validation errors
+const errors = ref({})
+
+const selectedHarvestUnit = computed(() => {
+  if (!form.value.harvest_id) return 'kg'
+  const harvest = harvests.value.find(h => h.id === form.value.harvest_id)
+  return harvest ? (harvest.unit || 'kg') : 'kg'
 })
 
 const computedTotal = computed(() => {
@@ -381,12 +394,15 @@ const openSaleModal = () => {
     buyer_name: '',
     notes: ''
   }
+  errors.value = {}
   fetchHarvests()
   showModal.value = true
 }
 
 const submitSale = async () => {
   submitting.value = true
+  errors.value = {}
+  
   try {
     await axios.post('/api/sales', {
       harvest_id: form.value.harvest_id,
@@ -404,7 +420,12 @@ const submitSale = async () => {
     alert('Sale recorded successfully!')
   } catch (error) {
     console.error('Failed to create sale:', error)
-    alert(error.response?.data?.message || 'Failed to record sale')
+    if (error.response?.status === 422) {
+      errors.value = error.response.data.errors || {}
+      alert('Validation failed: ' + (error.response.data.message || 'Please check your inputs'))
+    } else {
+      alert(error.response?.data?.message || 'Failed to record sale')
+    }
   } finally {
     submitting.value = false
   }

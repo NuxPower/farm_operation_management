@@ -458,7 +458,7 @@ class RiceOrderController extends Controller
                     'unit_price' => $order->offer_price ?? $order->unit_price,
                     'total_amount' => $order->total_amount,
                     'sale_date' => now(),
-                    'payment_method' => $order->payment_method ?? 'marketplace',
+                    'payment_method' => $order->payment_method === 'cod' ? 'cash' : ($order->payment_method ?? 'cash'),
                     'payment_status' => $order->payment_status === RiceOrder::PAYMENT_PAID ? 'paid' : 'pending',
                     'notes' => "Marketplace order #{$order->id}",
                 ]);

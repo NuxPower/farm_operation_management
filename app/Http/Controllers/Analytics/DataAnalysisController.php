@@ -683,7 +683,7 @@ class DataAnalysisController extends Controller
         $pendingOrders = RiceOrder::whereHas('riceProduct', function ($q) use ($userId) {
             $q->where('farmer_id', $userId);
         })
-            ->whereIn('status', ['pending', 'confirmed'])
+            ->where('status', 'pending')
             ->count();
 
         if ($pendingOrders > 0) {
@@ -692,7 +692,7 @@ class DataAnalysisController extends Controller
                 'category' => 'sales',
                 'icon' => '📋',
                 'message' => "Fulfill {$pendingOrders} pending marketplace orders",
-                'action_url' => '/farmer/orders',
+                'action_url' => '/marketplace/orders',
                 'action_label' => 'View Orders',
             ];
         }

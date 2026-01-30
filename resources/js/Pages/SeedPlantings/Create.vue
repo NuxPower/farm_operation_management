@@ -362,6 +362,24 @@ const submit = async () => {
     return;
   }
 
+  // Frontend Validation
+  if (form.value.expected_transplant_date && form.value.planting_date) {
+      const start = new Date(form.value.planting_date);
+      const end = new Date(form.value.expected_transplant_date);
+      
+      if (end <= start) {
+          alert("Expected transplant date must be after the planting date.");
+          submitting.value = false;
+          return;
+      }
+
+      if (end.getFullYear() < 2020 || start.getFullYear() < 2020) {
+          alert("Please check the dates. The year looks incorrect (before 2020).");
+          submitting.value = false;
+          return;
+      }
+  }
+
   try {
     // If rice_variety_id is empty, we might want to send null or handle it backend
     // For now, let's assume the user accepts the risk if they confirm above.
@@ -369,7 +387,12 @@ const submit = async () => {
     router.push('/seed-plantings');
   } catch (error) {
     console.error('Error creating seed planting:', error);
-    alert('Failed to create record. Please check the inputs.');
+    if (error.response && error.response.data && error.response.data.errors) {
+        const errors = Object.values(error.response.data.errors).flat().join('\n');
+        alert(`Failed to create:\n${errors}`);
+    } else {
+        alert('Failed to create record. Please check the inputs.');
+    }
   } finally {
     submitting.value = false;
   }

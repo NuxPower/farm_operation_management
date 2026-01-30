@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 /**
  * PDF Export Utility for Farm Reports
@@ -47,7 +47,7 @@ export const pdfExport = {
             doc.setFontSize(12)
             doc.text('Expenses by Category', 14, yPos)
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: yPos + 5,
                 head: [['Category', 'Amount (₱)', '% of Total']],
                 body: data.expensesByCategory.map(item => [
@@ -104,7 +104,7 @@ export const pdfExport = {
             doc.setFontSize(12)
             doc.text('Harvest Records', 14, yPos)
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: yPos + 5,
                 head: [['Date', 'Field', 'Variety', 'Yield (kg)', 'Quality']],
                 body: data.harvests.map(h => [
@@ -191,7 +191,7 @@ export const pdfExport = {
         doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28)
 
         if (headers.length > 0 && rows.length > 0) {
-            doc.autoTable({
+            autoTable(doc, {
                 startY: 35,
                 head: [headers],
                 body: rows,
@@ -228,7 +228,7 @@ export const pdfExport = {
         if (items && items.length > 0) {
             const yPos = 50
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: [['Name', 'Category', 'Stock', 'Unit', 'Min Stock', 'Price (₱)', 'Location', 'Status']],
                 body: items.map(item => [

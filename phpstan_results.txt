@@ -1,0 +1,1472 @@
+ ------ ----------------------------------------------------------------------- 
+  Line   Console/Commands/SendPreOrderNotifications.php                         
+ ------ ----------------------------------------------------------------------- 
+  46     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$production_status.                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Console/Commands/SendScheduledReports.php                              
+ ------ ----------------------------------------------------------------------- 
+  78     Access to an undefined property App\Models\ScheduledReport::$user.     
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  114    Access to an undefined property App\Models\ScheduledReport::$user.     
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  138    Call to an undefined method App\Models\User::expenses().               
+         🪪  method.notFound                                                    
+  154    Call to an undefined method App\Models\User::harvests().               
+         🪪  method.notFound                                                    
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Events/NewOrderPlaced.php                                              
+ ------ ----------------------------------------------------------------------- 
+  27     Access to an undefined property App\Models\Order::$farmer_id.          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------------- 
+  Line   Exceptions/InventoryException.php                             
+ ------ -------------------------------------------------------------- 
+  11     Deprecated in PHP 8.4: Parameter #4 $previous (Exception) is  
+         implicitly nullable via default value null.                   
+         🪪  parameter.implicitlyNullable                              
+ ------ -------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------------- 
+  Line   Exceptions/MarketplaceException.php                           
+ ------ -------------------------------------------------------------- 
+  11     Deprecated in PHP 8.4: Parameter #4 $previous (Exception) is  
+         implicitly nullable via default value null.                   
+         🪪  parameter.implicitlyNullable                              
+ ------ -------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------------- 
+  Line   Exceptions/WeatherServiceException.php                        
+ ------ -------------------------------------------------------------- 
+  11     Deprecated in PHP 8.4: Parameter #4 $previous (Exception) is  
+         implicitly nullable via default value null.                   
+         🪪  parameter.implicitlyNullable                              
+ ------ -------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Analytics/DataAnalysisController.php                  
+ ------ ----------------------------------------------------------------------- 
+  298    Access to an undefined property                                        
+         Illuminate\Support\HigherOrderCollectionProxy<string,                  
+         Illuminate\Database\Eloquent\Model,                                    
+         Illuminate\Database\Eloquent\Collection<int, Illuminate\Database\Eloq  
+         uent\Model>>::$pestIncidents.                                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  455    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field_id.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  538    Right side of && is always true.                                       
+         🪪  booleanAnd.rightAlwaysTrue                                         
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  722    Offset 'high'|'medium' on array{high: 0, medium: 1, low: 2} on left    
+         side of ?? always exists and is not nullable.                          
+         🪪  nullCoalesce.offset                                                
+  722    Offset 'high'|'medium' on array{high: 0, medium: 1, low: 2} on left    
+         side of ?? always exists and is not nullable.                          
+         🪪  nullCoalesce.offset                                                
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------- 
+  Line   Http/Controllers/Auth/AuthController.php                         
+ ------ ----------------------------------------------------------------- 
+  47     Parameter #1 $string of function str_pad expects string, int<0,  
+         999999> given.                                                   
+         🪪  argument.type                                                
+  295    If condition is always true.                                     
+         🪪  if.alwaysTrue                                                
+ ------ ----------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------- 
+  Line   Http/Controllers/Auth/VerificationController.php                 
+ ------ ----------------------------------------------------------------- 
+  75     Parameter #1 $string of function str_pad expects string, int<0,  
+         999999> given.                                                   
+         🪪  argument.type                                                
+ ------ ----------------------------------------------------------------- 
+
+ ------ ---------------------------------------------------------------------- 
+  Line   Http/Controllers/DashboardController.php                              
+ ------ ---------------------------------------------------------------------- 
+  129    Relation 'riceVariety' is not found in App\Models\RiceProduct model.  
+         🪪  larastan.relationExistence                                        
+  209    Match arm comparison between 'buyer' and 'buyer' is always true.      
+         🪪  match.alwaysTrue                                                  
+         💡  Remove remaining cases below this one and this error will         
+         disappear too.                                                        
+ ------ ---------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Farm/FieldController.php                              
+ ------ ----------------------------------------------------------------------- 
+  52     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$riceVariety.                      
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  53     Access to an undefined property App\Models\Field::$current_crop.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  54     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$crop_type.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  55     Access to an undefined property App\Models\Field::$current_crop.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  57     Access to an undefined property App\Models\Field::$current_crop.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  62     Access to an undefined property                                        
+         App\Models\Field::$current_planting_id.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  62     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$id.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  63     Access to an undefined property                                        
+         App\Models\Field::$current_planting_status.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  63     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$status.                           
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  65     Access to an undefined property                                        
+         App\Models\Field::$current_planting_id.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  66     Access to an undefined property                                        
+         App\Models\Field::$current_planting_status.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  72     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$status.                           
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Farm/HarvestController.php                            
+ ------ ----------------------------------------------------------------------- 
+  63     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  126    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  146    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  214    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  243    Using nullsafe property access "?->name" on left side of ?? is         
+         unnecessary. Use -> instead.                                           
+         🪪  nullsafe.neverNull                                                 
+  259    Using nullsafe property access "?->name" on left side of ?? is         
+         unnecessary. Use -> instead.                                           
+         🪪  nullsafe.neverNull                                                 
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Farm/PlantingController.php                           
+ ------ ----------------------------------------------------------------------- 
+  152    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsCompleted().                 
+         🪪  method.notFound                                                    
+  155    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  158    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  170    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  188    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  214    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  318    Negated boolean expression is always false.                            
+         🪪  booleanNot.alwaysFalse                                             
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  321    If condition is always true.                                           
+         🪪  if.alwaysTrue                                                      
+  328    Instanceof between Carbon\Carbon and Carbon\Carbon will always         
+         evaluate to true.                                                      
+         🪪  instanceof.alwaysTrue                                              
+  330    Instanceof between Carbon\Carbon and Carbon\Carbon will always         
+         evaluate to true.                                                      
+         🪪  instanceof.alwaysTrue                                              
+  330    Result of && is always false.                                          
+         🪪  booleanAnd.alwaysFalse                                             
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  330    Strict comparison using === between                                    
+         'failed'|'growing'|'harvested'|'planted'|'ready' and 'planned' will    
+         always evaluate to false.                                              
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  353    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------- 
+  Line   Http/Controllers/Inventory/InventoryItemController.php  
+ ------ -------------------------------------------------------- 
+  314    Unreachable statement - code above always terminates.   
+         🪪  deadCode.unreachable                                
+ ------ -------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Inventory/OrderController.php                         
+ ------ ----------------------------------------------------------------------- 
+  37     Relation 'supplier' is not found in App\Models\Order model.            
+         🪪  larastan.relationExistence                                         
+  290    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$inventoryItem.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  293    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$quantity.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  301    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$quantity.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  303    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$quantity.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Labor/LaborerGroupController.php                      
+ ------ ----------------------------------------------------------------------- 
+  121    Access to an undefined property App\Models\LaborerGroup::$stats.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Labor/TaskController.php                              
+ ------ ----------------------------------------------------------------------- 
+  331    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$laborers.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  504    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  515    Parameter #2 $planting of method                                       
+         App\Http\Controllers\Labor\TaskController::ownsPlanting() expects      
+         App\Models\Planting, Illuminate\Database\Eloquent\Model given.         
+         🪪  argument.type                                                      
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Labor/WageController.php                              
+ ------ ----------------------------------------------------------------------- 
+  109    Access to an undefined property App\Models\LaborWage::$user_id.        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  129    Access to an undefined property App\Models\LaborWage::$user_id.        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  171    Access to an undefined property App\Models\LaborWage::$user_id.        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  191    Access to an undefined property App\Models\LaborWage::$user_id.        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/MarketPlace/CartController.php                        
+ ------ ----------------------------------------------------------------------- 
+  99     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$quantity_available.               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  168    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::hasSufficientQuantity().           
+         🪪  method.notFound                                                    
+  169    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  171    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::reserveQuantity().                 
+         🪪  method.notFound                                                    
+  174    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$price_per_unit.                   
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  184    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$id.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  200    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  201    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  204    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------------- 
+  Line   Http/Controllers/MarketPlace/ProductController.php            
+ ------ -------------------------------------------------------------- 
+  117    Call to an undefined method App\Models\Category::harvests().  
+         🪪  method.notFound                                           
+  151    Relation 'sales' is not found in App\Models\Harvest model.    
+         🪪  larastan.relationExistence                                
+ ------ -------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/MarketPlace/RiceOrderController.php                   
+ ------ ----------------------------------------------------------------------- 
+  81     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  185    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  225    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  264    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  291    If condition is always true.                                           
+         🪪  if.alwaysTrue                                                      
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  293    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  296    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  314    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  351    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  382    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  408    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  432    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  445    Call to function is_array() with array will always evaluate to true.   
+         🪪  function.alreadyNarrowedType                                       
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  484    Strict comparison using !== between                                    
+         'cancelled'|'confirmed'|'delivered'|'pending'|'processing'|'refunded'  
+         |'shipped' and 'ready_for_pickup' will always evaluate to true.        
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  490    Unreachable statement - code above always terminates.                  
+         🪪  deadCode.unreachable                                               
+  519    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  523    Strict comparison using !== between                                    
+         'cancelled'|'confirmed'|'delivered'|'pending'|'processing'|'refunded'  
+         |'shipped' and 'disputed' will always evaluate to true.                
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  529    Unreachable statement - code above always terminates.                  
+         🪪  deadCode.unreachable                                               
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/MarketPlace/SaleController.php                        
+ ------ ----------------------------------------------------------------------- 
+  81     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Reports/ProfitLossController.php                      
+ ------ ----------------------------------------------------------------------- 
+  81     Parameter #1 $callback of method                                       
+         Illuminate\Database\Eloquent\Collection<int,App\Models\Planting>::map  
+         () contains unresolvable type.                                         
+         🪪  argument.unresolvableType                                          
+  84     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$sales.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  97     Using nullsafe method call on non-nullable type Carbon\Carbon. Use ->  
+         instead.                                                               
+         🪪  nullsafe.neverNull                                                 
+  99     Access to an undefined property App\Models\Planting::$area_hectares.   
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  104    Access to an undefined property App\Models\Planting::$area_hectares.   
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  115    Parameter #1 $callback of method                                       
+         Illuminate\Support\Collection<int,array<string, mixed>>::avg() contai  
+         ns unresolvable type.                                                  
+         🪪  argument.unresolvableType                                          
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Reports/ReportController.php                          
+ ------ ----------------------------------------------------------------------- 
+  336    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$size_hectares.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  341    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$size_hectares.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  349    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$size_hectares.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  353    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$size_hectares.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  356    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$size_hectares.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  407    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$id.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  408    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  903    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  928    Access to an undefined property                                        
+         Illuminate\Support\HigherOrderCollectionProxy<string,                  
+         App\Models\Harvest, Illuminate\Database\Eloquent\Collection<int, App\  
+         Models\Harvest>>::$sales.                                              
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  1138   Parameter #1 $num of function round expects float|int, string given.   
+         🪪  argument.type                                                      
+  1142   Parameter #1 $num of function round expects float|int, string given.   
+         🪪  argument.type                                                      
+  1385   Using nullsafe method call on non-nullable type Carbon\Carbon. Use ->  
+         instead.                                                               
+         🪪  nullsafe.neverNull                                                 
+  1390   Using nullsafe property access "?->name" on left side of ?? is         
+         unnecessary. Use -> instead.                                           
+         🪪  nullsafe.neverNull                                                 
+  1472   Using nullsafe method call on non-nullable type Carbon\Carbon. Use ->  
+         instead.                                                               
+         🪪  nullsafe.neverNull                                                 
+  1473   Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$planting.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  1473   Using nullsafe property access "?->name" on left side of ?? is         
+         unnecessary. Use -> instead.                                           
+         🪪  nullsafe.neverNull                                                 
+  1474   Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  1474   Using nullsafe property access "?->name" on left side of ?? is         
+         unnecessary. Use -> instead.                                           
+         🪪  nullsafe.neverNull                                                 
+  1476   Access to an undefined property App\Models\Sale::$unit.                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  1477   Access to an undefined property App\Models\Sale::$price_per_unit.      
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/RiceFarmingAnalyticsController.php                    
+ ------ ----------------------------------------------------------------------- 
+  88     Parameter #1 $callback of method                                       
+         Illuminate\Database\Eloquent\Collection<(int|string),Illuminate\Datab  
+         ase\Eloquent\Collection<int, App\Models\Planting>>::map() contains un  
+         resolvable type.                                                       
+         🪪  argument.unresolvableType                                          
+  90     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  156    Relation 'planting' is not found in App\Models\Expense model.          
+         🪪  larastan.relationExistence                                         
+  225    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$harvests.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  303    Relation 'orders' is not found in App\Models\RiceProduct model.        
+         🪪  larastan.relationExistence                                         
+  303    Relation 'reviews' is not found in App\Models\RiceProduct model.       
+         🪪  larastan.relationExistence                                         
+  313    Access to an undefined property App\Models\RiceProduct::$orders.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  316    Access to an undefined property App\Models\RiceProduct::$reviews.      
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  326    Access to an undefined property App\Models\RiceProduct::$reviews.      
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  360    Right side of && is always true.                                       
+         🪪  booleanAnd.rightAlwaysTrue                                         
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/RiceFarmingLifecycleController.php                    
+ ------ ----------------------------------------------------------------------- 
+  88     Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsCompleted().                 
+         🪪  method.notFound                                                    
+  89     Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  91     Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  101    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  142    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  151    Strict comparison using !== between                                    
+         'failed'|'growing'|'harvested'|'planted'|'ready' and 'planned' will    
+         always evaluate to true.                                               
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  163    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsCompleted().                 
+         🪪  method.notFound                                                    
+  164    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  166    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  177    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::markAsStarted().                   
+         🪪  method.notFound                                                    
+  253    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  321    Relation 'planting' is not found in App\Models\PlantingStage model.    
+         🪪  larastan.relationExistence                                         
+  324    Access to an undefined property                                        
+         App\Models\PlantingStage|Illuminate\Database\Eloquent\Collection<int,  
+          App\Models\PlantingStage>::$planting.                                 
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  360    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$user_id.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  394    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::getPreparationRecommendations().   
+         🪪  method.notFound                                                    
+  401    Parameter #1 $field of method                                          
+         App\Services\WeatherService::getRiceFarmingRecommendations() expects   
+         App\Models\Field, Illuminate\Database\Eloquent\Model|null given.       
+         🪪  argument.type                                                      
+  482    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  483    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  493    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  504    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$name.                             
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/RiceMarketplaceController.php                         
+ ------ ----------------------------------------------------------------------- 
+  36     Relation 'farmer' is not found in App\Models\RiceProduct model.        
+         🪪  larastan.relationExistence                                         
+  36     Relation 'reviews' is not found in App\Models\RiceProduct model.       
+         🪪  larastan.relationExistence                                         
+  36     Relation 'riceVariety' is not found in App\Models\RiceProduct model.   
+         🪪  larastan.relationExistence                                         
+  137    Access to an undefined property                                        
+         App\Models\RiceProduct::$quality_score.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  138    Access to an undefined property                                        
+         App\Models\RiceProduct::$freshness_indicator.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  141    Access to an undefined property                                        
+         App\Models\RiceProduct::$can_pre_order.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  183    Relation 'reviews' is not found in App\Models\RiceProduct model.       
+         🪪  larastan.relationExistence                                         
+  194    Access to an undefined property                                        
+         App\Models\RiceProduct|Illuminate\Database\Eloquent\Collection<int, A  
+         pp\Models\RiceProduct>::$quality_score.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  195    Access to an undefined property                                        
+         App\Models\RiceProduct|Illuminate\Database\Eloquent\Collection<int, A  
+         pp\Models\RiceProduct>::$freshness_indicator.                          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  198    Access to an undefined property                                        
+         App\Models\RiceProduct|Illuminate\Database\Eloquent\Collection<int, A  
+         pp\Models\RiceProduct>::$can_pre_order.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  203    Access to an undefined property                                        
+         App\Models\RiceProduct|Illuminate\Database\Eloquent\Collection<int, A  
+         pp\Models\RiceProduct>::$estimated_delivery.                           
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  207    Relation 'farmer' is not found in App\Models\RiceProduct model.        
+         🪪  larastan.relationExistence                                         
+  207    Relation 'riceVariety' is not found in App\Models\RiceProduct model.   
+         🪪  larastan.relationExistence                                         
+  461    Access to an undefined property                                        
+         App\Models\RiceOrder::$progress_percentage.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  462    Access to an undefined property App\Models\RiceOrder::$is_overdue.     
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  463    Access to an undefined property                                        
+         App\Models\RiceOrder::$days_until_delivery.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  494    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  502    Access to an undefined property                                        
+         App\Models\RiceOrder|Illuminate\Database\Eloquent\Collection<int, App  
+         \Models\RiceOrder>::$progress_percentage.                              
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  503    Access to an undefined property                                        
+         App\Models\RiceOrder|Illuminate\Database\Eloquent\Collection<int, App  
+         \Models\RiceOrder>::$is_overdue.                                       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  504    Access to an undefined property                                        
+         App\Models\RiceOrder|Illuminate\Database\Eloquent\Collection<int, App  
+         \Models\RiceOrder>::$days_until_delivery.                              
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  540    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  585    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  633    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  638    Strict comparison using !== between                                    
+         'cancelled'|'confirmed'|'delivered'|'pending'|'processing'|'refunded'  
+         |'shipped' and 'negotiating' will always evaluate to true.             
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  642    Unreachable statement - code above always terminates.                  
+         🪪  deadCode.unreachable                                               
+  679    Call to an undefined method Illuminate\Database\Eloquent\Builder<Illu  
+         minate\Database\Eloquent\Model>::available().                          
+         🪪  method.notFound                                                    
+  694    Relation 'farmer' is not found in App\Models\RiceProduct model.        
+         🪪  larastan.relationExistence                                         
+  694    Relation 'riceVariety' is not found in App\Models\RiceProduct model.   
+         🪪  larastan.relationExistence                                         
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/RiceOrderMessageController.php                        
+ ------ ----------------------------------------------------------------------- 
+  65     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$farmer_id.                        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Weather/WeatherAnalyticsController.php                
+ ------ ----------------------------------------------------------------------- 
+  35     Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  89     Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  115    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  140    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  165    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  192    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  218    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  246    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  273    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  300    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+  390    Call to an undefined method                                            
+         App\Http\Controllers\Weather\WeatherAnalyticsController::authorize().  
+         🪪  method.notFound                                                    
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Weather/WeatherController.php                         
+ ------ ----------------------------------------------------------------------- 
+  50     Strict comparison using === between float and null will always         
+         evaluate to false.                                                     
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  102    Parameter #1 $weatherLog of method                                     
+         App\Services\WeatherService::formatWeatherLog() expects                
+         App\Models\WeatherLog|null, Illuminate\Database\Eloquent\Model given.  
+         🪪  argument.type                                                      
+  131    Strict comparison using === between float and null will always         
+         evaluate to false.                                                     
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  263    Parameter #1 $weatherLog of method                                     
+         App\Services\WeatherService::formatWeatherLog() expects                
+         App\Models\WeatherLog|null, Illuminate\Database\Eloquent\Model given.  
+         🪪  argument.type                                                      
+  303    Parameter #1 $callback of method Illuminate\Support\Collection<int,Ap  
+         p\Models\Field>::filter() expects (callable(App\Models\Field, int): b  
+         ool)|null, Closure(mixed): (Illuminate\Database\Eloquent\Model|null)   
+         given.                                                                 
+         🪪  argument.type                                                      
+  318    Parameter #1 $weatherLog of method                                     
+         App\Services\WeatherService::formatWeatherLog() expects                
+         App\Models\WeatherLog|null, Illuminate\Database\Eloquent\Model given.  
+         🪪  argument.type                                                      
+  440    Parameter #1 $weatherLog of method                                     
+         App\Services\WeatherService::formatWeatherLog() expects                
+         App\Models\WeatherLog|null, Illuminate\Database\Eloquent\Model given.  
+         🪪  argument.type                                                      
+  691    Offset                                                                 
+         'CLEAR_DAY'|'CLOUDY'|'DUST'|'FOG'|'LIGHT_HAZE'|'LIGHT_RAIN'|'LIGHT_SN  
+         OW'|'PARTLY_CLOUDY_DAY'|'STORM_RAIN'|'WIND' on array{CLEAR_DAY: 800,   
+         CLEAR_NIGHT: 800, PARTLY_CLOUDY_DAY: 801, PARTLY_CLOUDY_NIGHT: 801,    
+         CLOUDY: 803, LIGHT_HAZE: 721, MODERATE_HAZE: 721, HEAVY_HAZE: 721,     
+         ...} on left side of ?? always exists and is not nullable.             
+         🪪  nullCoalesce.offset                                                
+  740    Strict comparison using === between mixed and null will always         
+         evaluate to false.                                                     
+         🪪  identical.alwaysFalse                                              
+         💡  Type null has already been eliminated from mixed.                  
+  742    Strict comparison using === between mixed and null will always         
+         evaluate to false.                                                     
+         🪪  identical.alwaysFalse                                              
+         💡  Type null has already been eliminated from mixed.                  
+  744    Strict comparison using === between 0|20|50|70|90 and null will        
+         always evaluate to false.                                              
+         🪪  identical.alwaysFalse                                              
+  746    Strict comparison using === between float and null will always         
+         evaluate to false.                                                     
+         🪪  identical.alwaysFalse                                              
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ---------------------------------------------------------------------- 
+  Line   Http/Controllers/Weather/WeatherForecastController.php                
+ ------ ---------------------------------------------------------------------- 
+  35     Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  60     Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  78     Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  94     Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  116    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  134    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  155    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  176    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  197    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  226    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+  251    Call to an undefined method                                           
+         App\Http\Controllers\Weather\WeatherForecastController::authorize().  
+         🪪  method.notFound                                                   
+ ------ ---------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Http/Controllers/Weather/WeatherHistoryController.php                  
+ ------ ----------------------------------------------------------------------- 
+  219    Access to an undefined property App\Models\WeatherLog::$date.          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  231    Access to an undefined property App\Models\WeatherLog::$date.          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  243    Access to an undefined property App\Models\WeatherLog::$date.          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  255    Access to an undefined property App\Models\WeatherLog::$date.          
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  262    Parameter #1 $array of function usort contains unresolvable type.      
+         🪪  argument.unresolvableType                                          
+  262    Parameter #2 $callback of function usort contains unresolvable type.   
+         🪪  argument.unresolvableType                                          
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/Expense.php                                                     
+ ------ ----------------------------------------------------------------------- 
+  124    Access to an undefined property App\Models\Expense::$planting.         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  132    Access to an undefined property App\Models\Expense::$planting.         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/Field.php                                                       
+ ------ ----------------------------------------------------------------------- 
+  358    Strict comparison using === between 'excellent'|'good'|'moderate' and  
+         'none' will always evaluate to false.                                  
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  372    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$status.                           
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/Order.php                                                       
+ ------ ----------------------------------------------------------------------- 
+  54     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$quantity.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  54     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$unit_price.                       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  105    Match arm comparison between 'cancelled' and 'cancelled' is always     
+         true.                                                                  
+         🪪  match.alwaysTrue                                                   
+         💡  Remove remaining cases below this one and this error will          
+         disappear too.                                                         
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/Planting.php                                                    
+ ------ ----------------------------------------------------------------------- 
+  132    Method App\Models\Planting::daysUntilHarvest() should return int but   
+         returns float.                                                         
+         🪪  return.type                                                        
+  189    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Relations\HasMany::completed().           
+         🪪  method.notFound                                                    
+  203    Result of || is always true.                                           
+         🪪  booleanOr.alwaysTrue                                               
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  203    Strict comparison using !== between int<0, max> and null will always   
+         evaluate to true.                                                      
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  216    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$average_yield_per_hectare.        
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/PlantingStage.php                                               
+ ------ ----------------------------------------------------------------------- 
+  144    Access to an undefined property                                        
+         App\Models\PlantingStage::$riceGrowthStage.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  157    Access to an undefined property                                        
+         App\Models\PlantingStage::$riceGrowthStage.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/RiceOrder.php                                                   
+ ------ ----------------------------------------------------------------------- 
+  196    Call to an undefined method                                            
+         Illuminate\Database\Eloquent\Model::releaseQuantity().                 
+         🪪  method.notFound                                                    
+  257    Strict comparison using === between                                    
+         'cancelled'|'confirmed'|'delivered'|'pending'|'processing'|'refunded'  
+         |'shipped' and 'ready_for_pickup' will always evaluate to false.       
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  296    Match arm comparison between 'truck' and 'truck' is always true.       
+         🪪  match.alwaysTrue                                                   
+         💡  Remove remaining cases below this one and this error will          
+         disappear too.                                                         
+  308    Strict comparison using === between                                    
+         'cancelled'|'confirmed'|'delivered'|'pending'|'processing'|'refunded'  
+         |'shipped' and 'picked_up' will always evaluate to false.              
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  321    Strict comparison using === between                                    
+         'cancelled'|'confirmed'|'delivered'|'pending'|'processing'|'refunded'  
+         |'shipped' and 'picked_up' will always evaluate to false.              
+         🪪  identical.alwaysFalse                                              
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/Sale.php                                                        
+ ------ ----------------------------------------------------------------------- 
+  85     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$planting.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  93     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$planting.                         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ---------------------------------------------------------------------- 
+  Line   Models/Task.php                                                       
+ ------ ---------------------------------------------------------------------- 
+  116    Method App\Models\Task::daysUntilDue() should return int but returns  
+         float.                                                                
+         🪪  return.type                                                       
+ ------ ---------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Models/User.php                                                        
+ ------ ----------------------------------------------------------------------- 
+  19     PHPDoc type array<int, string> of property App\Models\User::$fillable  
+          is not covariant with PHPDoc type list<string> of overridden propert  
+         y Illuminate\Database\Eloquent\Model::$fillable.                       
+         🪪  property.phpDocType                                                
+         💡  You can fix 3rd party PHPDoc types with stub files:                
+         💡  https://phpstan.org/user-guide/stub-files                          
+  40     PHPDoc type array<int, string> of property App\Models\User::$hidden i  
+         s not covariant with PHPDoc type list<string> of overridden property   
+         Illuminate\Database\Eloquent\Model::$hidden.                           
+         🪪  property.phpDocType                                                
+         💡  You can fix 3rd party PHPDoc types with stub files:                
+         💡  https://phpstan.org/user-guide/stub-files                          
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ------------------------------------------------------------------ 
+  Line   Models/WeatherLog.php                                             
+ ------ ------------------------------------------------------------------ 
+  79     Match arm comparison between 'foggy' and 'foggy' is always true.  
+         🪪  match.alwaysTrue                                              
+         💡  Remove remaining cases below this one and this error will     
+         disappear too.                                                    
+ ------ ------------------------------------------------------------------ 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/ColorfulCloudsWeatherService.php                              
+ ------ ----------------------------------------------------------------------- 
+  223    Negated boolean expression is always false.                            
+         🪪  booleanNot.alwaysFalse                                             
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/FinancialService.php                                          
+ ------ ----------------------------------------------------------------------- 
+  55     Relation 'planting' is not found in App\Models\Expense model.          
+         🪪  larastan.relationExistence                                         
+  288    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$sales.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  296    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$size_hectares.                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  444    Relation 'planting' is not found in App\Models\Expense model.          
+         🪪  larastan.relationExistence                                         
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/LaborService.php                                              
+ ------ ----------------------------------------------------------------------- 
+  165    Access to an undefined property                                        
+         App\Models\Laborer|Illuminate\Database\Eloquent\Collection<int, App\M  
+         odels\Laborer>::$is_active.                                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/MarketplaceService.php                                        
+ ------ ----------------------------------------------------------------------- 
+  21     Relation 'user' is not found in App\Models\InventoryItem model.        
+         🪪  larastan.relationExistence                                         
+  53     Access to an undefined property App\Models\InventoryItem::$user.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  54     Access to an undefined property App\Models\InventoryItem::$user.       
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  142    Access to an undefined property                                        
+         App\Models\Order|Illuminate\Database\Eloquent\Collection<int, App\Mod  
+         els\Order>::$farmer_id.                                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  246    Relation 'user' is not found in App\Models\InventoryItem model.        
+         🪪  larastan.relationExistence                                         
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/OnboardingService.php                                         
+ ------ ----------------------------------------------------------------------- 
+  88     Access to an undefined property                                        
+         App\Models\User|Illuminate\Database\Eloquent\Collection<int, App\Mode  
+         ls\User>::$onboarding_data.                                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  110    Access to an undefined property                                        
+         App\Models\User|Illuminate\Database\Eloquent\Collection<int, App\Mode  
+         ls\User>::$onboarding_completed_at.                                    
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/ReportService.php                                             
+ ------ ----------------------------------------------------------------------- 
+  214    Relation 'planting' is not found in App\Models\Expense model.          
+         🪪  larastan.relationExistence                                         
+  263    Access to an undefined property App\Models\Harvest::$yield_kg.         
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  338    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$field.                            
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  463    Relation 'planting' is not found in App\Models\Expense model.          
+         🪪  larastan.relationExistence                                         
+  491    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$id.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  497    Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$id.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+ ------ ----------------------------------------------------------------------- 
+
+ ------ ---------------------------------------------------------------------- 
+  Line   Services/TwilioService.php                                            
+ ------ ---------------------------------------------------------------------- 
+  25     Instantiated class Twilio\Rest\Client not found.                      
+         🪪  class.notFound                                                    
+         💡  Learn more at https://phpstan.org/user-guide/discovering-symbols  
+ ------ ---------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------- 
+  Line   Services/WeatherAnalyticsService.php                                   
+ ------ ----------------------------------------------------------------------- 
+  57     Parameter #1 $field of method                                          
+         App\Services\WeatherAnalyticsService::calculateFieldSuitabilityScore(  
+         ) expects App\Models\Field, Illuminate\Database\Eloquent\Model given.  
+         🪪  argument.type                                                      
+  60     Access to an undefined property                                        
+         Illuminate\Database\Eloquent\Model::$id.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  116    Deprecated in PHP 8.4: Parameter #2 $plantingId (int) is implicitly    
+         nullable via default value null.                                       
+         🪪  parameter.implicitlyNullable                                       
+  213    Deprecated in PHP 8.4: Parameter #2 $soilMoistureLevel (float) is      
+         implicitly nullable via default value null.                            
+         🪪  parameter.implicitlyNullable                                       
+  213    Deprecated in PHP 8.4: Parameter #3 $cropStage (string) is implicitly  
+         nullable via default value null.                                       
+         🪪  parameter.implicitlyNullable                                       
+  346    Method App\Services\WeatherAnalyticsService::compareWeatherPeriods()   
+         is unused.                                                             
+         🪪  method.unused                                                      
+  376    Access to an undefined property                                        
+         App\Models\WeatherLog::$total_readings.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  389    Access to an undefined property                                        
+         App\Models\WeatherLog::$avg_temperature.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  390    Access to an undefined property                                        
+         App\Models\WeatherLog::$min_temperature.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  391    Access to an undefined property                                        
+         App\Models\WeatherLog::$max_temperature.                               
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  392    Access to an undefined property App\Models\WeatherLog::$avg_humidity.  
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  393    Access to an undefined property                                        
+         App\Models\WeatherLog::$avg_wind_speed.                                
+         🪪  property.notFound                                                  
+         💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
+         efined-property                                                        
+  594    Variable $conditionCounts in empty() always exists and is not falsy.   
+         🪪  empty.variable                                                     
+  608    Variable $overallConditionCounts in empty() always exists and is not   
+         falsy.                                                                 
+         🪪  empty.variable                                                     
+  780    Strict comparison using !== between numeric-string and null will       
+         always evaluate to true.                                               
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  783    Strict comparison using !== between numeric-string and null will       
+         always evaluate to true.                                               
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  786    Strict comparison using !== between numeric-string and null will       
+         always evaluate to true.                                               
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Because the type is coming from a PHPDoc, you can turn off this    
+         check by setting treatPhpDocTypesAsCertain: false in your phpstan.neo  
+         n.                                                                     
+  808    Offset 'temperature' on array{temperature: non-empty-list<numeric-str  
+         ing>, rainfall: non-empty-list<numeric-string>, humidity: non-empty-l  
+         ist<numeric-string>} in empty() always exists and is not falsy.        
+         🪪  empty.offset                                                       
+  818    Variable $tempVariances in empty() always exists and is not falsy.     
+         🪪  empty.variable                                                     
+  826    Offset 'temperature' on array{temperature: non-empty-list<numeric-str  
+         ing>, rainfall: non-empty-list<numeric-string>, humidity: non-empty-l  
+         ist<numeric-string>} in empty() always exists and is not falsy.        
+         🪪  empty.offset                                                       
+  827    Offset 'rainfall' on array{temperature: non-empty-list<numeric-string  
+         >, rainfall: non-empty-list<numeric-string>, humidity: non-empty-list  
+         <numeric-string>} in empty() always exists and is not falsy.           
+         🪪  empty.offset                                                       
+  828    Offset 'humidity' on array{temperature: non-empty-list<numeric-string  
+         >, rainfall: non-empty-list<numeric-string>, humidity: non-empty-list  
+         <numeric-string>} in empty() always exists and is not falsy.           
+         🪪  empty.offset                                                       
+  973    Variable $planting on left side of ?? is never defined.                
+         🪪  nullCoalesce.variable                                              
+  1669   Offset 'suitability_score' on array{month: mixed, suitability_score:   
+         mixed, status: 'good'|'optimal', recommendation: mixed} on left side   
+         of ?? always exists and is not nullable.                               
+         🪪  nullCoalesce.offset                                                
+  1669   Offset 'suitability_score' on array{month: mixed, suitability_score:   
+         mixed, status: 'good'|'optimal', recommendation: mixed} on left side   
+         of ?? always exists and is not nullable.                               
+         🪪  nullCoalesce.offset                                                
+  2460   Left side of && is always true.                                        
+         🪪  booleanAnd.leftAlwaysTrue                                          
+  3252   Strict comparison using !== between mixed and null will always         
+         evaluate to true.                                                      
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Type null has already been eliminated from mixed.                  
+  3253   Strict comparison using !== between mixed and null will always         
+         evaluate to true.                                                      
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Type null has already been eliminated from mixed.                  
+  3349   Strict comparison using !== between mixed and null will always         
+         evaluate to true.                                                      
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Type null has already been eliminated from mixed.                  
+  3350   Strict comparison using !== between mixed and null will always         
+         evaluate to true.                                                      
+         🪪  notIdentical.alwaysTrue                                            
+         💡  Type null has already been eliminated from mixed.                  
+ ------ ----------------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------------- 
+  Line   Services/WeatherService.php                                   
+ ------ -------------------------------------------------------------- 
+  832    Comparison operation ">=" between 30 and 40 is always false.  
+         🪪  greaterOrEqual.alwaysFalse                                
+ ------ -------------------------------------------------------------- 
+
+ [ERROR] Found 295 errors                                                       
+

@@ -267,13 +267,37 @@ const inventorySeeds = computed(() => inventoryStore.riceSeeds);
 const submit = async () => {
   submitting.value = true;
   
+  // Frontend Validation
+  if (form.value.expected_transplant_date && form.value.planting_date) {
+      const start = new Date(form.value.planting_date);
+      const end = new Date(form.value.expected_transplant_date);
+      
+      if (end <= start) {
+          alert("Expected transplant date must be after the planting date.");
+          submitting.value = false;
+          return;
+      }
+
+      if (end.getFullYear() < 2020 || start.getFullYear() < 2020) {
+          alert("Please check the dates. The year looks incorrect (before 2020).");
+          submitting.value = false;
+          return;
+      }
+  }
+
   try {
     const id = route.params.id;
     await axios.put(`/api/seed-plantings/${id}`, form.value);
     router.push('/seed-plantings');
   } catch (error) {
     console.error('Error updating seed planting:', error);
-    alert('Failed to update record. Please check the inputs.');
+    if (error.response && error.response.data && error.response.data.errors) {
+        // Format backend errors
+        const errors = Object.values(error.response.data.errors).flat().join('\n');
+        alert(`Failed to update:\n${errors}`);
+    } else {
+        alert('Failed to update record. Please check the inputs.');
+    }
   } finally {
     submitting.value = false;
   }
@@ -324,12 +348,7 @@ const fetchPlanting = async () => {
             notes: data.notes
         };
         
-        // Calculate suggestion based on fetched data
-        if (form.value.planting_date) {
-             const date = new Date(form.value.planting_date);
-             date.setDate(date.getDate() + 18);
-             suggestedTransplantDate.value = date.toISOString().split('T')[0];
-        }
+        updateSuggestion();
 
     } catch (error) {
         console.error("Error fetching planting:", error);
@@ -339,6 +358,19 @@ const fetchPlanting = async () => {
         loading.value = false;
     }
 }
+
+const updateSuggestion = () => {
+    if (form.value.planting_date) {
+         const date = new Date(form.value.planting_date);
+         
+         // Basic logic: +18 days usually. 
+         // Could check variety duration if we had that metadata fully loaded
+         date.setDate(date.getDate() + 18);
+         suggestedTransplantDate.value = date.toISOString().split('T')[0];
+    }
+}
+
+watch(() => form.value.planting_date, updateSuggestion);
 
 onMounted(async () => {
   await Promise.all([
