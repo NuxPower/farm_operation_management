@@ -14,5 +14,8 @@ php artisan event:cache
 # but for simple setups, you can uncomment this.
 # php artisan migrate --force
 
+# Configure Nginx PORT
+sed -i "s/listen 8080;/listen ${PORT:-8080};/g" /etc/nginx/sites-available/default
+
 # Start Docker
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
