@@ -56,7 +56,6 @@ class AuthController extends Controller
             'role' => $role,
             'phone' => $request->phone,
             'address' => $request->address,
-            'approval_status' => 'pending',
             'verification_code' => $verificationCode,
         ]);
 

@@ -360,4 +360,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+    // Buyer management routes
+    Route::middleware('farmer')->prefix('buyers')->group(function () {
+        Route::get('/', [\App\Http\Controllers\MarketPlace\BuyerController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\MarketPlace\BuyerController::class, 'store']);
+        Route::get('/{buyer}', [\App\Http\Controllers\MarketPlace\BuyerController::class, 'show']);
+        Route::put('/{buyer}', [\App\Http\Controllers\MarketPlace\BuyerController::class, 'update']);
+        Route::delete('/{buyer}', [\App\Http\Controllers\MarketPlace\BuyerController::class, 'destroy']);
+        Route::get('/{buyer}/sales-history', [\App\Http\Controllers\MarketPlace\BuyerController::class, 'salesHistory']);
+    });
+
 });

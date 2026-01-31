@@ -93,7 +93,7 @@
   47     Parameter #1 $string of function str_pad expects string, int<0,  
          999999> given.                                                   
          🪪  argument.type                                                
-  295    If condition is always true.                                     
+  294    If condition is always true.                                     
          🪪  if.alwaysTrue                                                
  ------ ----------------------------------------------------------------- 
 
@@ -1026,25 +1026,25 @@
  ------ ----------------------------------------------------------------------- 
   Line   Http/Controllers/Weather/WeatherHistoryController.php                  
  ------ ----------------------------------------------------------------------- 
-  219    Access to an undefined property App\Models\WeatherLog::$date.          
+  217    Access to an undefined property App\Models\WeatherLog::$date.          
          🪪  property.notFound                                                  
          💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
          efined-property                                                        
-  231    Access to an undefined property App\Models\WeatherLog::$date.          
+  229    Access to an undefined property App\Models\WeatherLog::$date.          
          🪪  property.notFound                                                  
          💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
          efined-property                                                        
-  243    Access to an undefined property App\Models\WeatherLog::$date.          
+  241    Access to an undefined property App\Models\WeatherLog::$date.          
          🪪  property.notFound                                                  
          💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
          efined-property                                                        
-  255    Access to an undefined property App\Models\WeatherLog::$date.          
+  253    Access to an undefined property App\Models\WeatherLog::$date.          
          🪪  property.notFound                                                  
          💡  Learn more: https://phpstan.org/blog/solving-phpstan-access-to-und  
          efined-property                                                        
-  262    Parameter #1 $array of function usort contains unresolvable type.      
+  260    Parameter #1 $array of function usort contains unresolvable type.      
          🪪  argument.unresolvableType                                          
-  262    Parameter #2 $callback of function usort contains unresolvable type.   
+  260    Parameter #2 $callback of function usort contains unresolvable type.   
          🪪  argument.unresolvableType                                          
  ------ ----------------------------------------------------------------------- 
 

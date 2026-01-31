@@ -253,9 +253,59 @@
                 </select>
               </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Buyer Name (Optional)</label>
-              <input v-model="form.buyer_name" type="text" placeholder="Enter buyer name" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            <!-- Buyer Section -->
+            <div class="border-t border-b py-4 my-2 border-gray-100">
+              <div class="flex justify-between items-center mb-2">
+                <label class="block text-sm font-medium text-gray-700">Buyer *</label>
+                <button 
+                  type="button" 
+                  @click="showNewBuyerForm = !showNewBuyerForm"
+                  class="text-xs text-green-600 hover:text-green-800 font-medium"
+                >
+                  {{ showNewBuyerForm ? 'Select Existing Buyer' : '+ Create New Buyer' }}
+                </button>
+              </div>
+
+              <!-- Select Existing Buyer -->
+              <div v-if="!showNewBuyerForm">
+                <select v-model="form.buyer_id" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  <option value="">Select a buyer</option>
+                  <option v-for="buyer in buyers" :key="buyer.id" :value="buyer.id">
+                    {{ buyer.name }}
+                  </option>
+                </select>
+                <p v-if="buyers.length === 0" class="text-xs text-gray-500 mt-1">
+                  No buyers found. Create a new one.
+                </p>
+                <p v-if="errors.buyer_id" class="text-xs text-red-600 mt-1">{{ errors.buyer_id[0] }}</p>
+              </div>
+
+              <!-- Create New Buyer Form -->
+              <div v-else class="space-y-3 bg-gray-50 p-3 rounded-md">
+                 <div>
+                   <label class="block text-xs font-medium text-gray-700 mb-1">Name *</label>
+                   <input v-model="newBuyerForm.name" type="text" placeholder="Buyer Name" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+                 </div>
+                 <div class="grid grid-cols-2 gap-3">
+                   <div>
+                     <label class="block text-xs font-medium text-gray-700 mb-1">Phone *</label>
+                     <input v-model="newBuyerForm.phone" type="text" placeholder="Phone Number" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+                   </div>
+                   <div>
+                     <label class="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                     <select v-model="newBuyerForm.type" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                       <option value="individual">Individual</option>
+                       <option value="business">Business</option>
+                       <option value="wholesaler">Wholesaler</option>
+                       <option value="retailer">Retailer</option>
+                     </select>
+                   </div>
+                 </div>
+                 <div>
+                   <label class="block text-xs font-medium text-gray-700 mb-1">Address</label>
+                   <input v-model="newBuyerForm.address" type="text" placeholder="Address" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
+                 </div>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
@@ -285,6 +335,8 @@ const submitting = ref(false)
 const showModal = ref(false)
 const sales = ref([])
 const harvests = ref([])
+const buyers = ref([])
+const showNewBuyerForm = ref(false)
 const summary = ref({
   total_sales: 0,
   total_quantity: 0,
@@ -305,8 +357,15 @@ const form = ref({
   sale_date: new Date().toISOString().split('T')[0],
   payment_method: 'cash',
   payment_status: 'paid',
-  buyer_name: '',
+  buyer_id: '',
   notes: ''
+})
+
+const newBuyerForm = ref({
+  name: '',
+  phone: '',
+  type: 'individual',
+  address: ''
 })
 
 // Validation errors
@@ -383,6 +442,15 @@ const fetchHarvests = async () => {
   }
 }
 
+const fetchBuyers = async () => {
+  try {
+    const response = await axios.get('/api/buyers')
+    buyers.value = response.data.buyers || response.data || []
+  } catch (error) {
+    console.error('Failed to fetch buyers:', error)
+  }
+}
+
 const openSaleModal = () => {
   form.value = {
     harvest_id: '',
@@ -391,11 +459,19 @@ const openSaleModal = () => {
     sale_date: new Date().toISOString().split('T')[0],
     payment_method: 'cash',
     payment_status: 'paid',
-    buyer_name: '',
+    buyer_id: '',
     notes: ''
   }
+  newBuyerForm.value = {
+    name: '',
+    phone: '',
+    type: 'individual',
+    address: ''
+  }
+  showNewBuyerForm.value = false
   errors.value = {}
   fetchHarvests()
+  fetchBuyers()
   showModal.value = true
 }
 
@@ -404,9 +480,50 @@ const submitSale = async () => {
   errors.value = {}
   
   try {
+    let buyerId = form.value.buyer_id
+    
+    // If creating a new buyer
+    if (showNewBuyerForm.value) {
+      // Validate new buyer form slightly
+      if (!newBuyerForm.value.name) {
+        errors.value = { 'buyer_id': ['Buyer name is required'] }
+        submitting.value = false
+        return
+      }
+      
+      try {
+        const buyerRes = await axios.post('/api/buyers', {
+          ...newBuyerForm.value,
+          status: 'active'
+        })
+        buyerId = buyerRes.data.buyer.id
+        // Add to list so it's available next time
+        buyers.value.push(buyerRes.data.buyer)
+      } catch (buyerError) {
+        console.error('Failed to create buyer:', buyerError)
+        if (buyerError.response?.status === 422) {
+           // Map buyer errors to general errors or specific field errors
+           const buyerErrors = buyerError.response.data.errors || {}
+           // Prefix keys to avoid collision or just show alert
+           let errorMsg = 'Failed to create buyer: ' + (buyerError.response.data.message || 'Validation failed')
+           alert(errorMsg)
+           errors.value = buyerErrors
+           submitting.value = false
+           return
+        }
+        throw new Error('Failed to create new buyer')
+      }
+    }
+    
+    if (!buyerId) {
+       alert('Please select or create a buyer')
+       submitting.value = false
+       return
+    }
+
     await axios.post('/api/sales', {
       harvest_id: form.value.harvest_id,
-      buyer_id: 1, // Placeholder - ideally would create/select buyer
+      buyer_id: buyerId,
       quantity: form.value.quantity,
       unit_price: form.value.unit_price,
       total_amount: computedTotal.value,

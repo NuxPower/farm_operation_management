@@ -50,7 +50,7 @@
                 :class="getStatusBadgeClass(order.status)"
                 class="px-3 py-1 text-sm font-medium rounded-full"
               >
-                {{ order.status }}
+                {{ formatStatus(order.status) }}
               </span>
               <span class="text-sm text-gray-600">
                 Last updated: {{ formatDate(order.updated_at) }}
@@ -268,10 +268,10 @@
               <div class="flex justify-between">
                 <span class="text-gray-600">Payment Status:</span>
                 <span
-                  :class="order.payment_status === 'paid' ? 'text-green-600' : 'text-yellow-600'"
+                  :class="getPaymentStatusColor(order)"
                   class="font-medium"
                 >
-                  {{ order.payment_status || 'pending' }}
+                  {{ getPaymentStatusLabel(order) }}
                 </span>
               </div>
             </div>
@@ -317,7 +317,7 @@
                   {{ processing ? 'Processing...' : '✓ Confirm Pickup' }}
                 </button>
                 <button
-                  v-if="order.payment_status !== 'paid' && isFarmer && order.status !== 'cancelled'"
+                  v-if="order.payment_status !== 'paid' && isFarmer && ['confirmed', 'ready_for_pickup', 'picked_up'].includes(order.status)"
                   @click="markAsPaid"
                   :disabled="processing"
                   class="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
@@ -545,6 +545,32 @@ const formatDate = (date) => {
 const formatDateTime = (date) => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleString()
+}
+
+const formatStatus = (status) => {
+  if (!status) return ''
+  const labels = {
+    negotiating: 'Negotiating',
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    ready_for_pickup: 'Ready for Pickup',
+    picked_up: 'Picked Up',
+    cancelled: 'Cancelled',
+    disputed: 'Disputed'
+  }
+  return labels[status] || status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}
+
+const getPaymentStatusLabel = (order) => {
+  if (order.payment_status === 'paid') return 'Paid'
+  if (order.status === 'cancelled') return 'Cancelled'
+  return formatStatus(order.payment_status || 'pending')
+}
+
+const getPaymentStatusColor = (order) => {
+  if (order.payment_status === 'paid') return 'text-green-600'
+  if (order.status === 'cancelled') return 'text-red-600'
+  return 'text-yellow-600'
 }
 
 const orderTimeline = computed(() => {

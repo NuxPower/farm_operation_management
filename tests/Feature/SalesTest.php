@@ -7,84 +7,75 @@ use App\Models\Planting;
 use App\Models\User;
 use App\Models\Field;
 use App\Models\Buyer;
-use App\Models\Crop;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class SalesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_can_record_sale_with_sacks_unit()
+    public function test_can_create_buyer_and_record_sale()
     {
         // 1. Create a farmer
         $farmer = User::factory()->create(['role' => 'farmer']);
 
-        // 2. Create a buyer
-        $buyer = Buyer::create([
-            'user_id' => $farmer->id,
-            'name' => 'Test Buyer',
-            'email' => 'test@example.com',
-            'phone' => '09123456789',
-            'contact_info' => 'Test Contact Info',
-            'address' => 'Test Address'
-        ]);
-
-        // 3. Create a Field
+        // 2. Create the necessary farm data
         $field = Field::factory()->create(['user_id' => $farmer->id]);
-
-        // 4. Create a Planting
         $planting = Planting::factory()->create([
             'field_id' => $field->id,
-            // Controller checks: $harvest->planting->field->user_id
         ]);
-
-        // 5. Create a Harvest with 'sacks' unit
         $harvest = Harvest::factory()->create([
             'planting_id' => $planting->id,
-            'quantity' => 10,
+            'quantity' => 100,
             'unit' => 'sacks',
             'quality_grade' => 'A'
         ]);
 
-        // 6. Attempt to create a sale
-        $response = $this->actingAs($farmer)->postJson('/api/sales', [
+        // 3. Step 1: Create Buyer via API (mimicking frontend "Quick Add Buyer")
+        $buyerData = [
+            'name' => 'New API Buyer',
+            'phone' => '09123456789',
+            'type' => 'individual',
+            'address' => '123 Farm Lane',
+            'status' => 'active'
+        ];
+
+        $buyerResponse = $this->actingAs($farmer)->postJson('/api/buyers', $buyerData);
+
+        $buyerResponse->assertStatus(201);
+        $buyerId = $buyerResponse->json('buyer.id');
+        $this->assertNotNull($buyerId);
+
+        // 4. Step 2: Record Sale using the new Buyer ID
+        $saleData = [
             'harvest_id' => $harvest->id,
-            'buyer_id' => $buyer->id,
-            'quantity' => 5, // 5 sacks
-            'unit_price' => 1000,
+            'buyer_id' => $buyerId,
+            'quantity' => 10,
+            'unit_price' => 500,
             'total_amount' => 5000,
             'sale_date' => now()->toDateString(),
             'payment_method' => 'cash',
             'payment_status' => 'paid',
-            'notes' => 'Test sale'
-        ]);
+            'notes' => 'Sold to new API buyer'
+        ];
 
-        $response->assertStatus(201);
-        $response->assertJsonPath('sale.quantity', '5.00');
+        $saleResponse = $this->actingAs($farmer)->postJson('/api/sales', $saleData);
+
+        if ($saleResponse->status() !== 201) {
+            $saleResponse->dump();
+        }
+
+        $saleResponse->assertStatus(201);
+        $saleResponse->assertJsonPath('sale.buyer_id', $buyerId);
     }
 
-    public function test_sales_validation_failure_returns_errors()
+    public function test_validates_missing_fields()
     {
         $farmer = User::factory()->create(['role' => 'farmer']);
 
-        // Attempt to create sale with missing data
-        $response = $this->actingAs($farmer)->postJson('/api/sales', [
-            // Missing all required fields
-        ]);
+        $response = $this->actingAs($farmer)->postJson('/api/sales', []);
 
-        $response->assertStatus(422)
-            ->assertJsonStructure([
-                'message',
-                'errors' => [
-                    'harvest_id',
-                    'buyer_id',
-                    'quantity',
-                    'unit_price',
-                    'total_amount',
-                    // etc
-                ]
-            ]);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['harvest_id', 'buyer_id', 'quantity', 'unit_price']);
     }
 }

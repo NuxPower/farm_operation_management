@@ -16,20 +16,20 @@ class BuyerController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         $query = Buyer::where('user_id', $user->id);
-        
+
         // Apply filters
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-        
+
         if ($request->has('type')) {
             $query->where('type', $request->type);
         }
-        
+
         $buyers = $query->orderBy('name')->get();
-        
+
         return response()->json([
             'buyers' => $buyers
         ]);
@@ -65,6 +65,7 @@ class BuyerController extends Controller
             'contact_person' => $request->contact_person,
             'email' => $request->email,
             'phone' => $request->phone,
+            'contact_info' => $request->phone, // Map phone to required contact_info
             'address' => $request->address,
             'type' => $request->type,
             'status' => $request->status,
@@ -86,7 +87,7 @@ class BuyerController extends Controller
     public function show(Request $request, Buyer $buyer): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($buyer->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -106,7 +107,7 @@ class BuyerController extends Controller
     public function update(Request $request, Buyer $buyer): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($buyer->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -133,10 +134,24 @@ class BuyerController extends Controller
             ], 422);
         }
 
-        $buyer->update($request->only([
-            'name', 'contact_person', 'email', 'phone', 'address',
-            'type', 'status', 'payment_terms', 'credit_limit', 'notes'
-        ]));
+        $data = $request->only([
+            'name',
+            'contact_person',
+            'email',
+            'phone',
+            'address',
+            'type',
+            'status',
+            'payment_terms',
+            'credit_limit',
+            'notes'
+        ]);
+
+        if ($request->has('phone')) {
+            $data['contact_info'] = $request->phone;
+        }
+
+        $buyer->update($data);
 
         return response()->json([
             'message' => 'Buyer updated successfully',
@@ -150,7 +165,7 @@ class BuyerController extends Controller
     public function destroy(Request $request, Buyer $buyer): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($buyer->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -170,7 +185,7 @@ class BuyerController extends Controller
     public function salesHistory(Request $request, Buyer $buyer): JsonResponse
     {
         $user = $request->user();
-        
+
         if ($buyer->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized access'
@@ -178,11 +193,11 @@ class BuyerController extends Controller
         }
 
         $query = $buyer->sales();
-        
+
         if ($request->has('date_from')) {
             $query->where('sale_date', '>=', $request->date_from);
         }
-        
+
         if ($request->has('date_to')) {
             $query->where('sale_date', '<=', $request->date_to);
         }
