@@ -1043,34 +1043,33 @@ composer run dev
 | POST | `/api/login` | User login (returns Sanctum token) |
 | POST | `/api/logout` | Revoke token |
 
-### Farmer Routes (`/api/farmer/*`)
+### Farmer Routes (Protected: `auth:sanctum`, `farmer`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/farms` | List user's farms |
-| POST | `/farms` | Create farm |
-| GET | `/fields` | List fields |
-| POST | `/fields` | Create field |
-| GET | `/plantings` | List plantings |
-| POST | `/plantings` | Create planting |
-| GET | `/harvests` | List harvests |
-| POST | `/harvests` | Record harvest |
-| GET | `/inventory` | List inventory items |
-| POST | `/inventory` | Add inventory item |
-| GET | `/tasks` | List tasks |
-| POST | `/tasks` | Create task |
-| POST | `/tasks/{id}/complete` | Mark task complete |
+| GET | `/api/farmer/profile` | Get farmer profile |
+| GET | `/api/fields` | List fields |
+| POST | `/api/fields` | Create field |
+| GET | `/api/plantings` | List plantings |
+| POST | `/api/plantings` | Create planting |
+| GET | `/api/harvests` | List harvests |
+| POST | `/api/harvests` | Record harvest |
+| GET | `/api/inventory` | List inventory items |
+| POST | `/api/inventory` | Add inventory item |
+| GET | `/api/tasks` | List tasks |
+| POST | `/api/tasks` | Create task |
+| POST | `/api/tasks/{id}/complete` | Mark task complete |
 
-### Marketplace Routes (`/api/marketplace/*`)
+### Marketplace Routes (Protected: `auth:sanctum`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/products` | List available products |
-| POST | `/products` | Create product listing |
-| GET | `/cart` | View cart |
-| POST | `/cart/add` | Add to cart |
-| POST | `/cart/checkout` | Place order |
-| GET | `/orders` | List orders |
-| POST | `/orders/{id}/accept` | Accept order (farmer) |
-| POST | `/orders/{id}/ready` | Mark ready for pickup |
+| GET | `/api/rice-marketplace/products` | List available products |
+| POST | `/api/rice-marketplace/products` | Create product (Farmer only) |
+| GET | `/api/rice-marketplace/cart` | View cart |
+| POST | `/api/rice-marketplace/cart` | Add item to cart |
+| POST | `/api/rice-marketplace/cart/checkout` | Place order |
+| GET | `/api/rice-marketplace/orders` | List orders (Buyer/Farmer) |
+| POST | `/api/rice-marketplace/orders/{id}/accept` | Accept order (Farmer) |
+| POST | `/api/rice-marketplace/orders/{id}/ready-for-pickup` | Mark ready (Farmer) |
 
 ---
 
