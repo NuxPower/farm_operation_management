@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\RiceOrder;
-use App\Services\SmsService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -27,7 +26,7 @@ class SendPreOrderNotifications extends Command
     /**
      * Execute the console command.
      */
-    public function handle(SmsService $smsService)
+    public function handle()
     {
         $this->info('Starting pre-order notification process...');
 
@@ -45,27 +44,25 @@ class SendPreOrderNotifications extends Command
                 // Check if product is now available
                 if ($order->riceProduct->production_status === 'available' && !$order->notification_sent_available) {
                     // Product is now available, send notification
-                    if ($smsService->sendPreOrderAvailableNotification($order)) {
-                        $order->update(['notification_sent_available' => true]);
-                        $availableNotificationsSent++;
-                        $this->info("Sent available notification for order #{$order->id}");
-                    }
+                    \Illuminate\Support\Facades\Mail::to($order->buyer->email)->send(new \App\Mail\PreOrderAvailableMail($order));
+                    $order->update(['notification_sent_available' => true]);
+                    $availableNotificationsSent++;
+                    $this->info("Sent available notification for order #{$order->id}");
                 }
 
                 // Check if we need to send day-before notification
                 $availableDate = $order->available_date ?? $order->expected_delivery_date;
-                
+
                 if ($availableDate && !$order->notification_sent_day_before) {
                     $tomorrow = Carbon::tomorrow();
                     $availableDateCarbon = Carbon::parse($availableDate);
 
                     // Send notification if available date is tomorrow
                     if ($availableDateCarbon->isSameDay($tomorrow)) {
-                        if ($smsService->sendDayBeforePickupNotification($order)) {
-                            $order->update(['notification_sent_day_before' => true]);
-                            $dayBeforeNotificationsSent++;
-                            $this->info("Sent day-before notification for order #{$order->id}");
-                        }
+                        \Illuminate\Support\Facades\Mail::to($order->buyer->email)->send(new \App\Mail\OrderPickupReminderMail($order));
+                        $order->update(['notification_sent_day_before' => true]);
+                        $dayBeforeNotificationsSent++;
+                        $this->info("Sent day-before notification for order #{$order->id}");
                     }
                 }
             } catch (\Exception $e) {

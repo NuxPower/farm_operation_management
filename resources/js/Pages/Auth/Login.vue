@@ -188,6 +188,7 @@ const handleLogin = async () => {
     // Assuming the store handles role-based redirection
     // e.g., if (user.role === 'farmer') push('/admin') else push('/shop')
     await authStore.login(form.value);
+    router.push('/dashboard');
   } catch (error) {
     console.error('Login error:', error);
   }

@@ -255,6 +255,13 @@ class TaskController extends Controller
         if (!empty($data)) {
             $task->fill($data);
             $task->save();
+
+            // Check if status was changed to completed
+            if ($task->wasChanged('status') && $task->status === Task::STATUS_COMPLETED) {
+
+                // Create labor expenses
+                $this->createLaborExpensesForTask($task, $user);
+            }
         }
 
         $task->load(['planting.field', 'laborer', 'laborerGroup']);
@@ -450,6 +457,7 @@ class TaskController extends Controller
                 'notes' => "Auto-generated from task completion. Task ID: {$task->id}, Laborer: {$laborer->name}",
                 'related_entity_type' => \App\Models\Expense::ENTITY_TYPE_TASK,
                 'related_entity_id' => $task->id,
+                'planting_id' => $task->planting_id, // Link to planting for reports
             ]);
 
             $expenses[] = [

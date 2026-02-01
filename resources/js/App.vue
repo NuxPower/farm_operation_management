@@ -7,7 +7,7 @@
       </template>
 
       <!-- Main Application with Sidebar -->
-      <template v-else>
+      <template v-else-if="authStore.user && !route.meta.requiresGuest">
         <Sidebar>
           <ErrorBoundary>
             <router-view />
@@ -64,13 +64,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import Sidebar from '@/components/Navigation/Sidebar.vue';
 import ErrorBoundary from '@/Components/UI/ErrorBoundary.vue';
 import ToastContainer from '@/Components/UI/ToastContainer.vue';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const loading = ref(false);

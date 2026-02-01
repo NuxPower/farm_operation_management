@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Services\SemaphoreService;
 
 class VerificationController extends Controller
 {
@@ -55,18 +54,10 @@ class VerificationController extends Controller
     public function resend(Request $request)
     {
         $request->validate([
-            'phone' => 'required_without:email|nullable|string',
-            'email' => 'required_without:phone|nullable|string|email',
-            'method' => 'nullable|string|in:sms,email',
+            'email' => 'required|string|email',
         ]);
 
-        // Find user by phone or email
-        $user = null;
-        if ($request->phone) {
-            $user = User::where('phone', $request->phone)->first();
-        } elseif ($request->email) {
-            $user = User::where('email', $request->email)->first();
-        }
+        $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
@@ -76,26 +67,14 @@ class VerificationController extends Controller
         $user->verification_code = $verificationCode;
         $user->save();
 
-        // Send via SMS or Email based on method
-        $method = $request->input('method') ?? ($request->phone ? 'sms' : 'email');
-
-        if ($method === 'sms' && $user->phone) {
-            try {
-                $semaphore = new SemaphoreService();
-                $semaphore->sendSMS($user->phone, "Your RiceFARM verification code is: {$verificationCode}");
-                return response()->json(['message' => 'Verification code sent via SMS']);
-            } catch (\Exception $e) {
-                return response()->json(['message' => 'Failed to send SMS'], 500);
-            }
-        } else {
-            try {
-                \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\VerificationCodeMail($verificationCode));
-                return response()->json(['message' => 'Verification code sent via email']);
-            } catch (\Exception $e) {
-                \Log::error('Failed to resend verification email: ' . $e->getMessage());
-                return response()->json(['message' => 'Failed to send email'], 500);
-            }
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\VerificationCodeMail($verificationCode));
+            return response()->json(['message' => 'Verification code sent via email']);
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend verification email: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to send email'], 500);
         }
     }
 }
+
 
