@@ -260,8 +260,235 @@ All five core project objectives have been **fully achieved** with comprehensive
 
 ---
 
-## 📦 Module Overview
-GEMINI_API_KEY=AIzaSyAza1nNzvd2P47
+## ��️ User Flow Diagram
+
+```text
+       +-------+
+       | Start |
+       +---+---+
+           |
+           v
+    +-------------+
+    | User Login  |
+    +-----+-------+
+          |
+          v
+   +----------------+        No
+   |  Has Account?  |------------------+
+   +------+---------+                  |
+          | Yes                        |
+          v                            v
+ +--------------------+        +---------------+
+ | User Authentication|<-------| Register User |
+ +--------+-----------+        +---------------+
+          |
+          v
+   +--------------+
+   |  Check Role  |
+   +------+-------+
+          |
+          +--------------------------------------+
+          |                                      |
+          v                                      v
+   +--------------+                      +------------------+
+   |     Buyer    |                      |      Farmer      |
+   +------+-------+                      +--------+---------+
+          |                                       |
+          v                                       v
+ +-----------------+                    +--------------------+
+ | Buyer Dashboard |                    |  Farmer Dashboard  |
+ +--------+--------+                    +---------+----------+
+          |                                       |
+          |                                       |
+    +-----+-------+                    +----------+----------------+----------------+----------------+
+    |             |                    |          |                |                |                |
+    v             v                    v          v                v                v                v
++---------+   +-------+           +--------+  +-----------+  +---------+  +----------+  +--------------+
+|  Order  |   | Track |           | Manage |  |   Manage  |  | Manage  |  |  Manage  |  | Manage Sales |
+| Product |   | Order |           |Laborers|  | Plantings |  | Harvest |  | Expenses |  |   & Orders   |
++---------+   +-------+           +--------+  +-----------+  +---------+  +----------+  +--------------+
+```
+
+**Description:**
+The User Flow Diagram visually outlines the application's access control and feature distribution. It begins with **User Authentication**, where the system checks for existing accounts and directs users to registration if needed. Upon successful login, the system identifies the user's role:
+- **Farmers** are directed to a specialized dashboard for managing farm operations, including laborers, plantings, harvests, expenses, and sales.
+- **Buyers** are routed to the marketplace interface to browse products, place orders, and track shipments.
+
+
+---
+
+## � System Context Diagram
+
+```text
+                                     +-------------+
+                                     | Weather API |
+                                     +-------------+
+                                        ^       |
+                           Request Data |       | Weather Data
+                                        |       v
+                    +-----------------------------------------+
+                    |                                         |
+   Manage Laborers  |                                         |  Order Products
+   Crop Details     |       Farm Operations Management        |
+     +--------+     |                 System                  |     +-------+
+     |        |---->|                                         |<----|       |
+     | Farmer |     |                                         |     | Buyer |
+     |        |<----|                                         |---->|       |
+     +--------+     |                                         |     +-------+
+   Sales Reports    |                                         |  Track Order
+   Laborer List     +-----------------------------------------+
+                                         |
+                                         | Activity Schedule
+                                         | Payroll
+                                         v
+                                    +---------+
+                                    | Laborer |
+                                    +---------+
+```
+
+**Description:**
+The System Context Diagram defines the **Farm Operations Management System** as the central entity and illustrates its interactions with external actors:
+- **Farmer (Primary User):** Inputs farm data (labor, crops) and receives actionable reports (Sales, Weather).
+- **Buyer (Secondary User):** Interacts with the marketplace to order products and track status.
+- **Laborer (External Recipient):** Receives outputs such as activity schedules and payroll (managed by the Farmer).
+- **Weather API (External System):** Provides real-time weather data which the system analyzes to generate agronomic alerts.
+
+---
+
+## 🏗️ Level 0 DFD (Fundamental System Diagram)
+
+```text
+                                  +-------------+
+                                  | Weather API |
+                                  +-------------+
+                                         ^
+                                         | 2.1 Weather Data
+                                         v
++--------+  1.1 Farm Data        +---------------+          2.2 Alerts   +--------+
+|        |---------------------->|      2.0      |---------------------->|        |
+| Farmer |  1.2 Scheduling       |    Monitor    |                       | Farmer |
+|        |<----------------------|    Weather    |---------------------->|        |
++---+----+  1.3 Pay Slips        +-------+-------+      2.3 Forecasts    +---+----+
+    |                                    |                                   ^
+    |                                    |                                   |
+    |                                    v                                   |
+    |                            [D2] Weather Logs                           |
+    |                                                                        |
+    |                                                                        |
+    |    +---------------+                                  +---------------+|
+    +--->|      1.0      |          1.4 Crop Status         |      4.0      ||
+    |    |    Manage     |--------------------------------->|    Generate   ||
+    +--->|  Operations   |------------------+               |    Reports    ||
+    |    +-------+-------+   1.5 Expenses   |               +-------+-------+|
+    |            |                          |                       ^        |
+    |            v                          |                       |        |
+    |     [D1] Farm DB (Fields/Labor)       v                       |        |
+    |                                       |                       |        |
+    |                                       v                       |        |
+    v                            [D4] Financial DB <----------------+        |
++---------+                                 ^                                |
+| Laborer |                                 |                                |
++---------+                                 | 3.4 Transaction Data           |
+                                            |                                |
+                                   +--------+--------+                       |
+         3.1 Product Listing       |       3.0       |      4.1 Reports      |
+    +----------------------------->|     Manage      |-----------------------+
+    |                              |   Marketplace   |
++---+----+                         +--------+--------+
+|        |                                  |
+| Farmer |                                  v
+|        |                          [D3] Marketplace DB
++--------+                                  ^
+                                            |
+                                            |
++-------+        3.2 Place Order            |
+|       |-----------------------------------+
+| Buyer |
+|       |<----------------------------------+
++-------+        3.3 Order Status
+```
+
+**Description:**
+The Level 0 DFD explodes the system into four major functional processes:
+1.  **1.0 Manage Operations:** Handles core farming activities, labor scheduling, and crop tracking. Interacts with the `Farm DB`.
+2.  **2.0 Monitor Weather:** Fetches external weather data, stores it in `Weather Logs`, and provides alerts to farmers.
+3.  **3.0 Manage Marketplace:** Facilitates B2B transactions between Farmers and Buyers, storing data in `Marketplace DB`.
+4.  **4.0 Generate Reports:** Aggregates financial and operational data to produce actionable insights for the Farmer.
+
+---
+
+## 👤 Farmer Use Case Diagram
+
+```text
+                        +---------------------------+
+                        |   Farm Operations Mgmt    |
+                        |                           |
+        +-------------->|      Manage Plantings     | - - - +
+        |               |                           |       | <<include>>
+        |               +---------------------------+       v
+        |               |                           |    ( Update Growth )
+        +-------------->|     Manage Inventory      |    (     Stage     )
+        |               |                           |
+        |               +---------------------------+
+        |               |                           |
+        +-------------->|      Manage Laborers      |
+        |               |                           |
+        |               +---------------------------+
+        |               |                           |       <<include>>
+   +--------+           |      Record Harvest       | - - - - - - > ( Calculate Yield )
+   | Farmer |---------->|                           |
+   +--------+           +---------------------------+
+        |               |                           |
+        +-------------->|     Process Orders        | < - - - - - - ( Negotiate Price )
+        |               |                           |   <<extend>>
+        |               +---------------------------+
+        |               |                           |
+        +-------------->|      View Analytics       |
+        |               |                           |
+        |               +---------------------------+
+        |               |                           |
+        +-------------->|    Generate Reports       |
+                        |                           |
+                        +---------------------------+
+```
+
+---
+
+## 🛒 Buyer Use Case Diagram
+
+```text
+                        +---------------------------+
+                        |   Farm Operations Mgmt    |
+                        |      (Marketplace)        |
+        +-------------->|      Manage Profile       |
+        |               |                           |
+        |               +---------------------------+
+        |               |                           |
+        +-------------->|     Browse Products       | - - - +
+        |               |                           |       | <<extend>>
+        |               +---------------------------+       v
+        |               |                           |    (  Filter by  )
+   +-------+            |       Place Order         |    (   Location  )
+   | Buyer |----------->|                           |
+   +-------+            +-------------+-------------+
+        |               |             |             |
+        |               |             + - - - - - - - - - - > ( Process Payment )
+        +-------------->|             |       <<include>>
+        |               |    Track/Update Order     |
+        |               |                           | < - - - ( Cancel Order )
+        |               +---------------------------+  <<extend>>
+        |               |                           |
+        +-------------->|    View Order History     |
+                        |                           |
+                        +---------------------------+
+```
+
+
+
+
+---
+
+## �📦 Module Overview
 
 ### 1. Farm & Field Management
 - **Models:** `Farm`, `Field`, `Planting`, `PlantingStage`
@@ -695,6 +922,60 @@ Net Cash Flow = Projected Revenue - Projected Expenses
 
 ---
 
+## ✅ Functional Requirements
+
+### 1. Farm Management
+- **Farmers** can create, update, and delete farm plans (fields, plantings).
+- The system tracks farm activities: planting, harvesting, labor assignments, and inventory use.
+- Farmers can log and view resource usage (seeds, fertilizer, labor wages).
+
+### 2. Weather Analytics
+- The system fetches real-time weather data via **Open-Meteo API**.
+- Weather forecasts (5-day) are displayed and updated.
+- System provides **Agronomic Alerts** (Heat Stress, High Humidity) to support decisions.
+
+### 3. Marketplace
+- **Buyers** can register, browse products, and place orders.
+- **Farmers** can post rice products with pricing, quality, and grading details.
+- System supports **Direct Messaging** between buyers and farmers.
+- **Payment Handling**: The system tracks payment status but does *not* process online payments automatically; transactions are confirmed manually (COD/Bank Transfer).
+
+### 4. User Management
+- Users register as either **Farmer** or **Buyer**.
+- Authentication requires **Email Verification** and password login.
+- Users can manage their profiles (bio, contact info).
+- *Note: No manual Administrator approval is required for registration; email verification is the primary gatekeeper.*
+
+### 5. Dashboard & Analytics
+- Visual summaries of farm activities, weather history, and yield data.
+- Farmers can track sales, expenses, and profit/loss reports.
+- Data export options (PDF/CSV) are available for inventory and sales.
+
+## ⚡ Non-Functional Requirements
+
+### 1. Performance
+- Weather data should be cached to minimize API calls (Refreshes every **30 minutes**).
+- Dashboard and charts should load efficiently using optimized database queries.
+
+### 2. Scalability
+- The system supports multiple concurrent users (Farmers and Buyers).
+- Database design allows for growth in historical weather logs and transaction records.
+
+### 3. Usability
+- Interface is responsive (Mobile/Desktop friendly) using **Vue.js** & **Tailwind CSS**.
+- Navigation is role-based (Farmer Dashboard vs. Marketplace).
+
+### 4. Reliability
+- External APIs (Weather) have error handling and fallback mechanisms.
+- System maintains data integrity for financial records (Sales/Expenses).
+
+### 5. Security
+- Use of **Laravel Sanctum** for secure API authentication.
+- Password hashing (BCrypt) and email verification are mandatory.
+- Role-Based Access Control (RBAC) ensures Buyers cannot access Farmer data.
+
+---
+
 
 
 ## 🤖 Automation & Scheduled Jobs
@@ -814,16 +1095,91 @@ php artisan test --filter=HarvestTest
 
 ---
 
-## 📄 License
 
+---
+
+## 🧪 Testing Methodology
+
+### Unit Testing
+Unit testing verified the smallest units of code in isolation. Laravel's built-in **PHPUnit** support was used to write automated unit tests for services and helper methods, ensuring that each component met its specification. Best practices included writing clear, focused tests to catch bugs early.
+
+*   **Tools Used:** `phpunit/phpunit`, `mockery/mockery`
+*   **Scope:** Tests one small piece of code (usually a function or class method) in isolation.
+*   **Automation:** Integrated into the development workflow to ensure stability before deployment.
+
+### Feature Testing
+Feature (or integration) testing evaluates how features and components work together. In Laravel, "feature tests" simulate HTTP requests or user actions across the stack (e.g., controller logic, middleware, database) to validate end-to-end behavior.
+
+*   **Tools Used:** **Laravel Testing Framework**, **PHPUnit**
+*   **Scope:** Verifies that multiple modules/features work together correctly.
+*   **Coverage:**
+
+    *   **User Flows:** `AuthTest`, `SystemSimulationTest`
+    *   **Core Operations:** `HarvestTest`, `SeedPlantingTest`, `OrderNegotiationTest`
+    *   **Analytics:** `DataAnalysisTest`, `WeatherReportTest`
+    *   **Security:** `SecurityMiddlewareTest` (RBAC verification)
+
+### Static Analysis
+To ensure type safety and code quality beyond standard linting, static analysis was employed.
+
+*   **Tool Used:** **Larastan** (`larastan/larastan`)
+*   **Purpose:** Catches distinct classes of bugs (like type errors) before code is even run, enhancing maintainability.
+
+---
+
+## 🛠️ Technical Architecture & Stack
+
+This system is built using a modern, scalable tech stack designed for reliability and ease of deployment.
+
+### 1. Conceptual Architecture
+The application follows a **Monolithic Architecture** with a clear separation of concerns:
+- **Presentation Layer:** Vue.js (SPA) managing user interactions.
+- **Application Layer:** Laravel handling business logic, API routes, and job scheduling.
+- **Data Layer:** PostgreSQL for persistent storage.
+- **Service Layer:** Dedicated services for Weather, Recommendations, and Market logic.
+
+### 2. Technology Stack
+
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **IDE** | **Visual Studio Code** | Primary development environment with extensions for Laravel and Vue. |
+| **Backend** | **Laravel 12 (PHP 8.2)** | Handles API, Authentication (Sanctum), and Business Logic. |
+| **Frontend** | **Vue.js 3** | Reactive UI framework for a dynamic Single Page Application (SPA). |
+| **Styling** | **Tailwind CSS 4.0** | Utility-first CSS framework for responsive design. |
+| **State Mgmt** | **Pinia** | Store library for managing application state (User, Cart, Farm). |
+| **Database** | **PostgreSQL 15** | Primary relational database for data integrity. Hosted on **Railway**. |
+| **Visualization** | **Chart.js** | Renders interactive analytics graphs for farmers. |
+| **DevOps** | **Docker** | Containerization for consistent local development and deployment. |
+| **Deployment** | **Railway** | Cloud platform hosting both the Web Service and Database. |
+| **Caching** | **Laravel Cache** | Integrated caching (File/Database) for Weather API responses. |
+| **Testing** | **PHPUnit / Larastan** | Automated creation testing and Static Analysis. |
+
+### 3. Hybrid Weather Architecture
+To ensure agricultural accuracy and system resilience, the system employs a **Multi-Provider Strategy**:
+- **Primary Provider:** **Colorful Clouds API**
+    - Used for hyper-local, 14-day forecasts.
+    - specialized in Asian/Pacific weather patterns.
+- **Fallback Provider:** **Open-Meteo** & **OpenWeather**
+    - Automatically engaged if the primary provider fails.
+    - Provides standard meteorological data and current condition checks.
+- **Result:** High availability and data accuracy for critical farming decisions.
+
+### 4. Security & Infrastructure
+- **Authentication:** **Laravel Sanctum** provides secure token-based authentication for the SPA and mobile access.
+- **Tunneling:** **Ngrok** is used for exposing local development environments for mobile testing.
+- **Version Control:** **GitHub** manages source code, issue tracking, and collaboration.
+
+---
+
+
+## 📄 License
 This project is developed as a capstone project for academic purposes.
 
 ---
 
 ## 👥 Contributors
-
-- **Capstone Team** - Development
-- **Advisor** - Project Guidance
+- **Capstone Team** - Yohan Lukin Callanta, Cydiemar Lagrosas, Renelle Janos Panague
+- **Advisor** - Glyrhiz Marhiel Tabamo
 
 ---
 
