@@ -637,10 +637,10 @@ The system implements **Laravel Cache** to optimize performance and reduce datab
 |--------|-------------------|-----|-------------|
 | **Farmer Dashboard** | `farmer_dashboard_{user_id}` | 5 min | Stats, tasks, weather, marketplace data |
 | **Buyer Dashboard** | `buyer_dashboard_{user_id}` | 10 min | Order stats, recent orders, products |
-| **Marketplace** | `marketplace_products` | 5 min | Product listings and availability |
-| **Weather Analytics** | `weather_analytics_{field_id}` | 15 min | GDD, stress analysis, recommendations |
+| **Marketplace** | `marketplace_stats` | 60 min | Product listings statistics and availability |
+| **Farming Analytics** | `farming_analytics_{user_id}_{period}` | 24 hours | Yield analytics, financial trends (Heavy query) |
 | **Weather Data** | `weather_current_{lat}_{lon}` | 30 min | Shared regional weather cache (deduplicated) |
-| **Weather Forecast** | `weather_forecast_{lat}_{lon}` | 3 hours | 5-day forecast data (deduplicated) |
+| **Weather Forecast** | `weather_forecast_{lat}_{lon}` | 30 min | 5-14 day forecast data (Open-Meteo & ColorfulClouds) |
 
 ### Cache Invalidation
 Caches are automatically invalidated when:
