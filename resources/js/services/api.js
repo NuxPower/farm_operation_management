@@ -335,6 +335,15 @@ export const riceMarketplaceAPI = {
   cancelOrder: (id, data) => api.post(`/rice-marketplace/orders/${id}/cancel`, data),
   getOrderMessages: (id) => api.get(`/rice-marketplace/orders/${id}/messages`),
   sendOrderMessage: (id, payload) => api.post(`/rice-marketplace/orders/${id}/messages`, payload),
+
+  // Price Negotiations
+  getNegotiations: (orderId) => api.get(`/rice-marketplace/orders/${orderId}/negotiations`),
+  proposeNegotiation: (orderId, proposedPrice) => api.post(`/rice-marketplace/orders/${orderId}/negotiations`, { proposed_price: proposedPrice }),
+  respondToNegotiation: (negotiationId, action, counterPrice = null, message = null) => api.post(`/rice-marketplace/negotiations/${negotiationId}/respond`, {
+    action,
+    counter_price: counterPrice,
+    message,
+  }),
 };
 
 // Cart API

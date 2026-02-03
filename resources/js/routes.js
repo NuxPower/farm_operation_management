@@ -414,6 +414,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
   {
+    path: '/marketplace/my-products/:id',
+    name: 'marketplace-product-show',
+    component: () => import('@/Pages/Marketplace/Product/Show.vue'),
+    meta: { requiresAuth: true, roles: ['farmer'] }
+  },
+  {
     path: '/marketplace/orders',
     name: 'marketplace-orders',
     component: OrdersList,

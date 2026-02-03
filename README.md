@@ -515,17 +515,60 @@ The Level 0 DFD explodes the system into four major functional processes:
 #### 🧠 AI Inference Engine (Rule-Based)
 The system uses a deterministic expert system to generate narrative insights without external API dependencies.
 
-**Inference Logic:**
-1.  **Financial Health:**
-    - *Profit > 0* → "Profitable" (Positive Tone)
-    - *Loss* → "Operating at a deficit" (Concern Tone)
-    - *High Expense/No Revenue* → "Investment Phase" (Neutral Tone)
-2.  **Operational Efficiency:**
-    - *Task Completion > 85%* → "Smooth Operations"
-    - *Overdue Tasks > 5* → "Operational Bottlenecks"
-3.  **Risk Assessment:**
-    - *Active Pests* → "Immediate Attention Required"
-    - *Low Stock* → "Supply Chain Risk"
+**Inference Logic (Executive Summary):**
+
+| Category | Condition | Generated Narrative | Tone |
+|----------|-----------|---------------------|------|
+| **Financial** | Net Profit > 0 | "The farm is currently profitable with a net income of ₱[amount]." | Positive |
+| | Expenses > 0 & Revenue = 0 | "The farm is in an investment phase with significant operational costs (₱[amount]) and no revenue yet..." | Neutral |
+| | Net Profit < 0 | "The farm is operating at a deficit of ₱[amount]." | Concern |
+| **Operations** | Overdue Tasks > 5 | "Operational bottlenecks are detected with [count] overdue tasks..." | Concern |
+| | Completion Rate > 85% | "Operations are running smoothly with a high task completion rate of [rate]%." | Positive |
+| | Completion Rate < 50% | "Labor efficiency requires attention as only [rate]% of assigned tasks are completed." | Caution |
+| **Risks** | Active Pests > 0 | "Immediate attention is required for [count] active pest incidents..." | Concern |
+| | Low Stock Items > 0 | "Supply chain risk is elevated with [count] items below minimum stock levels." | Neutral |
+
+**Action Suggestions Logic:**
+
+The system automatically generates prioritized suggestions based on specific triggers:
+
+1.  **Low Inventory (`High Priority`)**
+    *   *Trigger:* Current stock ≤ Minimum stock
+    *   *Suggestion:* "Restock [Item] - only [Current] [Unit] remaining (below minimum of [Min])"
+
+2.  **Overdue Tasks (`High/Medium Priority`)**
+    *   *Trigger:* Task due date < Now AND status != completed
+    *   *Suggestion:* "Complete overdue [Type] task for [Field] - [Days] days late"
+    *   *Priority logic:* High if > 3 days overdue, otherwise Medium
+
+3.  **Active Pest Incidents (`High/Medium Priority`)**
+    *   *Trigger:* Active pest incident in planting
+    *   *Suggestion:* "Apply treatment for [Pest] in [Field] - severity: [Severity]"
+    *   *Priority logic:* High if severity is Critical/High
+
+4.  **Pending Sales Orders (`High Priority`)**
+    *   *Trigger:* Marketplace order with status 'pending'
+    *   *Suggestion:* "Fulfill [Count] pending marketplace orders"
+
+5.  **Harvest Readiness (`High Priority`)**
+    *   *Trigger:* Planting stage is Maturity, Ripening, or Ready for Harvest
+    *   *Suggestion:* "Schedule harvesting for [Field] - crop at [Stage] stage"
+
+6.  **Weather Alerts (`Medium Priority`)**
+    *   *Trigger (Rain):* Condition contains "rain" or "storm" -> "Delay pesticide/fertilizer application..."
+    *   *Trigger (Heat):* Temperature > 35°C -> "High temperature alert - irrigate crops early morning or evening"
+
+7.  **Nursery Operations (`Medium Priority`)**
+    *   *Trigger:* Seedling batch status is 'ready'
+    *   *Suggestion:* "Transplant [Variety] seedlings - [Count] batches ready"
+
+8.  **Pickup Deadline Expiring (`High Priority`)**
+    *   *Trigger:* Order status is `ready_for_pickup` AND pickup deadline is within 24 hours
+    *   *Suggestion:* "Urgent: [Count] order(s) have pickup deadline expiring in 24 hours"
+    *   *Research basis:* Based on industry standards (Target, Walmart use 1-day for fresh produce; 3-day policy for non-highly-perishable rice)
+
+**Executive Summary Additions:**
+- **Expired Pickup Orders:** If any orders were auto-cancelled this week due to expired pickup deadlines, this is included in the executive summary as a warning.
 
 **Examples:**
 > "The farm is currently profitable with a net income of ₱50,000. Operations are running smoothly with a high task completion rate of 92%."

@@ -34,6 +34,7 @@ class RiceOrder extends Model
         'buyer_notes',
         'shipped_at',
         'auto_confirm_at',
+        'pickup_deadline',
         'dispute_reason',
     ];
 
@@ -54,6 +55,7 @@ class RiceOrder extends Model
         'updated_at' => 'datetime',
         'shipped_at' => 'datetime',
         'auto_confirm_at' => 'datetime',
+        'pickup_deadline' => 'datetime',
     ];
 
     /**
@@ -118,6 +120,25 @@ class RiceOrder extends Model
     public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(RiceOrderMessage::class, 'rice_order_id')->latest();
+    }
+
+    /**
+     * Get price negotiations associated with the order
+     */
+    public function negotiations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PriceNegotiation::class, 'rice_order_id');
+    }
+
+    /**
+     * Get the active (pending) negotiation if any
+     */
+    public function getActiveNegotiation(): ?PriceNegotiation
+    {
+        return $this->negotiations()
+            ->where('status', PriceNegotiation::STATUS_PENDING)
+            ->latest()
+            ->first();
     }
 
     /**
@@ -204,13 +225,37 @@ class RiceOrder extends Model
 
     /**
      * Mark as ready for pickup
+     * Sets a 3-day pickup deadline based on industry standards for fresh produce e-commerce
+     * (Target, Walmart use 1-day for perishables; 3 days for non-highly-perishable rice)
      */
     public function markReadyForPickup()
     {
         $this->update([
             'status' => self::STATUS_READY_FOR_PICKUP,
             'auto_confirm_at' => now()->addDays(30),
+            'pickup_deadline' => now()->addDays(3),
         ]);
+    }
+
+    /**
+     * Check if pickup deadline has expired
+     */
+    public function isPickupExpired(): bool
+    {
+        if ($this->status !== self::STATUS_READY_FOR_PICKUP) {
+            return false;
+        }
+        return $this->pickup_deadline && now()->gt($this->pickup_deadline);
+    }
+
+    /**
+     * Check if order can be marked as paid
+     * Payment can only be marked after order is picked up
+     */
+    public function canBeMarkedAsPaid(): bool
+    {
+        return $this->status === self::STATUS_PICKED_UP
+            && $this->payment_status !== self::PAYMENT_PAID;
     }
 
     /**

@@ -176,11 +176,11 @@
                       </button>
                       <button
                         type="button"
-                        @click="removeProduct(product)"
-                        class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete Product"
+                        @click="router.push(`/marketplace/my-products/${product.id}`)"
+                        class="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        title="View Product"
                       >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                       </button>
                     </div>
                   </td>
@@ -191,15 +191,8 @@
         </div>
       </div>
 
-      <ConfirmationModal
-        :show="showConfirmModal"
-        title="Delete Product"
-        :message="`Are you sure you want to delete ${productToDelete?.name}? This action cannot be undone.`"
-        confirm-text="Delete"
-        type="danger"
-        @close="showConfirmModal = false"
-        @confirm="deleteProduct"
-      />
+
+
     </div>
   </div>
 </template>
@@ -209,15 +202,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAuthStore } from '@/stores/auth'
-import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()
 const authStore = useAuthStore()
 
-// Confirmation State
-const showConfirmModal = ref(false)
-const productToDelete = ref(null)
+
 
 const qualityMap = {
   premium: 'Premium',
@@ -230,26 +220,7 @@ const products = computed(() => marketplaceStore.farmerProducts || [])
 
 const refresh = () => marketplaceStore.fetchFarmerProducts({ per_page: 100 })
 
-const confirmDeleteProduct = (product) => {
-  productToDelete.value = product
-  showConfirmModal.value = true
-}
 
-const deleteProduct = async () => {
-  if (!productToDelete.value) return
-  showConfirmModal.value = false
-
-  try {
-    await marketplaceStore.deleteRiceProduct(productToDelete.value.id)
-    productToDelete.value = null
-  } catch (error) {
-    console.error('Failed to delete product:', error)
-  }
-}
-
-const removeProduct = (product) => {
-  confirmDeleteProduct(product)
-}
 
 const formatQuantity = (value) => {
   const num = Number(value)

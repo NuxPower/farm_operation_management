@@ -182,38 +182,116 @@
             <p v-else class="text-sm text-gray-500">Status updates will appear here.</p>
           </div>
 
-          <!-- Order Messages -->
+          <!-- Order Messages & Negotiations -->
           <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-semibold">Order Messages</h2>
-              <button
-                @click="loadMessages"
-                class="text-sm text-green-600 hover:text-green-700"
-                type="button"
-              >
-                Refresh
-              </button>
+              <h2 class="text-xl font-semibold">Messages & Negotiations</h2>
+              <div class="flex space-x-2">
+                <button
+                  v-if="canNegotiate"
+                  @click="showProposeModal = true"
+                  class="text-sm bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600"
+                  type="button"
+                >
+                  💰 Propose Price
+                </button>
+                <button
+                  @click="loadMessages"
+                  class="text-sm text-green-600 hover:text-green-700"
+                  type="button"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
 
             <div v-if="messagesLoading" class="text-sm text-gray-500">Loading messages…</div>
             <div
               v-else
-              class="mb-4 max-h-64 space-y-3 overflow-y-auto rounded border border-gray-100 bg-gray-50 p-3"
+              class="mb-4 max-h-80 space-y-3 overflow-y-auto rounded border border-gray-100 bg-gray-50 p-3"
             >
-              <div v-if="!messages.length" class="text-sm text-gray-500">
+              <div v-if="!chatTimeline.length" class="text-sm text-gray-500">
                 No messages yet. Start the conversation to coordinate pickup or delivery.
               </div>
-              <div
-                v-for="message in messages"
-                :key="message.id"
-                class="max-w-md rounded-lg px-4 py-3 text-sm"
-                :class="message.sender_id == currentUserId ? 'ml-auto bg-green-100 text-right' : 'mr-auto bg-white text-left border border-gray-200'"
-              >
-                <div class="text-xs text-gray-500">
-                  {{ message.sender?.name || 'Participant' }} • {{ formatDateTime(message.created_at) }}
+
+              <!-- Timeline: Messages + Negotiations -->
+              <template v-for="item in chatTimeline" :key="item.id + '-' + item.type">
+                <!-- Regular Message -->
+                <div
+                  v-if="item.type === 'message'"
+                  class="max-w-md rounded-lg px-4 py-3 text-sm"
+                  :class="item.sender_id == currentUserId ? 'ml-auto bg-green-100 text-right' : 'mr-auto bg-white text-left border border-gray-200'"
+                >
+                  <div class="text-xs text-gray-500">
+                    {{ item.sender?.name || 'Participant' }} • {{ formatDateTime(item.created_at) }}
+                  </div>
+                  <div class="mt-2 text-gray-800 whitespace-pre-line">{{ item.message }}</div>
                 </div>
-                <div class="mt-2 text-gray-800 whitespace-pre-line">{{ message.message }}</div>
-              </div>
+
+                <!-- Negotiation Proposal -->
+                <div
+                  v-else-if="item.type === 'negotiation'"
+                  class="mx-auto max-w-sm rounded-lg border-2 p-4 text-center"
+                  :class="getNegotiationCardClass(item)"
+                >
+                  <div class="text-xs text-gray-500 mb-2">
+                    {{ item.proposer?.name || 'Someone' }} • {{ formatDateTime(item.created_at) }}
+                  </div>
+                  <div class="text-lg font-bold text-gray-900 mb-1">
+                    💰 Price Proposal
+                  </div>
+                  <div class="text-2xl font-bold mb-2" :class="item.status === 'accepted' ? 'text-green-600' : item.status === 'rejected' ? 'text-red-600' : 'text-orange-600'">
+                    {{ formatCurrency(item.proposed_price) }} <span class="text-sm font-normal text-gray-500">/ unit</span>
+                  </div>
+                  
+                  <!-- Status Badge -->
+                  <div v-if="item.status !== 'pending'" class="mb-2">
+                    <span
+                      class="px-2 py-1 text-xs font-medium rounded-full"
+                      :class="{
+                        'bg-green-100 text-green-800': item.status === 'accepted',
+                        'bg-red-100 text-red-800': item.status === 'rejected',
+                        'bg-gray-100 text-gray-600': item.status === 'superseded'
+                      }"
+                    >
+                      {{ item.status === 'superseded' ? 'Superseded' : item.status.charAt(0).toUpperCase() + item.status.slice(1) }}
+                    </span>
+                    <div v-if="item.response_message" class="text-xs text-gray-500 mt-1 italic">
+                      "{{ item.response_message }}"
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons (only for pending proposals not from current user) -->
+                  <div v-if="item.status === 'pending' && item.proposer_id !== currentUserId" class="flex justify-center space-x-2 mt-3">
+                    <button
+                      @click="acceptNegotiationProposal(item)"
+                      :disabled="negotiationProcessing"
+                      class="bg-green-600 text-white px-3 py-1 text-sm rounded-md hover:bg-green-700 disabled:opacity-50"
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      @click="openCounterModal(item)"
+                      :disabled="negotiationProcessing"
+                      class="bg-blue-600 text-white px-3 py-1 text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      🔄 Counter
+                    </button>
+                    <button
+                      @click="rejectNegotiationProposal(item)"
+                      :disabled="negotiationProcessing"
+                      class="bg-red-600 text-white px-3 py-1 text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                      ✕ Reject
+                    </button>
+                  </div>
+
+                  <!-- Waiting indicator for own proposals -->
+                  <div v-else-if="item.status === 'pending' && item.proposer_id === currentUserId" class="text-xs text-orange-600 mt-2">
+                    ⏳ Waiting for response...
+                  </div>
+                </div>
+              </template>
             </div>
 
             <form @submit.prevent="sendMessage" class="space-y-3">
@@ -317,7 +395,7 @@
                   {{ processing ? 'Processing...' : '✓ Confirm Pickup' }}
                 </button>
                 <button
-                  v-if="order.payment_status !== 'paid' && isFarmer && ['confirmed', 'ready_for_pickup', 'picked_up'].includes(order.status)"
+                  v-if="order.payment_status !== 'paid' && isFarmer && order.status === 'picked_up'"
                   @click="markAsPaid"
                   :disabled="processing"
                   class="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
@@ -441,6 +519,90 @@
           </div>
         </div>
       </div>
+
+      <!-- Propose Price Modal -->
+      <div
+        v-if="showProposeModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="showProposeModal = false"
+      >
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <h3 class="text-xl font-semibold mb-4">💰 Propose a Price</h3>
+          <p class="text-gray-600 mb-4">
+            Current price: <span class="font-bold">{{ formatCurrency(order?.unit_price || order?.rice_product?.price_per_unit) }}</span> per unit
+          </p>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Your Proposed Price (per unit)
+            </label>
+            <input
+              v-model="proposedPrice"
+              type="number"
+              step="0.01"
+              min="0.01"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Enter your price"
+            />
+          </div>
+          <div class="flex space-x-3">
+            <button
+              @click="submitProposal"
+              :disabled="!proposedPrice || negotiationProcessing"
+              class="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+            >
+              {{ negotiationProcessing ? 'Submitting...' : 'Submit Proposal' }}
+            </button>
+            <button
+              @click="showProposeModal = false; proposedPrice = ''"
+              class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Counter-Offer Modal -->
+      <div
+        v-if="showCounterModal && selectedNegotiation"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        @click.self="showCounterModal = false"
+      >
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <h3 class="text-xl font-semibold mb-4">🔄 Counter-Offer</h3>
+          <p class="text-gray-600 mb-4">
+            Their offer: <span class="font-bold">{{ formatCurrency(selectedNegotiation.proposed_price) }}</span> per unit
+          </p>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Your Counter Price (per unit)
+            </label>
+            <input
+              v-model="counterPrice"
+              type="number"
+              step="0.01"
+              min="0.01"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your counter price"
+            />
+          </div>
+          <div class="flex space-x-3">
+            <button
+              @click="submitCounter"
+              :disabled="!counterPrice || negotiationProcessing"
+              class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {{ negotiationProcessing ? 'Submitting...' : 'Submit Counter' }}
+            </button>
+            <button
+              @click="showCounterModal = false; counterPrice = ''; selectedNegotiation = null"
+              class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -499,6 +661,144 @@ const showCancelModal = ref(false)
 const showRejectModal = ref(false)
 const cancelReason = ref('')
 const rejectReason = ref('')
+
+// Negotiation state
+const negotiations = ref([])
+const showProposeModal = ref(false)
+const showCounterModal = ref(false)
+const proposedPrice = ref('')
+const counterPrice = ref('')
+const selectedNegotiation = ref(null)
+const negotiationProcessing = ref(false)
+
+// Computed: Can user negotiate on this order?
+const canNegotiate = computed(() => {
+  if (!order.value) return false
+  // Allow negotiation for pending or negotiating orders
+  return ['pending', 'negotiating'].includes(order.value.status)
+})
+
+// Computed: Combined timeline of messages and negotiations
+const chatTimeline = computed(() => {
+  const timeline = []
+  
+  // Add messages with type marker
+  messages.value.forEach(msg => {
+    timeline.push({ ...msg, type: 'message' })
+  })
+  
+  // Add negotiations with type marker  
+  negotiations.value.forEach(neg => {
+    timeline.push({ ...neg, type: 'negotiation' })
+  })
+  
+  // Sort by created_at ascending
+  timeline.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  
+  return timeline
+})
+
+// Helper: Get negotiation card styling
+const getNegotiationCardClass = (negotiation) => {
+  switch (negotiation.status) {
+    case 'accepted':
+      return 'border-green-300 bg-green-50'
+    case 'rejected':
+      return 'border-red-300 bg-red-50'
+    case 'superseded':
+      return 'border-gray-300 bg-gray-50 opacity-60'
+    default:
+      return 'border-orange-300 bg-orange-50'
+  }
+}
+
+// Load negotiations for the order
+const loadNegotiations = async () => {
+  if (!order.value) return
+  try {
+    const response = await riceMarketplaceAPI.getNegotiations(order.value.id)
+    negotiations.value = response.data.negotiations || []
+  } catch (err) {
+    console.error('Failed to load negotiations:', err)
+  }
+}
+
+// Submit a new price proposal
+const submitProposal = async () => {
+  if (!proposedPrice.value || !order.value) return
+  
+  negotiationProcessing.value = true
+  try {
+    await riceMarketplaceAPI.proposeNegotiation(order.value.id, parseFloat(proposedPrice.value))
+    showProposeModal.value = false
+    proposedPrice.value = ''
+    await loadOrderData(order.value.id)
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to submit proposal')
+  } finally {
+    negotiationProcessing.value = false
+  }
+}
+
+// Accept a negotiation proposal
+const acceptNegotiationProposal = async (negotiation) => {
+  if (!confirm(`Accept the price of ${formatCurrency(negotiation.proposed_price)} per unit?`)) return
+  
+  negotiationProcessing.value = true
+  try {
+    await riceMarketplaceAPI.respondToNegotiation(negotiation.id, 'accept')
+    await loadOrderData(order.value.id)
+    alert('Price accepted! The order price has been updated.')
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to accept proposal')
+  } finally {
+    negotiationProcessing.value = false
+  }
+}
+
+// Reject a negotiation proposal
+const rejectNegotiationProposal = async (negotiation) => {
+  if (!confirm('Reject this price proposal?')) return
+  
+  negotiationProcessing.value = true
+  try {
+    await riceMarketplaceAPI.respondToNegotiation(negotiation.id, 'reject')
+    await loadOrderData(order.value.id)
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to reject proposal')
+  } finally {
+    negotiationProcessing.value = false
+  }
+}
+
+// Open counter-offer modal
+const openCounterModal = (negotiation) => {
+  selectedNegotiation.value = negotiation
+  counterPrice.value = ''
+  showCounterModal.value = true
+}
+
+// Submit counter-offer
+const submitCounter = async () => {
+  if (!counterPrice.value || !selectedNegotiation.value) return
+  
+  negotiationProcessing.value = true
+  try {
+    await riceMarketplaceAPI.respondToNegotiation(
+      selectedNegotiation.value.id, 
+      'counter', 
+      parseFloat(counterPrice.value)
+    )
+    showCounterModal.value = false
+    counterPrice.value = ''
+    selectedNegotiation.value = null
+    await loadOrderData(order.value.id)
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to submit counter-offer')
+  } finally {
+    negotiationProcessing.value = false
+  }
+}
 
 const getStatusBadgeClass = (status) => {
   const classes = {
@@ -801,6 +1101,8 @@ const loadMessages = async () => {
     const response = await riceMarketplaceAPI.getOrderMessages(order.value.id)
     // Sort messages: Oldest at the top, Newest at the bottom
     messages.value = (response.data.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    // Also load negotiations
+    await loadNegotiations()
     scrollToBottom()
   } catch (err) {
     messageError.value = err.userMessage || err.response?.data?.message || 'Failed to load messages'
@@ -811,7 +1113,7 @@ const loadMessages = async () => {
 
 const scrollToBottom = () => {
   setTimeout(() => {
-    const container = document.querySelector('.max-h-64.overflow-y-auto')
+    const container = document.querySelector('.max-h-80.overflow-y-auto')
     if (container) {
       container.scrollTop = container.scrollHeight
     }

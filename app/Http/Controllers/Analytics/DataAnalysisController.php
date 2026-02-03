@@ -66,14 +66,17 @@ class DataAnalysisController extends Controller
 
             // Generate executive summary based on the aggregated data
             $analytics['executive_summary'] = $this->generateExecutiveSummary($analytics);
-            $analytics['action_suggestions'] = $this->generateActionSuggestions($user->id);
-            $analytics['date_range'] = [
-                'start' => $startDate,
-                'end' => $endDate,
-            ];
 
             return $analytics;
         });
+
+        // Generate action suggestions in real-time (not cached) to reflect immediate changes
+        $data['action_suggestions'] = $this->generateActionSuggestions($user->id);
+
+        $data['date_range'] = [
+            'start' => $startDate,
+            'end' => $endDate,
+        ];
 
         return response()->json($data);
     }
@@ -129,6 +132,20 @@ class DataAnalysisController extends Controller
         $lowStock = $data['inventory']['low_stock_count'] ?? 0;
         if ($lowStock > 0) {
             $summary[] = "Supply chain risk is elevated with {$lowStock} items below minimum stock levels.";
+        }
+
+        // 5. Order Management - Expired Pickups (per user request: include in executive summary)
+        $expiredPickupsThisWeek = RiceOrder::whereHas('riceProduct', function ($q) {
+            $q->where('farmer_id', auth()->id());
+        })
+            ->where('status', RiceOrder::STATUS_CANCELLED)
+            ->where('dispute_reason', 'like', '%deadline expired%')
+            ->where('updated_at', '>=', now()->subDays(7))
+            ->count();
+
+        if ($expiredPickupsThisWeek > 0) {
+            $summary[] = "Warning: {$expiredPickupsThisWeek} order(s) were auto-cancelled this week due to expired pickup deadlines.";
+            $tone = $tone === 'positive' ? 'neutral' : 'concern';
         }
 
         return [
@@ -236,10 +253,9 @@ class DataAnalysisController extends Controller
      */
     private function getExpenseAnalytics($userId, $startDate, $endDate): array
     {
-        $fieldIds = Field::where('user_id', $userId)->pluck('id');
-        $plantingIds = Planting::whereIn('field_id', $fieldIds)->pluck('id');
-
-        $expenses = Expense::whereIn('planting_id', $plantingIds)
+        // Fetch expenses directly by user_id to include all expenses (Capital & Labor)
+        // This matches how ExpenseController fetches expenses for the Expenses page
+        $expenses = Expense::where('user_id', $userId)
             ->whereBetween('date', [$startDate, $endDate])
             ->get();
 
@@ -260,7 +276,7 @@ class DataAnalysisController extends Controller
         $prevStart = Carbon::parse($startDate)->subDays($periodLength)->format('Y-m-d');
         $prevEnd = Carbon::parse($startDate)->subDay()->format('Y-m-d');
 
-        $prevExpenses = Expense::whereIn('planting_id', $plantingIds)
+        $prevExpenses = Expense::where('user_id', $userId)
             ->whereBetween('date', [$prevStart, $prevEnd])
             ->sum('amount');
 
@@ -526,8 +542,12 @@ class DataAnalysisController extends Controller
         $fieldIds = Field::where('user_id', $userId)->pluck('id');
         $plantingIds = Planting::whereIn('field_id', $fieldIds)->pluck('id');
 
+        // Use due_date for filtering instead of created_at - tasks with due dates in the period are more relevant
         $tasks = Task::whereIn('planting_id', $plantingIds)
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('due_date', [$startDate, $endDate])
+                    ->orWhereBetween('created_at', [$startDate, $endDate]);
+            })
             ->get();
 
         $statusCounts = $tasks->groupBy('status')->map(fn($g) => $g->count());
@@ -545,12 +565,17 @@ class DataAnalysisController extends Controller
                 'completed' => $group->where('status', 'completed')->count(),
             ]);
 
+        $totalTasks = $tasks->count();
+        $completedTasks = $tasks->where('status', 'completed')->count();
+        $completionRate = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100, 1) : 0;
+
         return [
-            'total_tasks' => $tasks->count(),
-            'completed_tasks' => $tasks->where('status', 'completed')->count(),
+            'total_tasks' => $totalTasks,
+            'completed_tasks' => $completedTasks,
             'pending_tasks' => $tasks->where('status', 'pending')->count(),
             'in_progress_tasks' => $tasks->where('status', 'in_progress')->count(),
             'overdue_tasks' => $overdueTasks->count(),
+            'completion_rate' => $completionRate,
             'status_distribution' => $statusCounts,
             'by_type' => $byType,
             'weekly_trend' => $weeklyTrend,
@@ -692,7 +717,28 @@ class DataAnalysisController extends Controller
                 'category' => 'sales',
                 'icon' => '📋',
                 'message' => "Fulfill {$pendingOrders} pending marketplace orders",
-                'action_url' => '/marketplace/orders',
+                'action_url' => '/farmer/orders',
+                'action_label' => 'View Orders',
+            ];
+        }
+
+        // 7. Expiring pickup deadlines (within 24 hours)
+        $expiringOrders = RiceOrder::whereHas('riceProduct', function ($q) use ($userId) {
+            $q->where('farmer_id', $userId);
+        })
+            ->where('status', RiceOrder::STATUS_READY_FOR_PICKUP)
+            ->whereNotNull('pickup_deadline')
+            ->where('pickup_deadline', '>', now())
+            ->where('pickup_deadline', '<=', now()->addHours(24))
+            ->count();
+
+        if ($expiringOrders > 0) {
+            $suggestions[] = [
+                'priority' => 'high',
+                'category' => 'orders',
+                'icon' => '⏰',
+                'message' => "Urgent: {$expiringOrders} order(s) have pickup deadline expiring in 24 hours",
+                'action_url' => '/farmer/orders',
                 'action_label' => 'View Orders',
             ];
         }

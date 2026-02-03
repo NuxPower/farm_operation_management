@@ -117,7 +117,7 @@ class TargetedJohnSeeder extends Seeder
 
         // 3. Create Field
         $field = Field::updateOrCreate(
-            ['farm_id' => $farm->id, 'name' => 'Block 1 - Main Rice Field'],
+            ['farm_id' => $farm->id, 'name' => 'Block 1'],
             [
                 'user_id' => $john->id,
                 'location' => ['lat' => 8.0276, 'lon' => 125.1885, 'address' => 'Managok, Malaybalay City, Bukidnon'],
@@ -165,7 +165,6 @@ class TargetedJohnSeeder extends Seeder
         $activePlanting = Planting::updateOrCreate(
             [
                 'field_id' => $field->id,
-                'status' => 'growing',
                 'season' => 'wet'
             ],
             [
@@ -173,6 +172,7 @@ class TargetedJohnSeeder extends Seeder
                 'crop_type' => 'Rice',
                 'planting_date' => $plantingDate,
                 'expected_harvest_date' => $plantingDate->copy()->addDays($variety->maturity_days),
+                'status' => 'growing',
                 'planting_method' => 'transplanting',
                 'seed_rate' => 80,
                 'area_planted' => 5.0,
@@ -193,20 +193,24 @@ class TargetedJohnSeeder extends Seeder
 
         // 6. Completed Planting
         $pastPlantingDate = Carbon::now()->subMonths(5);
-        $harvestedPlanting = Planting::create([
-            'field_id' => $field->id,
-            'rice_variety_id' => $variety->id,
-            'crop_type' => 'Rice',
-            'planting_date' => $pastPlantingDate,
-            'expected_harvest_date' => $pastPlantingDate->copy()->addDays($variety->maturity_days),
-            'actual_harvest_date' => $pastPlantingDate->copy()->addDays($variety->maturity_days + 2),
-            'status' => 'harvested',
-            'planting_method' => 'transplanting',
-            'seed_rate' => 80,
-            'area_planted' => 5.0,
-            'season' => 'dry',
-            'notes' => 'Dry season harvest, successful.',
-        ]);
+        $harvestedPlanting = Planting::updateOrCreate(
+            [
+                'field_id' => $field->id,
+                'season' => 'dry'
+            ],
+            [
+                'rice_variety_id' => $variety->id,
+                'crop_type' => 'Rice',
+                'planting_date' => $pastPlantingDate,
+                'expected_harvest_date' => $pastPlantingDate->copy()->addDays($variety->maturity_days),
+                'actual_harvest_date' => $pastPlantingDate->copy()->addDays($variety->maturity_days + 2),
+                'status' => 'harvested',
+                'planting_method' => 'transplanting',
+                'seed_rate' => 80,
+                'area_planted' => 5.0,
+                'notes' => 'Dry season harvest, successful.',
+            ]
+        );
 
         // 7. Tasks
         Task::create([

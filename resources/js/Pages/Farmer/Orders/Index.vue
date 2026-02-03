@@ -85,8 +85,8 @@
                 class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
               >Mark as Shipped</button>
               
-              <!-- Payment Action -->
-              <button v-if="order.payment_status !== 'paid' && ['confirmed', 'shipped', 'delivered'].includes(order.status)"
+              <!-- Payment Action (only after pickup) -->
+              <button v-if="order.payment_status !== 'paid' && order.status === 'delivered'"
                 @click="markAsPaid(order)"
                 class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
               >Mark as Paid</button>

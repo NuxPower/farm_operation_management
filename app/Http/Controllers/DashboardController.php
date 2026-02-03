@@ -111,6 +111,14 @@ class DashboardController extends Controller
                 ->sum('total_amount');
 
             // Marketplace Stats
+            // Calculate revenue from marketplace orders (delivered)
+            $marketplaceRevenue = RiceOrder::whereHas('riceProduct', function ($query) use ($user) {
+                $query->where('farmer_id', $user->id);
+            })->where('status', RiceOrder::STATUS_DELIVERED)->sum('total_amount');
+
+            // Calculate revenue from direct sales
+            $directSalesRevenue = Sale::where('user_id', $user->id)->sum('total_amount');
+
             $marketplaceStats = [
                 'total_products' => RiceProduct::where('farmer_id', $user->id)->count(),
                 'active_listings' => RiceProduct::where('farmer_id', $user->id)
@@ -120,9 +128,9 @@ class DashboardController extends Controller
                 'pending_orders' => RiceOrder::whereHas('riceProduct', function ($query) use ($user) {
                     $query->where('farmer_id', $user->id);
                 })->where('status', RiceOrder::STATUS_PENDING)->count(),
-                'total_revenue' => RiceOrder::whereHas('riceProduct', function ($query) use ($user) {
-                    $query->where('farmer_id', $user->id);
-                })->where('status', RiceOrder::STATUS_DELIVERED)->sum('total_amount'),
+                'total_revenue' => $marketplaceRevenue + $directSalesRevenue,
+                'marketplace_revenue' => $marketplaceRevenue,
+                'direct_sales_revenue' => $directSalesRevenue,
             ];
 
             // Recent Marketplace Products

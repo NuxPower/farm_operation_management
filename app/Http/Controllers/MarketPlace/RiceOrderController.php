@@ -344,6 +344,7 @@ class RiceOrderController extends Controller
 
     /**
      * Farmer marks order as paid
+     * Payment can only be marked after the order has been picked up
      */
     public function markAsPaid(RiceOrder $order): JsonResponse
     {
@@ -352,16 +353,15 @@ class RiceOrderController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        if ($order->payment_status === RiceOrder::PAYMENT_PAID) {
+        // Payment can only be marked after pickup
+        if (!$order->canBeMarkedAsPaid()) {
             return response()->json([
-                'message' => 'Order is already marked as paid'
+                'message' => 'Payment can only be marked after the order has been picked up'
             ], 422);
         }
 
         $order->update([
             'payment_status' => RiceOrder::PAYMENT_PAID,
-            // If it was COD, we might assume it's now paid via Cash, but keeping original method is safer unless specified
-            // 'payment_method' => 'cash' 
         ]);
 
         // Invalidate farmer order stats cache

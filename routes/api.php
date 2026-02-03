@@ -283,6 +283,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Order messaging
         Route::get('/orders/{order}/messages', [\App\Http\Controllers\RiceOrderMessageController::class, 'index']);
         Route::post('/orders/{order}/messages', [\App\Http\Controllers\RiceOrderMessageController::class, 'store']);
+
+        // Price negotiations
+        Route::get('/orders/{order}/negotiations', [\App\Http\Controllers\PriceNegotiationController::class, 'index']);
+        Route::post('/orders/{order}/negotiations', [\App\Http\Controllers\PriceNegotiationController::class, 'propose']);
+        Route::post('/negotiations/{negotiation}/respond', [\App\Http\Controllers\PriceNegotiationController::class, 'respond']);
     });
 
 
