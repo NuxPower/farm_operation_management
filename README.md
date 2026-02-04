@@ -898,9 +898,12 @@ Score = (Temp_Score × 0.40) + (Humidity_Score × 0.30) +
 
 ---
 
-### 6. Growth Stage Weather Analysis
+### 6. Growth Stage Analytics
 
-**Methodology:** Stage-specific suitability analysis applying different optimal ranges per growth phase.
+**Methodology:** Comprehensive analysis combining environmental suitability with operational performance metrics across the crop lifecycle.
+
+#### A. Weather Suitability Analysis
+**Approach:** Stage-specific environmental assessment applying different optimal ranges per growth phase.
 
 **Stage-Specific Optimal Ranges:**
 
@@ -912,7 +915,16 @@ Score = (Temp_Score × 0.40) + (Humidity_Score × 0.30) +
 | Grain Filling | 90-120 | 20-28 | 60-75 |
 | Ripening | 120+ | 20-28 | 50-70 |
 
-**Implementation:** [`WeatherAnalyticsService.php`](app/Services/WeatherAnalyticsService.php#L1025-L1130)
+#### B. Operational Performance Metrics
+**Approach:** Quantitative tracking of stage completion success and timeline adherence.
+
+**Metrics:**
+1.  **Stage Success Rate:** Percentage of growth stages successfully transitioned vs. total attempts.
+    *   *Significance:* Identifies bottleneck stages where crop failure frequently occurs.
+2.  **Completion Efficiency:** Ratio of actual stage duration vs. biological standards.
+    *   *Formula:* `(Completed_On_Time_Stages / Total_Stages) * 100`
+
+**Implementation:** [`RiceFarmingAnalyticsController.php`](app/Http/Controllers/RiceFarmingAnalyticsController.php) & [`WeatherAnalyticsService.php`](app/Services/WeatherAnalyticsService.php)
 
 **Scientific Alignment:** Phenological stage adjustments reflect the critical heat-sensitive periods (flowering/filling) highlighted in studies by Mthiyane et al. (2024) and Baltazar (2024).
 
