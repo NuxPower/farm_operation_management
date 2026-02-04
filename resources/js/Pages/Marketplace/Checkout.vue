@@ -329,7 +329,7 @@ const confirmOrder = () => {
     // I made `RiceMarketplaceController` handle `offer_price`.
     
     // Let's update the confirmation message to reflect negotiation
-    confirmMessage.value = `You are offering ₱${form.value.offer_price} per unit. Total will be calculated upon acceptance. Proceed?`;
+    confirmMessage.value = `You are offering ${formatCurrency(form.value.offer_price)} per unit. Total will be calculated upon acceptance. Proceed?`;
   } else {
     confirmMessage.value = `Are you sure you want to place this order? Total amount is ${formatCurrency(totalAmount.value)}.`;
   }

@@ -222,7 +222,7 @@
            </div>
            <div>
              <p class="text-sm text-gray-500">Total Revenue</p>
-             <p class="text-2xl font-bold text-gray-900">₱{{ marketplaceStats.total_revenue.toLocaleString() }}</p>
+             <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(marketplaceStats.total_revenue) }}</p>
            </div>
         </div>
         
@@ -270,7 +270,7 @@
                    </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                   <span class="text-sm font-medium text-gray-900">₱{{ product.price_per_unit }}/{{ product.unit }}</span>
+                   <span class="text-sm font-medium text-gray-900">{{ formatCurrency(product.price_per_unit) }}/{{ product.unit }}</span>
                    <span 
                       class="px-2 py-1 text-xs font-semibold rounded-full"
                       :class="product.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"

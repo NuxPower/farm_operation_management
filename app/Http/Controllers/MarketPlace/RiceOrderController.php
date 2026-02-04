@@ -102,6 +102,7 @@ class RiceOrderController extends Controller
             'payment_method' => 'nullable|string',
             'notes' => 'nullable|string|max:500',
             'offer_price' => 'nullable|numeric|min:0.1',
+            'preferred_pickup_date' => 'required|date|after:today',
         ]);
 
         if ($validator->fails()) {
@@ -138,6 +139,7 @@ class RiceOrderController extends Controller
                 'payment_status' => RiceOrder::PAYMENT_PENDING,
                 'delivery_address' => $request->delivery_address,
                 'delivery_method' => $request->delivery_method,
+                'preferred_pickup_date' => $request->preferred_pickup_date,
                 'payment_method' => $request->payment_method,
                 'buyer_notes' => $request->notes,
                 'order_date' => now(),
@@ -195,14 +197,25 @@ class RiceOrderController extends Controller
         $expectedDelivery = $request->input('expected_delivery_date');
         $farmerNotes = $request->input('farmer_notes');
 
+        // Use confirmed_pickup_date from request, or fallback to buyer's preferred date
+        $confirmedPickupDate = $request->input('confirmed_pickup_date', $order->preferred_pickup_date);
+
         $order->confirm($expectedDelivery, $farmerNotes);
+
+        // Set the confirmed pickup date
+        if ($confirmedPickupDate) {
+            $order->update(['confirmed_pickup_date' => $confirmedPickupDate]);
+        }
+
+        // Build notification message with pickup date
+        $pickupInfo = $confirmedPickupDate ? " Pickup scheduled for: " . Carbon::parse($confirmedPickupDate)->format('M d, Y') : "";
 
         // Notify buyer that order has been accepted
         \App\Models\Notification::notify(
             $order->buyer_id,
             \App\Models\Notification::TYPE_ORDER_STATUS,
             'Order Accepted',
-            "Your order #{$order->id} has been accepted by the farmer." . ($expectedDelivery ? " Expected delivery: {$expectedDelivery}" : ""),
+            "Your order #{$order->id} has been accepted by the farmer.{$pickupInfo}",
             ['order_id' => $order->id],
             "/orders/{$order->id}"
         );

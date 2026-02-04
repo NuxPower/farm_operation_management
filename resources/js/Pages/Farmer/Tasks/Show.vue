@@ -93,19 +93,19 @@
                         <div>
                             <p class="text-sm font-medium text-emerald-900">Piece Rate</p>
                             <p class="text-xs text-emerald-700 mt-0.5">
-                                {{ formatNumber(task.quantity) }} {{ task.unit || 'units' }} × ₱{{ formatNumber(task.unit_price) }}
+                                {{ formatNumber(task.quantity) }} {{ task.unit || 'units' }} × {{ formatCurrency(task.unit_price) }}
                             </p>
                         </div>
                         <div class="text-right">
                             <p class="text-xs text-emerald-600 uppercase font-bold tracking-wider">Total</p>
-                            <p class="text-lg font-bold text-emerald-700">₱{{ formatNumber(task.wage_amount) }}</p>
+                            <p class="text-lg font-bold text-emerald-700">{{ formatCurrency(task.wage_amount) }}</p>
                         </div>
                     </div>
                 </div>
 
                 <div v-else-if="task.payment_type === 'wage'" class="bg-gray-50 rounded-lg p-3 border border-gray-200 inline-block">
                     <p class="text-sm font-medium text-gray-900">Standard Wage</p>
-                    <p class="text-lg font-bold text-gray-700 mt-1">₱{{ formatNumber(task.wage_amount) }}</p>
+                    <p class="text-lg font-bold text-gray-700 mt-1">{{ formatCurrency(task.wage_amount) }}</p>
                 </div>
 
                 <div v-else-if="task.payment_type === 'share'" class="bg-orange-50 rounded-lg p-3 border border-orange-100 inline-block">
@@ -171,6 +171,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { tasksAPI } from '@/services/api'
 import { useFarmStore } from '@/stores/farm'
 import { getTaskTypeLabel } from '@/utils/taskTypes'
+import { formatCurrency } from '@/utils/format'
 
 const formatNumber = (num) => {
   return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

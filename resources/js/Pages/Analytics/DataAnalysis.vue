@@ -166,7 +166,7 @@
             <div class="flex justify-between items-start mb-4">
               <div>
                 <p class="text-sm font-medium text-gray-500">Revenue</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">₱{{ formatNumber(analyticsData.sales?.total_revenue ?? 0) }}</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(analyticsData.sales?.total_revenue ?? 0) }}</h3>
               </div>
               <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -188,7 +188,7 @@
             <div class="flex justify-between items-start mb-4">
               <div>
                 <p class="text-sm font-medium text-gray-500">Expenses</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">₱{{ formatNumber(analyticsData.expenses?.total_expenses ?? 0) }}</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(analyticsData.expenses?.total_expenses ?? 0) }}</h3>
               </div>
               <div class="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
@@ -215,7 +215,7 @@
             <div class="flex justify-between items-start mb-4">
               <div>
                 <p class="text-sm font-medium text-gray-500">Stock Value</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">₱{{ formatNumber(analyticsData.inventory?.total_value ?? 0) }}</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(analyticsData.inventory?.total_value ?? 0) }}</h3>
               </div>
               <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center text-violet-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
@@ -306,7 +306,7 @@
               </div>
 
               <div class="relative z-10 flex flex-col items-center gap-3 group">
-                <span class="text-xs font-bold text-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6">₱{{ formatNumber(analyticsData.sales?.total_revenue ?? 0) }}</span>
+                <span class="text-xs font-bold text-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6">{{ formatCurrency(analyticsData.sales?.total_revenue ?? 0) }}</span>
                 <div
                   class="w-16 md:w-20 bg-emerald-500 rounded-t-sm transition-all duration-500 hover:bg-emerald-600"
                   :style="{ height: `${Math.min((analyticsData.sales?.total_revenue ?? 0) / Math.max((analyticsData.sales?.total_revenue ?? 1), (analyticsData.expenses?.total_expenses ?? 1)) * 200, 200)}px` }"
@@ -315,7 +315,7 @@
               </div>
 
               <div class="relative z-10 flex flex-col items-center gap-3 group">
-                <span class="text-xs font-bold text-rose-700 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6">₱{{ formatNumber(analyticsData.expenses?.total_expenses ?? 0) }}</span>
+                <span class="text-xs font-bold text-rose-700 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6">{{ formatCurrency(analyticsData.expenses?.total_expenses ?? 0) }}</span>
                 <div
                   class="w-16 md:w-20 bg-rose-500 rounded-t-sm transition-all duration-500 hover:bg-rose-600"
                   :style="{ height: `${Math.min((analyticsData.expenses?.total_expenses ?? 0) / Math.max((analyticsData.sales?.total_revenue ?? 1), (analyticsData.expenses?.total_expenses ?? 1)) * 200, 200)}px` }"
@@ -324,7 +324,7 @@
               </div>
 
                <div class="relative z-10 flex flex-col items-center gap-3 group">
-                 <span class="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6" :class="netProfit >= 0 ? 'text-blue-700' : 'text-gray-700'">₱{{ formatNumber(Math.abs(netProfit)) }}</span>
+                 <span class="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute -top-6" :class="netProfit >= 0 ? 'text-blue-700' : 'text-gray-700'">{{ formatCurrency(Math.abs(netProfit)) }}</span>
                 <div
                   class="w-16 md:w-20 rounded-t-sm transition-all duration-500 opacity-80"
                   :class="netProfit >= 0 ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 hover:bg-gray-500'"
@@ -414,7 +414,7 @@
               </div>
               <div class="px-4 text-center">
                  <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Payroll Est.</div>
-                 <div class="text-2xl font-bold text-gray-900">₱{{ formatNumber(analyticsData.laborers?.total_labor_cost ?? 0) }}</div>
+                 <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(analyticsData.laborers?.total_labor_cost ?? 0) }}</div>
               </div>
               <div class="px-4 text-center border-none">
                  <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Efficiency</div>
@@ -471,13 +471,13 @@
                     <div class="w-3 md:w-5 bg-emerald-400 rounded-t-sm hover:bg-emerald-500 transition-all relative group"
                        :style="{ height: `${Math.min((analyticsData.financial_forecast.projected_revenue[index] / (Math.max(...analyticsData.financial_forecast.projected_revenue, ...analyticsData.financial_forecast.projected_expenses) || 1)) * 100, 100)}%` }">
                        <div class="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 shadow-lg">
-                          Rev: ₱{{ formatNumber(analyticsData.financial_forecast.projected_revenue[index]) }}
+                          Rev: {{ formatCurrency(analyticsData.financial_forecast.projected_revenue[index]) }}
                        </div>
                     </div>
                     <div class="w-3 md:w-5 bg-rose-400 rounded-t-sm hover:bg-rose-500 transition-all relative group"
                        :style="{ height: `${Math.min((analyticsData.financial_forecast.projected_expenses[index] / (Math.max(...analyticsData.financial_forecast.projected_revenue, ...analyticsData.financial_forecast.projected_expenses) || 1)) * 100, 100)}%` }">
                         <div class="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 shadow-lg">
-                          Exp: ₱{{ formatNumber(analyticsData.financial_forecast.projected_expenses[index]) }}
+                          Exp: {{ formatCurrency(analyticsData.financial_forecast.projected_expenses[index]) }}
                        </div>
                     </div>
                  </div>
@@ -509,6 +509,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { formatCurrency } from '@/utils/format';
 
 const router = useRouter();
 
@@ -544,7 +545,7 @@ const overduePercent = computed(() => {
 });
 
 // Methods
-const formatNumber = (num) => {
+const formatNumber = (num) => { // Kept for other numbers like count, but falling back for compatibility
   return new Intl.NumberFormat('en-PH').format(num);
 };
 

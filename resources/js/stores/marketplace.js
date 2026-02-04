@@ -515,11 +515,12 @@ export const useMarketplaceStore = defineStore('marketplace', {
       }
     },
 
-    async acceptOrder(orderId, expectedDeliveryDate = null, notes = null) {
+    async acceptOrder(orderId, options = {}) {
       try {
         const response = await axios.post(`/api/rice-marketplace/orders/${orderId}/accept`, {
-          expected_delivery_date: expectedDeliveryDate,
-          farmer_notes: notes
+          expected_delivery_date: options.expected_delivery_date || null,
+          farmer_notes: options.farmer_notes || null,
+          confirmed_pickup_date: options.confirmed_pickup_date || null
         });
         return response.data;
       } catch (error) {

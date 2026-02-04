@@ -37,7 +37,7 @@
                 Seller: {{ item.rice_product?.farmer?.name || 'N/A' }}
               </p>
               <p class="text-lg font-medium text-green-600">
-                ₱{{ formatNumber(item.rice_product?.price_per_unit || 0) }} / {{ item.rice_product?.unit || 'kg' }}
+                {{ formatCurrency(item.rice_product?.price_per_unit || 0) }} / {{ item.rice_product?.unit || 'kg' }}
               </p>
             </div>
             <div class="flex flex-col items-end gap-2">
@@ -47,7 +47,7 @@
                   class="w-16 text-center border rounded-md" @change="saveQuantity(item)" />
                 <button @click="updateQuantity(item, 1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300">+</button>
               </div>
-              <p class="font-semibold text-gray-900">₱{{ formatNumber(item.quantity * (item.rice_product?.price_per_unit || 0)) }}</p>
+              <p class="font-semibold text-gray-900">{{ formatCurrency(item.quantity * (item.rice_product?.price_per_unit || 0)) }}</p>
               <button @click="confirmRemoveItem(item)" class="text-red-600 text-sm hover:underline">Remove</button>
             </div>
           </div>
@@ -57,7 +57,7 @@
         <div class="bg-white rounded-xl shadow p-6">
           <div class="flex justify-between items-center mb-4">
             <span class="text-gray-600">Subtotal ({{ cartItems.length }} items)</span>
-            <span class="text-xl font-bold text-gray-900">₱{{ formatNumber(total) }}</span>
+            <span class="text-xl font-bold text-gray-900">{{ formatCurrency(total) }}</span>
           </div>
           <button @click="showCheckoutModal = true"
             class="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
@@ -74,19 +74,28 @@
           <h2 class="text-xl font-bold text-gray-900 mb-4">Checkout</h2>
           
           <form @submit.prevent="confirmCheckout">
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
-              <textarea v-model="checkoutForm.delivery_address" rows="3" required
-                class="w-full px-3 py-2 border rounded-lg" placeholder="Enter your full address"></textarea>
+            <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div class="flex items-center gap-2 text-green-800 font-medium mb-1">
+                <span>📍</span>
+                <span>Pickup Location</span>
+              </div>
+              <p class="text-sm text-green-700">
+                You will pick up your order directly from the farmer's location. 
+                The exact pickup address will be provided after the farmer confirms your order.
+              </p>
+              <input type="hidden" v-model="checkoutForm.delivery_method" value="pickup">
             </div>
 
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Method</label>
-              <div class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-700">
-                Pickup from Farm
-                <input type="hidden" v-model="checkoutForm.delivery_method" value="pickup">
-              </div>
-              <p class="mt-1 text-xs text-gray-500">Products must be picked up from the farmer's location.</p>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Preferred Pickup Date *</label>
+              <input 
+                type="date" 
+                v-model="checkoutForm.preferred_pickup_date" 
+                :min="minPickupDate"
+                required
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+              <p class="text-xs text-gray-500 mt-1">Choose when you'd like to pick up your order</p>
             </div>
 
             <div class="mb-4">
@@ -107,7 +116,7 @@
             <div class="border-t pt-4 mb-4">
               <div class="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span>₱{{ formatNumber(total) }}</span>
+                <span>{{ formatCurrency(total) }}</span>
               </div>
             </div>
 
@@ -142,6 +151,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
+import { formatCurrency } from '@/utils/format'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()
@@ -161,6 +171,14 @@ const checkoutForm = ref({
   delivery_method: 'pickup',
   payment_method: 'Cash on Delivery',
   notes: '',
+  preferred_pickup_date: '',
+})
+
+// Computed: minimum pickup date (tomorrow)
+const minPickupDate = computed(() => {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return tomorrow.toISOString().split('T')[0]
 })
 
 // Use store getters and state
@@ -209,7 +227,7 @@ const clearCart = async () => {
 const confirmCheckout = () => {
   pendingAction.value = processCheckout
   confirmTitle.value = 'Confirm Order'
-  confirmMessage.value = `Are you sure you want to place this order? Total amount to pay is ₱${formatNumber(total.value)}.`
+  confirmMessage.value = `Are you sure you want to place this order? Total amount to pay is ${formatCurrency(total.value)}.`
   confirmButtonText.value = 'Place Order'
   confirmType.value = 'success'
   showCheckoutModal.value = false 
@@ -221,18 +239,17 @@ const processCheckout = async () => {
   showConfirmModal.value = false 
   
   try {
-    const addressParts = checkoutForm.value.delivery_address.split(',').map(s => s.trim())
-    
     await marketplaceStore.checkout({
       delivery_address: {
-        street: addressParts[0] || checkoutForm.value.delivery_address,
-        city: addressParts[1] || '',
-        state: addressParts[2] || '',
+        street: 'Pickup from farmer',
+        city: '',
+        state: '',
         country: 'Philippines'
       },
-      delivery_method: checkoutForm.value.delivery_method,
+      delivery_method: 'pickup',
       payment_method: checkoutForm.value.payment_method,
       notes: checkoutForm.value.notes,
+      preferred_pickup_date: checkoutForm.value.preferred_pickup_date,
     })
     
     alert('Order placed successfully!')
@@ -251,9 +268,7 @@ const handleConfirmAction = () => {
   pendingAction.value = null
 }
 
-const formatNumber = (value) => {
-  return Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
+
 
 onMounted(() => {
   marketplaceStore.fetchCart()

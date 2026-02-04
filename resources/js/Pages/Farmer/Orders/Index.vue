@@ -50,13 +50,25 @@
                 </span>
               </div>
               <div class="text-sm text-gray-600 space-y-1">
-                <p>{{ order.quantity }} kg • ₱{{ Number(order.total_amount).toLocaleString() }}</p>
+                <p>{{ order.quantity }} kg • {{ formatCurrency(order.total_amount) }}</p>
                 <p>Buyer: {{ order.buyer?.name || 'N/A' }}</p>
                 <p>Ordered: {{ formatDate(order.order_date) }}</p>
+                <!-- Preferred Pickup Date (pending orders) -->
+                <p v-if="order.preferred_pickup_date && ['pending', 'negotiating'].includes(order.status)" class="text-blue-600 font-medium">
+                  📅 Requested pickup: {{ formatDate(order.preferred_pickup_date) }}
+                </p>
+                <!-- Confirmed Pickup Date -->
+                <p v-if="order.confirmed_pickup_date" class="text-green-600 font-medium">
+                  ✓ Scheduled pickup: {{ formatDate(order.confirmed_pickup_date) }}
+                </p>
+                <!-- Pickup Deadline Warning -->
+                <p v-if="order.status === 'ready_for_pickup' && order.pickup_deadline" class="text-orange-600 font-medium">
+                  ⏰ Pickup deadline: {{ formatDateTime(order.pickup_deadline) }}
+                </p>
                 <!-- Negotiation Price Info -->
                 <p v-if="order.status === 'negotiating' && order.offer_price" class="text-orange-600 font-medium">
-                  🤝 Buyer offers: ₱{{ Number(order.offer_price).toLocaleString() }}/kg
-                  (Original: ₱{{ Number(order.rice_product?.price_per_unit || order.unit_price).toLocaleString() }}/kg)
+                  🤝 Buyer offers: {{ formatCurrency(order.offer_price) }}/kg
+                  (Original: {{ formatCurrency(order.rice_product?.price_per_unit || order.unit_price) }}/kg)
                 </p>
               </div>
             </div>
@@ -72,7 +84,7 @@
               </template>
               <!-- Pending Actions -->
               <template v-if="order.status === 'pending'">
-                <button @click="acceptOrder(order)" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+                <button @click="showConfirmModal(order)" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
                   Accept
                 </button>
                 <button @click="rejectOrder(order)" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200">
@@ -100,11 +112,70 @@
         </div>
       </div>
 
-      <!-- Empty State -->
       <div v-else class="text-center py-12 bg-gray-50 rounded-xl">
         <div class="text-5xl mb-4">📋</div>
         <h3 class="text-lg font-medium text-gray-900">No orders yet</h3>
         <p class="text-gray-500 mt-1">Orders from buyers will appear here</p>
+      </div>
+    </div>
+
+    <!-- Confirm Order Modal -->
+    <div v-if="confirmingOrder" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl max-w-md w-full p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Confirm Order #{{ confirmingOrder.id }}</h2>
+        
+        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+          <p class="text-sm text-gray-600">Product: <strong>{{ confirmingOrder.rice_product?.name }}</strong></p>
+          <p class="text-sm text-gray-600">Quantity: <strong>{{ confirmingOrder.quantity }} kg</strong></p>
+          <p class="text-sm text-gray-600">Total: <strong>{{ formatCurrency(confirmingOrder.total_amount) }}</strong></p>
+        </div>
+
+        <!-- Buyer's Preferred Date -->
+        <div v-if="confirmingOrder.preferred_pickup_date" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p class="text-sm text-blue-700">
+            📅 Buyer requested pickup on: <strong>{{ formatDate(confirmingOrder.preferred_pickup_date) }}</strong>
+          </p>
+        </div>
+
+        <!-- Confirm Pickup Date -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Pickup Date *</label>
+          <input 
+            type="date" 
+            v-model="confirmPickupDate" 
+            :min="minPickupDate"
+            required
+            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">Set the pickup date for this order</p>
+        </div>
+
+        <!-- Use Buyer's Preferred Date -->
+        <div v-if="confirmingOrder.preferred_pickup_date" class="mb-4">
+          <button 
+            type="button"
+            @click="confirmPickupDate = confirmingOrder.preferred_pickup_date.split('T')[0]"
+            class="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Use buyer's preferred date
+          </button>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            @click="confirmingOrder = null"
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            @click="acceptOrder(confirmingOrder)"
+            :disabled="!confirmPickupDate"
+            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            Confirm Order
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -113,11 +184,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useMarketplaceStore } from '@/stores/marketplace'
+import { formatCurrency } from '@/utils/format'
 
 const marketplaceStore = useMarketplaceStore()
 const loading = ref(true)
 const orders = ref([])
 const activeTab = ref('pending')
+const confirmingOrder = ref(null)
+const confirmPickupDate = ref('')
+
+// Computed: minimum pickup date (today)
+const minPickupDate = computed(() => {
+  return new Date().toISOString().split('T')[0]
+})
 
 const tabs = [
   { value: 'all', label: 'All' },
@@ -165,11 +244,34 @@ const formatStatus = (status) => {
   return labels[status] || status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
 }
 const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : 'N/A'
+const formatDateTime = (date) => {
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleString('en-PH', { 
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  })
+}
+
+const showConfirmModal = (order) => {
+  confirmingOrder.value = order
+  // Pre-fill with buyer's preferred date if available
+  if (order.preferred_pickup_date) {
+    confirmPickupDate.value = order.preferred_pickup_date.split('T')[0]
+  } else {
+    // Default to tomorrow
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    confirmPickupDate.value = tomorrow.toISOString().split('T')[0]
+  }
+}
 
 const acceptOrder = async (order) => {
   try {
-    await marketplaceStore.acceptOrder(order.id)
+    await marketplaceStore.acceptOrder(order.id, { confirmed_pickup_date: confirmPickupDate.value })
     order.status = 'confirmed'
+    order.confirmed_pickup_date = confirmPickupDate.value
+    confirmingOrder.value = null
+    confirmPickupDate.value = ''
   } catch (err) {
     alert(err.message || 'Failed to accept order')
   }
@@ -196,7 +298,7 @@ const shipOrder = async (order) => {
 }
 
 const acceptNegotiation = async (order) => {
-  if (!confirm(`Accept buyer's offer of ₱${order.offer_price}/kg? The order will proceed.`)) return
+  if (!confirm(`Accept buyer's offer of ${formatCurrency(order.offer_price)}/kg? The order will proceed.`)) return
   try {
     await marketplaceStore.respondToNegotiation(order.id, 'accept')
     order.status = 'pending'

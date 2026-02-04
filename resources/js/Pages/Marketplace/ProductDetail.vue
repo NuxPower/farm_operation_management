@@ -56,9 +56,17 @@
           <button
             type="button"
             @click="addToCart"
-            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+            :disabled="isAddingToCart"
+            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Add to Cart
+            <span v-if="isAddingToCart" class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Adding...
+            </span>
+            <span v-else>Add to Cart</span>
           </button>
           <button
             type="button"
@@ -201,9 +209,17 @@
               <button
                 type="button"
                 @click="addToCart"
-                class="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                :disabled="isAddingToCart"
+                class="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add to Cart
+                <span v-if="isAddingToCart" class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding...
+                </span>
+                <span v-else>Add to Cart</span>
               </button>
             </div>
           </div>
@@ -244,21 +260,22 @@
             </div>
           </div>
 
-          <!-- Shipping Information -->
+          <!-- Pickup Information -->
           <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-semibold mb-4">Shipping & Delivery</h3>
+            <h3 class="text-lg font-semibold mb-4">Pickup Information</h3>
             <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-gray-600">Shipping:</span>
-                <span class="text-sm font-medium">{{ product.shipping_cost === 0 ? 'Free' : formatCurrency(product.shipping_cost) }}</span>
+              <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center gap-2 text-green-800 font-medium mb-1">
+                  <span>📍</span>
+                  <span>Pickup Only</span>
+                </div>
+                <p class="text-sm text-green-700">
+                  Orders must be picked up from the farmer's location. The exact address will be provided after order confirmation.
+                </p>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-gray-600">Delivery:</span>
-                <span class="text-sm">{{ product.delivery_time }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-gray-600">Pickup available:</span>
-                <span class="text-sm">{{ product.pickup_available ? 'Yes' : 'No' }}</span>
+                <span class="text-gray-600">Location:</span>
+                <span class="text-sm font-medium">{{ product.location || 'Contact seller' }}</span>
               </div>
             </div>
           </div>
@@ -303,6 +320,7 @@ const quantity = ref(1)
 const loading = ref(true)
 const error = ref(null)
 const selectedImageIndex = ref(0)
+const isAddingToCart = ref(false)
 
 const product = ref({
   id: null,
@@ -351,13 +369,18 @@ const marketplaceStore = useMarketplaceStore();
 const authStore = useAuthStore();
 
 const addToCart = async () => {
+  if (isAddingToCart.value) return;
+  
+  isAddingToCart.value = true;
   try {
     await marketplaceStore.addToCart(product.value, quantity.value);
     // Global toast handles success
   } catch (err) {
     console.error('Failed to add to cart:', err);
     // Global toast handles error
-  } 
+  } finally {
+    isAddingToCart.value = false;
+  }
 }
 
 const contactSeller = () => {

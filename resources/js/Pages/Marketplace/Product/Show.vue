@@ -96,7 +96,7 @@
                   </div>
                   <div>
                     <span class="text-sm text-gray-500 block mb-1">Price</span>
-                    <span class="text-lg font-semibold text-gray-900">₱{{ formatPrice(product.price_per_unit) }}</span>
+                    <span class="text-lg font-semibold text-gray-900">{{ formatCurrency(product.price_per_unit) }}</span>
                     <span class="text-xs text-gray-500 ml-1">/ {{ product.unit }}</span>
                   </div>
                </div>
@@ -182,6 +182,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { riceMarketplaceAPI } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
+import { formatCurrency } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -213,10 +214,7 @@ const loadProduct = async () => {
   }
 }
 
-const formatPrice = (value) => {
-  const num = Number(value)
-  return Number.isNaN(num) ? '0.00' : num.toFixed(2)
-}
+// formatPrice removed in favor of formatCurrency
 
 const formatNumber = (value) => {
   const num = Number(value)

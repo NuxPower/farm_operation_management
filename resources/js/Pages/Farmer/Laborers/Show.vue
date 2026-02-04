@@ -130,7 +130,7 @@
                     <div v-if="laborer.rate_type !== 'per_job'">
                         <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">{{ laborer.rate_type === 'share' ? 'Share Percentage' : 'Rate' }}</dt>
                         <dd v-if="laborer.rate_type === 'share'" class="text-sm font-semibold text-gray-700">{{ laborer.rate }}%</dd>
-                        <dd v-else class="text-sm font-semibold text-gray-700">₱{{ laborer.rate ? Number(laborer.rate).toFixed(2) : '0.00' }} / day</dd>
+                        <dd v-else class="text-sm font-semibold text-gray-700">{{ formatCurrency(laborer.rate) }} / day</dd>
                     </div>
                  </div>
             </div>
@@ -188,6 +188,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
+import { formatCurrency } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()

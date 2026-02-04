@@ -252,6 +252,7 @@ import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import HarvestFormModal from './HarvestFormModal.vue'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
+import { formatCurrency } from '@/utils/format'
 
 const router = useRouter()
 const farmStore = useFarmStore()
@@ -329,12 +330,7 @@ const formatDate = (value) => {
   }
 }
 
-const formatCurrency = (value) => {
-  if (value === null || value === undefined || value === '') return 'N/A'
-  const num = Number(value)
-  if (Number.isNaN(num)) return 'Invalid'
-  return num.toLocaleString('en-US', { style: 'currency', currency: 'PHP' }) // Assuming PHP
-}
+// formatCurrency removed in favor of imported util
 
 const qualityClass = (grade) => {
   const classes = {

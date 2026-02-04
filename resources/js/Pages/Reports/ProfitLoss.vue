@@ -28,16 +28,16 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div class="bg-white rounded-xl shadow p-6">
             <p class="text-sm text-gray-500 mb-1">Total Revenue</p>
-            <p class="text-2xl font-bold text-green-600">₱{{ formatNumber(summary.total_revenue) }}</p>
+            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(summary.total_revenue) }}</p>
           </div>
           <div class="bg-white rounded-xl shadow p-6">
             <p class="text-sm text-gray-500 mb-1">Total Expenses</p>
-            <p class="text-2xl font-bold text-red-600">₱{{ formatNumber(summary.total_expenses) }}</p>
+            <p class="text-2xl font-bold text-red-600">{{ formatCurrency(summary.total_expenses) }}</p>
           </div>
           <div class="bg-white rounded-xl shadow p-6">
             <p class="text-sm text-gray-500 mb-1">Net Profit</p>
             <p :class="['text-2xl font-bold', summary.net_profit >= 0 ? 'text-green-600' : 'text-red-600']">
-              ₱{{ formatNumber(summary.net_profit) }}
+              {{ formatCurrency(summary.net_profit) }}
             </p>
           </div>
           <div class="bg-white rounded-xl shadow p-6">
@@ -55,7 +55,7 @@
             <div class="space-y-3">
               <div v-for="(amount, category) in expensesByCategory" :key="category" class="flex items-center justify-between">
                 <span class="text-gray-700 capitalize">{{ category.replace(/_/g, ' ') }}</span>
-                <span class="font-semibold">₱{{ formatNumber(amount) }}</span>
+                <span class="font-semibold">{{ formatCurrency(amount) }}</span>
               </div>
               <div v-if="Object.keys(expensesByCategory).length === 0" class="text-gray-500 text-center py-4">
                 No expenses recorded
@@ -70,10 +70,10 @@
               <div v-for="month in monthlyTrend" :key="month.month" class="flex items-center justify-between py-2 border-b border-gray-100">
                 <span class="text-gray-700">{{ month.month }}</span>
                 <div class="text-right">
-                  <span class="text-green-600 mr-4">+₱{{ formatNumber(month.revenue) }}</span>
-                  <span class="text-red-600 mr-4">-₱{{ formatNumber(month.expenses) }}</span>
+                  <span class="text-green-600 mr-4">+{{ formatCurrency(month.revenue) }}</span>
+                  <span class="text-red-600 mr-4">-{{ formatCurrency(month.expenses) }}</span>
                   <span :class="['font-semibold', month.profit >= 0 ? 'text-green-600' : 'text-red-600']">
-                    ₱{{ formatNumber(month.profit) }}
+                    {{ formatCurrency(month.profit) }}
                   </span>
                 </div>
               </div>
@@ -106,10 +106,10 @@
                       {{ planting.status?.replace(/_/g, ' ') }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">₱{{ formatNumber(planting.revenue) }}</td>
-                  <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-red-600">₱{{ formatNumber(planting.expenses) }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">{{ formatCurrency(planting.revenue) }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap text-sm text-right text-red-600">{{ formatCurrency(planting.expenses) }}</td>
                   <td :class="['px-4 py-3 whitespace-nowrap text-sm text-right font-medium', planting.net_profit >= 0 ? 'text-green-600' : 'text-red-600']">
-                    ₱{{ formatNumber(planting.net_profit) }}
+                    {{ formatCurrency(planting.net_profit) }}
                   </td>
                   <td :class="['px-4 py-3 whitespace-nowrap text-sm text-right font-bold', planting.roi >= 0 ? 'text-green-600' : 'text-red-600']">
                     {{ planting.roi }}%
@@ -130,6 +130,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { formatCurrency } from '@/utils/format'
 
 const loading = ref(true)
 const period = ref('365')
@@ -163,9 +164,7 @@ const loadData = async () => {
   }
 }
 
-const formatNumber = (value) => {
-  return Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
+
 
 const getStatusClass = (status) => {
   const classes = {

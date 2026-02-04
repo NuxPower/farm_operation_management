@@ -123,12 +123,12 @@
             </div>
           </div>
 
-          <!-- Shipping Information -->
+          <!-- Pickup Location -->
           <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4">Shipping Information</h2>
+            <h2 class="text-xl font-semibold mb-4">Pickup Location</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 class="font-medium text-gray-900 mb-2">Delivery Address</h3>
+                <h3 class="font-medium text-gray-900 mb-2">Pickup Address</h3>
                 <div class="text-gray-600 space-y-1">
                   <div>{{ deliveryAddress.street || 'Provided during checkout' }}</div>
                   <div v-if="deliveryAddress.city">
@@ -139,11 +139,21 @@
                 </div>
               </div>
               <div>
-                <h3 class="font-medium text-gray-900 mb-2">Shipping Details</h3>
+                <h3 class="font-medium text-gray-900 mb-2">Pickup Details</h3>
                 <div class="space-y-2 text-gray-600">
                   <div class="flex justify-between">
                     <span>Method:</span>
                     <span>{{ order.delivery_method || 'Pickup' }}</span>
+                  </div>
+                  <!-- Preferred Pickup Date (buyer's request) -->
+                  <div v-if="order.preferred_pickup_date" class="flex justify-between">
+                    <span>Preferred Date:</span>
+                    <span>{{ formatDate(order.preferred_pickup_date) }}</span>
+                  </div>
+                  <!-- Confirmed Pickup Date (farmer confirmed) -->
+                  <div v-if="order.confirmed_pickup_date" class="flex justify-between bg-green-50 p-2 rounded-md border border-green-200">
+                    <span class="text-green-700 font-medium">📅 Scheduled Pickup:</span>
+                    <span class="text-green-700 font-medium">{{ formatDate(order.confirmed_pickup_date) }}</span>
                   </div>
                   <div v-if="order.tracking_number" class="flex justify-between">
                     <span>Tracking:</span>
@@ -152,6 +162,12 @@
                   <div v-if="order.available_date" class="flex justify-between">
                     <span>Available:</span>
                     <span>{{ formatDate(order.available_date) }}</span>
+                  </div>
+                  <!-- Pickup Deadline -->
+                  <div v-if="order.status === 'ready_for_pickup' && order.pickup_deadline" 
+                    class="flex justify-between bg-orange-50 p-2 rounded-md border border-orange-200">
+                    <span class="text-orange-700 font-medium">⏰ Pickup Deadline:</span>
+                    <span class="text-orange-700 font-medium">{{ formatDateTime(order.pickup_deadline) }}</span>
                   </div>
                 </div>
               </div>

@@ -190,6 +190,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
+import { formatCurrency } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,10 +260,7 @@ const formatDate = (date) => {
   })
 }
 
-const formatCurrency = (value) => {
-  if (!value && value !== 0) return '₱0.00'
-  return Number(value).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })
-}
+// formatCurrency removed in favor of imported util
 
 const calculateTotalValue = () => {
   const qty = harvest.value?.quantity || harvest.value?.yield || 0

@@ -95,7 +95,7 @@
                               <p class="text-gray-500 text-xs">Rate</p>
                               <p class="font-medium text-gray-900">
                                   <span v-if="laborer.rate_type === 'per_job'">Per Job</span>
-                                  <span v-else>₱{{ laborer.rate ? Number(laborer.rate).toFixed(2) : '0.00' }} / {{ laborer.rate_type === 'daily' ? 'day' : 'hr' }}</span>
+                                  <span v-else>{{ formatCurrency(laborer.rate) }} / {{ laborer.rate_type === 'daily' ? 'day' : 'hr' }}</span>
                               </p>
                           </div>
                           <div>
@@ -178,7 +178,7 @@
             </div>
              <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                 <p class="text-xs font-medium text-gray-500 uppercase">Total Daily Cost</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">₱{{ group.stats.total_daily_cost ? Number(group.stats.total_daily_cost).toFixed(2) : '0.00' }}</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(group.stats.total_daily_cost) }}</p>
                 <p class="text-xs text-gray-400 mt-1">*Sum of all member daily rates</p>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
@@ -251,7 +251,7 @@
                                     </div>
                                     <div class="ml-auto text-xs text-gray-400">
                                          <span v-if="laborer.rate_type === 'per_job'">Per Job</span>
-                                         <span v-else>₱{{ laborer.rate ? Number(laborer.rate).toFixed(2) : '0.00' }}/{{ laborer.rate_type === 'daily' ? 'day' : 'hr' }}</span>
+                                         <span v-else>{{ formatCurrency(laborer.rate) }}/{{ laborer.rate_type === 'daily' ? 'day' : 'hr' }}</span>
                                     </div>
                                 </label>
                             </div>
@@ -290,6 +290,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { formatCurrency } from '@/utils/format'
 import {
   Chart as ChartJS,
   Title,

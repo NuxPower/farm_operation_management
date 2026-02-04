@@ -252,7 +252,7 @@
 
                         <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex justify-between items-center">
                            <span class="text-sm text-emerald-800 font-medium">Total Cost:</span>
-                           <span class="text-lg font-bold text-emerald-700">₱{{ formatNumber((form.quantity || 0) * (form.unit_price || 0)) }}</span>
+                           <span class="text-lg font-bold text-emerald-700">{{ formatCurrency((form.quantity || 0) * (form.unit_price || 0)) }}</span>
                         </div>
                      </div>
                   </transition>
@@ -321,6 +321,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import { buildTaskTypeOptions } from '@/utils/taskTypes'
 import { laborAPI, tasksAPI } from '@/services/api'
+import { formatCurrency } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()

@@ -153,7 +153,7 @@
                   </td>
 
                   <td class="px-6 py-4 whitespace-nowrap text-right">
-                     <div class="text-sm font-bold text-gray-900">₱{{ formatPrice(product.price_per_unit) }}</div>
+                     <div class="text-sm font-bold text-gray-900">{{ formatCurrency(product.price_per_unit) }}</div>
                      <div class="text-xs text-gray-500">per {{ product.unit || 'unit' }}</div>
                   </td>
 
@@ -202,6 +202,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAuthStore } from '@/stores/auth'
+import { formatCurrency } from '@/utils/format'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()
@@ -227,10 +228,7 @@ const formatQuantity = (value) => {
   return Number.isNaN(num) ? value : num.toLocaleString('en-US')
 }
 
-const formatPrice = (value) => {
-  const num = Number(value)
-  return Number.isNaN(num) ? '0.00' : num.toFixed(2)
-}
+// formatPrice removed in favor of formatCurrency
 
 const formatStatus = (status) => {
   if (!status) return 'Available'

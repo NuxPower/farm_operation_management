@@ -47,7 +47,7 @@
                 </span>
               </div>
               <div class="text-sm text-gray-600 space-y-1">
-                <p>Quantity: {{ order.quantity }} kg • ₱{{ Number(order.total_amount).toLocaleString() }}</p>
+                <p>Quantity: {{ order.quantity }} kg • {{ formatCurrency(order.total_amount) }}</p>
                 <p>Seller: {{ order.rice_product?.farmer?.name || 'N/A' }}</p>
                 <p>Ordered: {{ formatDate(order.order_date) }}</p>
               </div>
@@ -56,6 +56,18 @@
               <router-link :to="`/buyer/orders/${order.id}`"
                 class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 text-center"
               >View Details</router-link>
+
+              <!-- Pickup Deadline Warning -->
+              <div v-if="order.status === 'ready_for_pickup' && order.pickup_deadline" 
+                class="px-3 py-2 bg-orange-100 text-orange-800 rounded-lg text-xs text-center">
+                ⏰ Pickup by: {{ formatDateTime(order.pickup_deadline) }}
+              </div>
+
+              <!-- Cancel Order (only for pending/confirmed) -->
+              <button v-if="['pending', 'confirmed'].includes(order.status)"
+                @click="openCancelModal(order)"
+                class="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+              >Cancel Order</button>
 
               <button v-if="(order.status === 'picked_up' || order.status === 'delivered') && !order.has_review"
                 @click="openReviewModal(order)"
@@ -74,6 +86,31 @@
         <router-link to="/buyer/products" class="inline-flex items-center px-4 py-2 mt-4 bg-green-600 text-white rounded-lg hover:bg-green-700">
           Browse Products
         </router-link>
+      </div>
+    </div>
+
+    <!-- Cancel Order Modal -->
+    <div v-if="showCancelModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl max-w-md w-full p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Cancel Order</h2>
+        <p class="text-gray-600 mb-4">Are you sure you want to cancel Order #{{ cancelOrder?.id }}?</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Cancellation Reason (required)</label>
+          <textarea v-model="cancelReason" rows="3" required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            placeholder="Why are you cancelling this order?"
+          ></textarea>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" @click="showCancelModal = false; cancelReason = ''"
+            class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          >Keep Order</button>
+          <button @click="submitCancel" :disabled="!cancelReason.trim() || cancellingOrder"
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+          >{{ cancellingOrder ? 'Cancelling...' : 'Cancel Order' }}</button>
+        </div>
       </div>
     </div>
 
@@ -159,6 +196,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import api from '@/services/api'
+import { formatCurrency } from '@/utils/format'
 
 const marketplaceStore = useMarketplaceStore()
 const loading = ref(true)
@@ -179,12 +217,19 @@ const reviewForm = ref({
   would_recommend: true,
 })
 
+// Cancel modal state
+const showCancelModal = ref(false)
+const cancelOrder = ref(null)
+const cancelReason = ref('')
+const cancellingOrder = ref(false)
+
 const tabs = [
   { value: 'all', label: 'All Orders' },
   { value: 'pending', label: 'Pending' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'ready_for_pickup', label: 'Ready for Pickup' },
   { value: 'picked_up', label: 'Picked Up' },
+  { value: 'cancelled', label: 'Cancelled' },
 ]
 
 const filteredOrders = computed(() => {
@@ -225,6 +270,42 @@ const formatStatus = (status) => {
 const formatDate = (date) => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const formatDateTime = (date) => {
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleString('en-PH', { 
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  })
+}
+
+const openCancelModal = (order) => {
+  cancelOrder.value = order
+  cancelReason.value = ''
+  showCancelModal.value = true
+}
+
+const submitCancel = async () => {
+  if (!cancelReason.value.trim()) return
+  
+  cancellingOrder.value = true
+  try {
+    await api.post(`/rice-marketplace/orders/${cancelOrder.value.id}/cancel`, {
+      reason: cancelReason.value
+    })
+    // Remove from list or update status
+    const idx = orders.value.findIndex(o => o.id === cancelOrder.value.id)
+    if (idx !== -1) {
+      orders.value[idx].status = 'cancelled'
+    }
+    showCancelModal.value = false
+    cancelReason.value = ''
+  } catch (err) {
+    console.error('Failed to cancel order', err)
+  } finally {
+    cancellingOrder.value = false
+  }
 }
 
 

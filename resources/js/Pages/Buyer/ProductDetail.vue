@@ -325,14 +325,26 @@
           You will be notified via SMS when the product is ready and the day before pickup.
         </p>
         
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center gap-2 text-green-800 font-medium mb-1">
+            <span>📍</span>
+            <span>Pickup Location</span>
+          </div>
+          <p class="text-sm text-green-700">
+            You will pick up your order from the farmer's location. The exact address will be provided after confirmation.
+          </p>
+        </div>
+
         <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Address</label>
-          <textarea
-            v-model="orderForm.delivery_address"
-            rows="3"
+          <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Pickup Date *</label>
+          <input
+            v-model="orderForm.preferred_pickup_date"
+            type="date"
+            :min="minPickupDate"
+            required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="Enter your delivery address"
-          ></textarea>
+          />
+          <p class="text-xs text-gray-500 mt-1">Choose when you'd like to pick up your order</p>
         </div>
 
         <div class="mb-4">
@@ -346,18 +358,7 @@
           <p class="text-xs text-gray-500 mt-1">We'll notify you via SMS when your pre-order is ready</p>
         </div>
 
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Method</label>
-          <select
-            v-model="orderForm.delivery_method"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="pickup">Pickup</option>
-            <option value="courier">Courier</option>
-            <option value="postal">Postal</option>
-            <option value="truck">Truck</option>
-          </select>
-        </div>
+
 
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
@@ -402,27 +403,26 @@
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 class="text-xl font-bold mb-4">Place Order</h3>
         
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Address</label>
-          <textarea
-            v-model="orderForm.delivery_address"
-            rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="Enter your delivery address"
-          ></textarea>
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center gap-2 text-green-800 font-medium mb-1">
+            <span>📍</span>
+            <span>Pickup Location</span>
+          </div>
+          <p class="text-sm text-green-700">
+            You will pick up your order from the farmer's location. The exact address will be provided after confirmation.
+          </p>
         </div>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Method</label>
-          <select
-            v-model="orderForm.delivery_method"
+          <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Pickup Date *</label>
+          <input
+            v-model="orderForm.preferred_pickup_date"
+            type="date"
+            :min="minPickupDate"
+            required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="pickup">Pickup</option>
-            <option value="courier">Courier</option>
-            <option value="postal">Postal</option>
-            <option value="truck">Truck</option>
-          </select>
+          />
+          <p class="text-xs text-gray-500 mt-1">Choose when you'd like to pick up your order</p>
         </div>
 
         <div class="mb-4">
@@ -494,7 +494,15 @@ const orderForm = ref({
   delivery_method: 'pickup',
   payment_method: 'Cash on Delivery',
   notes: '',
-  phone: ''
+  phone: '',
+  preferred_pickup_date: '',
+})
+
+// Computed: minimum pickup date (tomorrow)
+const minPickupDate = computed(() => {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return tomorrow.toISOString().split('T')[0]
 })
 
 // Favorites state
@@ -586,20 +594,16 @@ const parseDeliveryAddress = () => {
 }
 
 const placeOrder = async (isPreOrder = false) => {
-  if (!orderForm.value.delivery_address) {
-    alert('Please fill in delivery address')
-    return
-  }
-
   submitting.value = true
   try {
     await riceMarketplaceAPI.createOrder({
       rice_product_id: product.value.id,
       quantity: quantity.value,
-      delivery_address: parseDeliveryAddress(),
-      delivery_method: orderForm.value.delivery_method,
+      delivery_address: { street: 'Pickup from farmer', city: '', state: '', country: 'Philippines' },
+      delivery_method: 'pickup',
       payment_method: orderForm.value.payment_method,
-      notes: orderForm.value.notes
+      notes: orderForm.value.notes,
+      preferred_pickup_date: orderForm.value.preferred_pickup_date,
     })
 
     if (orderForm.value.phone) {
