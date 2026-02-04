@@ -35,34 +35,34 @@
         <!-- Checkout Form -->
         <div class="lg:col-span-2 space-y-6">
           
-          <!-- Shipping Address -->
+          <!-- Pickup Method & Date -->
           <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Shipping Address</h3>
-            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-              <div class="sm:col-span-6">
-                <label for="street" class="block text-sm font-medium text-gray-700">Street Address</label>
-                <input type="text" id="street" v-model="form.address.street" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Delivery Method</h3>
+            
+            <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="flex items-center gap-2 text-gray-800 font-medium mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                  <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0014 7z" />
+                </svg>
+                <span>Pickup from Farm</span>
               </div>
+              <p class="text-sm text-gray-600 ml-7">
+                Your order will be prepared for pickup at the farmer's location.
+              </p>
+            </div>
 
-              <div class="sm:col-span-2">
-                <label for="city" class="block text-sm font-medium text-gray-700">City</label>
-                <input type="text" id="city" v-model="form.address.city" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label for="state" class="block text-sm font-medium text-gray-700">State / Province</label>
-                <input type="text" id="state" v-model="form.address.state" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label for="postal_code" class="block text-sm font-medium text-gray-700">Postal Code</label>
-                <input type="text" id="postal_code" v-model="form.address.postal_code" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-              
-              <div class="sm:col-span-6">
-                <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
-                <input type="text" id="country" v-model="form.address.country" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
+            <div class="mb-4">
+              <label for="pickup_date" class="block text-sm font-medium text-gray-700 mb-1">Preferred Pickup Date *</label>
+              <input 
+                type="date" 
+                id="pickup_date" 
+                v-model="form.preferred_pickup_date" 
+                :min="minPickupDate"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+              <p class="text-xs text-gray-500 mt-1">Choose when you'd like to pick up your order</p>
             </div>
           </div>
 
@@ -245,7 +245,7 @@ const confirmButtonText = ref('Place Order');
 
 const form = ref({
   address: {
-    street: '',
+    street: 'Pickup from farmer',
     city: '',
     state: '',
     postal_code: '',
@@ -253,30 +253,27 @@ const form = ref({
   },
   delivery_method: 'pickup',
   payment_method: 'cod',
-  payment_method: 'cod',
   notes: '',
   negotiate: false,
-  offer_price: null
+  offer_price: null,
+  preferred_pickup_date: ''
 });
+
+// Computed: minimum pickup date (tomorrow)
+const minPickupDate = computed(() => {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return tomorrow.toISOString().split('T')[0]
+})
 
 // Pre-fill address from user profile if available
 onMounted(async () => {
   await marketplaceStore.fetchCart();
-  
-  if (authStore.user && authStore.user.address) {
-    const userAddr = authStore.user.address;
-    form.value.address = {
-      street: userAddr.street || '',
-      city: userAddr.city || '',
-      state: userAddr.state || '',
-      postal_code: userAddr.postal_code || '',
-      country: userAddr.country || 'Philippines'
-    };
-  }
+  // No need to pre-fill address for pickup
 });
 
 const shippingCost = computed(() => {
-  return marketplaceStore.cartTotal >= 50 ? 0 : 10;
+  return 0; // Free shipping for pickup
 });
 
 const taxAmount = computed(() => {
@@ -289,8 +286,8 @@ const totalAmount = computed(() => {
 
 const confirmOrder = () => {
   // Basic validation before showing confirmation
-  if (!form.value.address.street || !form.value.address.city) {
-    error.value = 'Please complete the shipping address.';
+  if (!form.value.preferred_pickup_date) {
+    error.value = 'Please select a preferred pickup date.';
     return;
   }
   
@@ -348,9 +345,9 @@ const submitOrder = async () => {
       delivery_address: form.value.address,
       delivery_method: form.value.delivery_method,
       payment_method: form.value.payment_method,
-      payment_method: form.value.payment_method,
       notes: form.value.notes,
-      offer_price: form.value.negotiate ? form.value.offer_price : null
+      offer_price: form.value.negotiate ? form.value.offer_price : null,
+      preferred_pickup_date: form.value.preferred_pickup_date
     });
 
     // Success - Cart is already cleared by the store action

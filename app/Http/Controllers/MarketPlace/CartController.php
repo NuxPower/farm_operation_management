@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CartController extends Controller
 {
@@ -158,8 +159,9 @@ class CartController extends Controller
 
         $orders = [];
         $offerPrice = $request->input('offer_price');
+        $checkoutGroupId = Str::uuid()->toString();
 
-        DB::transaction(function () use ($cartItems, $request, &$orders, $offerPrice) {
+        DB::transaction(function () use ($cartItems, $request, &$orders, $offerPrice, $checkoutGroupId) {
             foreach ($cartItems as $item) {
                 $product = $item->riceProduct;
 
@@ -193,6 +195,7 @@ class CartController extends Controller
                     'payment_method' => $request->payment_method,
                     'buyer_notes' => $request->notes,
                     'order_date' => now(),
+                    'checkout_group_id' => $checkoutGroupId,
                 ]);
 
                 // Notify farmer
