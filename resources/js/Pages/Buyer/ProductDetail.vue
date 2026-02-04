@@ -325,13 +325,16 @@
           You will be notified via SMS when the product is ready and the day before pickup.
         </p>
         
-        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-          <div class="flex items-center gap-2 text-green-800 font-medium mb-1">
-            <span>📍</span>
-            <span>Pickup Location</span>
+        <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-center gap-2 text-gray-800 font-medium mb-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+              <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0014 7z" />
+            </svg>
+            <span>Pickup from Farm</span>
           </div>
-          <p class="text-sm text-green-700">
-            You will pick up your order from the farmer's location. The exact address will be provided after confirmation.
+          <p class="text-sm text-gray-600 ml-7">
+            Your order will be prepared for pickup at the farmer's location.
           </p>
         </div>
 
@@ -403,13 +406,16 @@
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 class="text-xl font-bold mb-4">Place Order</h3>
         
-        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-          <div class="flex items-center gap-2 text-green-800 font-medium mb-1">
-            <span>📍</span>
-            <span>Pickup Location</span>
+        <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-center gap-2 text-gray-800 font-medium mb-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+              <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0014 7z" />
+            </svg>
+            <span>Pickup from Farm</span>
           </div>
-          <p class="text-sm text-green-700">
-            You will pick up your order from the farmer's location. The exact address will be provided after confirmation.
+          <p class="text-sm text-gray-600 ml-7">
+            Your order will be prepared for pickup at the farmer's location.
           </p>
         </div>
 

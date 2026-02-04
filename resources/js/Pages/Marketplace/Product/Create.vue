@@ -490,6 +490,11 @@ watch(() => form.harvest_id, (newId) => {
           form.quality_grade = gradeMap[harvest.quality_grade]
        }
     }
+
+    // 5. Auto-fill Price per Unit if available
+    if (harvest.price_per_unit) {
+       form.price_per_unit = Number(harvest.price_per_unit)
+    }
   }
 })
 

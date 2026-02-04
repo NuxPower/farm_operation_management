@@ -38,6 +38,7 @@ class RiceOrder extends Model
         'auto_confirm_at',
         'pickup_deadline',
         'dispute_reason',
+        'checkout_group_id',
     ];
 
     protected $casts = [
@@ -373,5 +374,26 @@ class RiceOrder extends Model
 
         $expectedDate = $this->expected_delivery_date ?? $this->getEstimatedDeliveryDate();
         return now()->diffInDays($expectedDate, false);
+    }
+    /**
+     * Scope to get orders in the same checkout group
+     */
+    public function scopeInGroup($query, $groupId)
+    {
+        return $query->where('checkout_group_id', $groupId);
+    }
+
+    /**
+     * Get sibling orders (same checkout group, excluding self)
+     */
+    public function getSiblingOrders()
+    {
+        if (!$this->checkout_group_id) {
+            return collect();
+        }
+
+        return RiceOrder::where('checkout_group_id', $this->checkout_group_id)
+            ->where('id', '!=', $this->id)
+            ->get();
     }
 }

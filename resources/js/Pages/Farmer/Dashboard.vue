@@ -504,6 +504,7 @@
   import { useMarketplaceStore } from '@/stores/marketplace';
   import { dashboardAPI } from '@/services/api';
   import CurrentWeather from '@/Components/Weather/CurrentWeather.vue';
+  import { formatCurrency } from '@/utils/format';
   
   const router = useRouter();
   const authStore = useAuthStore();
