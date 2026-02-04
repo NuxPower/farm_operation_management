@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\Field;
+use App\Models\PestLibrary;
+use App\Models\PestAnalyticsRule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class PestPredictionService
 {
@@ -37,11 +40,16 @@ class PestPredictionService
             return [];
         }
 
+        // Pre-fetch pest library with rules to avoid N+1 and repetitive validation queries
+        // Cache this for performance as rules rarely change
+        $pests = Cache::remember('active_pest_rules', now()->addHours(6), function () {
+            return PestLibrary::with('rules')->get();
+        });
+
         $predictions = [];
-        $today = now();
 
         foreach ($forecast['list'] as $day) {
-            $risks = $this->analyzeDailyRisk($day);
+            $risks = $this->analyzeDailyRisk($day, $pests);
 
             // Filter out resolved risks
             $risks = array_filter($risks, function ($risk) use ($resolvedIncidents) {
@@ -75,65 +83,131 @@ class PestPredictionService
     }
 
     /**
-     * Analyze weather conditions for a single day to identify specific risks
+     * Analyze weather conditions for a single day against database rules
      */
-    private function analyzeDailyRisk(array $day): array
+    private function analyzeDailyRisk(array $day, $pests): array
     {
         $risks = [];
         $temp = $day['main']['temp'];
         $humidity = $day['main']['humidity'];
         $condition = strtolower($day['weather'][0]['main'] ?? '');
-        $rainProb = $day['pop'] ?? 0; // Probability of precipitation (0-1)
+        $rainProb = $day['pop'] ?? 0;
+        $windSpeed = $day['wind']['speed'] ?? 0;
 
-        // 1. Rice Blast (Fungal)
-        // Conditions: High humidity (>90%), frequent rain, temps 20-30°C
-        if ($humidity >= 85 && $temp >= 20 && $temp <= 30 && ($condition === 'rainy' || $rainProb > 0.5)) {
-            $risks[] = [
-                'pest_name' => 'Rice Blast',
-                'type' => 'Disease',
-                'risk_level' => 'High',
-                'description' => 'High humidity and rainfall favor Rice Blast development.',
-                'recommendation' => 'Monitor for leaf lesions. Avoid excessive nitrogen application.'
-            ];
-        }
+        // Calculate derived metrics
+        $isRainy = in_array($condition, ['rainy', 'stormy']) || $rainProb > 0.5;
+        $rainfall = $day['rain'] ?? 0; // Simplified
+        $lunarPhase = $this->getLunarPhase($day['dt']);
 
-        // 2. Stem Borer (Insect)
-        // Conditions: Warm temperatures (>28°C)
-        if ($temp > 28) {
-            $risks[] = [
-                'pest_name' => 'Stem Borer',
-                'type' => 'Insect',
-                'risk_level' => 'Moderate',
-                'description' => 'Warm temperatures may accelerate Stem Borer larval development.',
-                'recommendation' => 'Check for "dead hearts" or "whiteheads".'
-            ];
-        }
+        foreach ($pests as $pest) {
+            // Check each rule for this pest
+            foreach ($pest->rules as $rule) {
+                $triggered = false;
 
-        // 3. Brown Plant Hopper (Insect)
-        // Conditions: High humidity and warm temperatures
-        if ($humidity > 80 && $temp > 25) {
-            $risks[] = [
-                'pest_name' => 'Brown Plant Hopper',
-                'type' => 'Insect',
-                'risk_level' => $humidity > 90 ? 'High' : 'Moderate',
-                'description' => 'Humid and warm conditions support hopper population growth.',
-                'recommendation' => 'Inspect base of tillers. Drain field if infestation is high.'
-            ];
-        }
+                switch ($rule->metric) {
+                    case 'temperature':
+                        $triggered = $this->checkCondition($temp, $rule);
+                        break;
+                    case 'humidity':
+                        $triggered = $this->checkCondition($humidity, $rule);
+                        break;
+                    case 'rainfall':
+                        // If rule expects rainfall > X, check if it's rainy or using Pop
+                        if ($rule->condition === '>' && $rule->value_min > 0) {
+                            $triggered = $isRainy; // Simplify since precise mm forecast might be unavailable or tricky
+                        }
+                        break;
+                    case 'wind_speed':
+                        $triggered = $this->checkCondition($windSpeed, $rule);
+                        break;
+                    case 'lunar_phase':
+                        if ($rule->condition === 'equals' && $lunarPhase === 'Full Moon') {
+                            $triggered = true;
+                        }
+                        break;
+                }
 
-        // 4. Bacterial Leaf Blight (Disease)
-        // Conditions: Strong winds and rain causing leaf wounds
-        // Note: Using a proxy for wind since forecast mock might not have it, but assuming storm/rain implies some wind
-        if (in_array($condition, ['stormy', 'rainy']) && $temp > 25) {
-            $risks[] = [
-                'pest_name' => 'Bacterial Leaf Blight',
-                'type' => 'Disease',
-                'risk_level' => 'Moderate',
-                'description' => 'Rain and potential wind can spread bacterial blight.',
-                'recommendation' => 'Avoid field operations when wet to prevent spreading.'
-            ];
+                if ($triggered) {
+                    $risks[] = [
+                        'pest_name' => $pest->name,
+                        'type' => ucfirst($pest->type),
+                        'risk_level' => ucfirst($rule->risk_level),
+                        'description' => $rule->risk_message,
+                        'recommendation' => $pest->treatment_guidance ?? 'Monitor field closely.',
+                        'image' => $pest->images[0] ?? null
+                    ];
+                }
+            }
         }
 
         return $risks;
+    }
+
+    /**
+     * Helper to evaluate numerical rules
+     */
+    private function checkCondition($value, $rule): bool
+    {
+        switch ($rule->condition) {
+            case '>':
+                return $value > $rule->value_min;
+            case '<':
+                return $value < $rule->value_max;
+            case 'between':
+                return $value >= $rule->value_min && $value <= $rule->value_max;
+            case 'equals':
+                return $value == $rule->value_min;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Calculate approximate lunar phase
+     * Returns 'New Moon', 'First Quarter', 'Full Moon', 'Last Quarter', or 'Intermediate'
+     */
+    private function getLunarPhase($timestamp): string
+    {
+        $year = date('Y', $timestamp);
+        $month = date('n', $timestamp);
+        $day = date('j', $timestamp);
+
+        // Simple calculation for moon age (0-29.53)
+        // This is an approximation.
+        $c = $e = $jd = $b = 0;
+        if ($month < 3) {
+            $year--;
+            $month += 12;
+        }
+        ++$month;
+        $c = 365.25 * $year;
+        $e = 30.6 * $month;
+        $jd = $c + $e + $day - 694039.09; // jd is total days elapsed
+        $jd /= 29.5305882; // Divide by lunar cycle
+        $b = (int) $jd; // Integer part
+        $jd -= $b; // Fractional part
+        $b = round($jd * 8); // Scale to 0-8
+
+        if ($b >= 8)
+            $b = 0; // 0 and 8 are New Moon
+
+        switch ($b) {
+            case 0:
+                return 'New Moon';
+            case 2:
+                return 'First Quarter';
+            case 4:
+                return 'Full Moon';
+            case 6:
+                return 'Last Quarter';
+            default:
+                // Creating a +/- window for Full Moon as per RBB requirement
+                // If it's close to 4 (Full Moon), we can consider it conducive
+                if ($b === 3 || $b === 5)
+                    return 'Full Moon'; // Broaden definition for RBB (Waxing/Waning Gibbous close to full)
+                return 'Intermediate';
+        }
+
+        return 'Intermediate';
     }
 }
