@@ -112,6 +112,6 @@ class DataAnalyticsRecommendationTest extends TestCase
         $this->assertStringContainsString('Fulfill 2 pending marketplace orders', $orderSuggestion['message']);
 
         // 7. Assert correct URL
-        $this->assertEquals('/marketplace/orders', $orderSuggestion['action_url']);
+        $this->assertEquals('/farmer/orders', $orderSuggestion['action_url']);
     }
 }

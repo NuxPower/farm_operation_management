@@ -386,7 +386,7 @@ class DataAnalysisController extends Controller
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->get();
 
-        $totalCoonsumed = $transactions->where('transaction_type', 'out')->sum('quantity');
+        $totalConsumed = $transactions->where('transaction_type', 'out')->sum('quantity');
         $totalRestocked = $transactions->where('transaction_type', 'in')->sum('quantity');
 
         $mostConsumed = $transactions->where('transaction_type', 'out')
@@ -417,7 +417,7 @@ class DataAnalysisController extends Controller
             'by_category' => $byCategory,
             // Historical metrics
             'historical_usage' => [
-                'total_consumed' => $totalCoonsumed,
+                'total_consumed' => $totalConsumed,
                 'total_restocked' => $totalRestocked,
                 'transaction_count' => $transactions->count(),
                 'most_consumed_item' => $mostConsumedItem ? [
