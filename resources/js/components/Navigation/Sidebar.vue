@@ -60,7 +60,9 @@
 
           <!-- Farmer Section -->
           <template v-if="authStore.isFarmer">
-            <!-- Core Farm Management -->
+            <!-- Production Cycle -->
+            <div class="nav-section-title">Production Cycle</div>
+
             <router-link
               to="/fields"
               class="nav-item"
@@ -68,15 +70,6 @@
             >
               <GlobeAltIcon class="nav-icon" />
               Rice Fields
-            </router-link>
-
-            <router-link
-              to="/plantings"
-              class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/plantings') }"
-            >
-              <SparklesIcon class="nav-icon" />
-              Plantings
             </router-link>
 
             <router-link
@@ -89,12 +82,12 @@
             </router-link>
 
             <router-link
-              to="/harvests"
+              to="/plantings"
               class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/harvests') }"
+              :class="{ 'nav-item-active': $route.path.startsWith('/plantings') }"
             >
-              <ArchiveBoxIcon class="nav-icon" />
-              Harvests
+              <SparklesIcon class="nav-icon" />
+              Plantings
             </router-link>
 
             <router-link
@@ -107,13 +100,25 @@
             </router-link>
 
             <router-link
-              to="/laborers"
+              to="/pest-tracker"
               class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/laborers') }"
+              :class="{ 'nav-item-active': $route.path.startsWith('/pest-tracker') }"
             >
-              <UserGroupIcon class="nav-icon" />
-              Laborers
+              <BugAntIcon class="nav-icon" />
+              Pest Tracker
             </router-link>
+
+            <router-link
+              to="/harvests"
+              class="nav-item"
+              :class="{ 'nav-item-active': $route.path.startsWith('/harvests') }"
+            >
+              <ArchiveBoxIcon class="nav-icon" />
+              Harvests
+            </router-link>
+
+            <!-- Resources -->
+            <div class="nav-section-title">Resources</div>
 
             <router-link
               to="/inventory"
@@ -125,43 +130,15 @@
             </router-link>
 
             <router-link
-              to="/pest-tracker"
+              to="/laborers"
               class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/pest-tracker') }"
+              :class="{ 'nav-item-active': $route.path.startsWith('/laborers') }"
             >
-              <BugAntIcon class="nav-icon" />
-              Pest Tracker
+              <UserGroupIcon class="nav-icon" />
+              Laborers
             </router-link>
 
-            <div class="nav-section-title">Analytics</div>
-            
-            <router-link
-              to="/weather"
-              class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/weather') }"
-            >
-              <CloudIcon class="nav-icon" />
-              Weather
-            </router-link>
-
-            <router-link
-              to="/reports"
-              class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/reports') }"
-            >
-              <DocumentChartBarIcon class="nav-icon" />
-              Reports
-            </router-link>
-
-            <router-link
-              to="/analytics"
-              class="nav-item"
-              :class="{ 'nav-item-active': $route.path === '/analytics' }"
-            >
-              <ChartBarSquareIcon class="nav-icon" />
-              Data Analytics
-            </router-link>
-
+            <!-- Business -->
             <div class="nav-section-title">Business</div>
             
             <router-link
@@ -183,6 +160,15 @@
             </router-link>
 
             <router-link
+              to="/sales"
+              class="nav-item"
+              :class="{ 'nav-item-active': $route.path.startsWith('/sales') }"
+            >
+              <BanknotesIcon class="nav-icon" />
+              Sales
+            </router-link>
+
+            <router-link
               to="/financial/expenses"
               class="nav-item"
               :class="{ 'nav-item-active': $route.path.startsWith('/financial/expenses') }"
@@ -191,13 +177,34 @@
               Expenses
             </router-link>
 
+            <!-- Insights -->
+            <div class="nav-section-title">Insights</div>
+
             <router-link
-              to="/sales"
+              to="/analytics"
               class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/sales') }"
+              :class="{ 'nav-item-active': $route.path === '/analytics' }"
             >
-              <BanknotesIcon class="nav-icon" />
-              Sales
+              <ChartBarSquareIcon class="nav-icon" />
+              Data Analytics
+            </router-link>
+
+            <router-link
+              to="/reports"
+              class="nav-item"
+              :class="{ 'nav-item-active': $route.path.startsWith('/reports') }"
+            >
+              <DocumentChartBarIcon class="nav-icon" />
+              Reports
+            </router-link>
+            
+            <router-link
+              to="/weather"
+              class="nav-item"
+              :class="{ 'nav-item-active': $route.path.startsWith('/weather') }"
+            >
+              <CloudIcon class="nav-icon" />
+              Weather
             </router-link>
           </template>
 
