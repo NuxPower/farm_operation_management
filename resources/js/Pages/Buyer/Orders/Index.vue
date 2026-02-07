@@ -34,45 +34,67 @@
       </div>
 
       <!-- Orders List -->
-      <div v-else-if="filteredOrders.length > 0" class="space-y-4">
-        <div v-for="order in filteredOrders" :key="order.id"
-          class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-        >
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-2">
-                <h3 class="font-semibold text-gray-900">{{ order.rice_product?.name || 'Rice Product' }}</h3>
-                <span :class="getStatusClass(order.status)" class="px-2 py-1 rounded-full text-xs font-medium">
-                  {{ formatStatus(order.status) }}
-                </span>
-              </div>
-              <div class="text-sm text-gray-600 space-y-1">
-                <p>Quantity: {{ order.quantity }} kg • {{ formatCurrency(order.total_amount) }}</p>
-                <p>Seller: {{ order.rice_product?.farmer?.name || 'N/A' }}</p>
-                <p>Ordered: {{ formatDate(order.order_date) }}</p>
-              </div>
+      <div v-else-if="filteredOrders.length > 0" class="space-y-6">
+        <!-- Iterate over grouped orders -->
+        <div v-for="group in groupedOrders" :key="group.id" class="space-y-2">
+          
+          <!-- Group Header (only if group has multiple items or specific group ID) -->
+          <div v-if="group.isGroup" class="flex items-center justify-between bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
+            <div class="flex items-center gap-4">
+              <span class="text-sm font-medium text-gray-700">
+                <span class="mr-2">📦</span>
+                Order Batch: {{ formatDate(group.date) }}
+              </span>
+              <span class="text-xs bg-white px-2 py-0.5 rounded border border-gray-300 text-gray-600">
+                {{ group.items.length }} items
+              </span>
             </div>
-            <div class="flex flex-col gap-2">
-              <router-link :to="`/buyer/orders/${order.id}`"
-                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 text-center"
-              >View Details</router-link>
+            <div class="text-sm font-semibold text-gray-900">
+              Total: {{ formatCurrency(group.total) }}
+            </div>
+          </div>
 
-              <!-- Pickup Deadline Warning -->
-              <div v-if="order.status === 'ready_for_pickup' && order.pickup_deadline" 
-                class="px-3 py-2 bg-orange-100 text-orange-800 rounded-lg text-xs text-center">
-                ⏰ Pickup by: {{ formatDateTime(order.pickup_deadline) }}
+          <!-- Order Items -->
+          <div v-for="order in group.items" :key="order.id"
+            class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            :class="{'ml-4 border-l-4 border-l-green-500': group.isGroup}"
+          >
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <h3 class="font-semibold text-gray-900">{{ order.rice_product?.name || 'Rice Product' }}</h3>
+                  <span :class="getStatusClass(order.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+                    {{ formatStatus(order.status) }}
+                  </span>
+                </div>
+                <div class="text-sm text-gray-600 space-y-1">
+                  <p>Quantity: {{ order.quantity }} kg • {{ formatCurrency(order.total_amount) }}</p>
+                  <p>Seller: {{ order.rice_product?.farmer?.name || 'N/A' }}</p>
+                  <p>Ordered: {{ formatDate(order.order_date) }}</p>
+                </div>
               </div>
+              <div class="flex flex-col gap-2">
+                <router-link :to="`/buyer/orders/${order.id}`"
+                  class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 text-center"
+                >View Details</router-link>
 
-              <!-- Cancel Order (only for pending/confirmed) -->
-              <button v-if="['pending', 'confirmed'].includes(order.status)"
-                @click="openCancelModal(order)"
-                class="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
-              >Cancel Order</button>
+                <!-- Pickup Deadline Warning -->
+                <div v-if="order.status === 'ready_for_pickup' && order.pickup_deadline" 
+                  class="px-3 py-2 bg-orange-100 text-orange-800 rounded-lg text-xs text-center">
+                  ⏰ Pickup by: {{ formatDateTime(order.pickup_deadline) }}
+                </div>
 
-              <button v-if="(order.status === 'picked_up' || order.status === 'delivered') && !order.has_review"
-                @click="openReviewModal(order)"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-              >Leave Review</button>
+                <!-- Cancel Order (only for pending/confirmed) -->
+                <button v-if="['pending', 'confirmed'].includes(order.status)"
+                  @click="openCancelModal(order)"
+                  class="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                >Cancel Order</button>
+
+                <button v-if="(order.status === 'picked_up' || order.status === 'delivered') && !order.has_review"
+                  @click="openReviewModal(order)"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                >Leave Review</button>
+              </div>
             </div>
           </div>
         </div>
@@ -235,6 +257,41 @@ const tabs = [
 const filteredOrders = computed(() => {
   if (activeTab.value === 'all') return orders.value
   return orders.value.filter(o => o.status === activeTab.value)
+})
+
+const groupedOrders = computed(() => {
+  const groups = {}
+  const result = []
+  
+  // Sort orders by date desc first
+  const sortedOrders = [...filteredOrders.value].sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
+
+  sortedOrders.forEach(order => {
+    // If order has a checkout_group_id, group it
+    if (order.checkout_group_id) {
+      if (!groups[order.checkout_group_id]) {
+        groups[order.checkout_group_id] = {
+          id: order.checkout_group_id,
+          isGroup: true,
+          date: order.order_date,
+          items: [],
+          total: 0
+        }
+        result.push(groups[order.checkout_group_id])
+      }
+      groups[order.checkout_group_id].items.push(order)
+      groups[order.checkout_group_id].total += parseFloat(order.total_amount)
+    } else {
+      // Standalone order
+      result.push({
+        id: order.id,
+        isGroup: false,
+        items: [order]
+      })
+    }
+  })
+  
+  return result
 })
 
 const getOrderCount = (status) => {

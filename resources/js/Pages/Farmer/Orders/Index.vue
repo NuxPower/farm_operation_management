@@ -36,11 +36,26 @@
           class="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
         >
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex-1">
+            <div class="flex items-start gap-4 flex-1">
+              <!-- Product Image -->
+              <div class="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden">
+                <img 
+                  v-if="order.rice_product?.images?.[0]" 
+                  :src="order.rice_product.images[0]" 
+                  :alt="order.rice_product?.name"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else>🌾</span>
+              </div>
+
+              <div class="flex-1">
               <div class="flex items-center gap-3 mb-2">
                 <h3 class="font-semibold text-gray-900">{{ order.rice_product?.name || 'Rice Product' }}</h3>
                 <span :class="getStatusClass(order.status)" class="px-2 py-1 rounded-full text-xs font-medium">
                   {{ formatStatus(order.status) }}
+                </span>
+                <span v-if="order.checkout_group_id" class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 ml-2" title="Part of a batch order">
+                  📦 Batch
                 </span>
                 <span v-if="order.payment_status === 'paid'" class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
                   Paid
@@ -72,6 +87,7 @@
                 </p>
               </div>
             </div>
+          </div>
             <div class="flex flex-wrap gap-2">
               <!-- Negotiating Actions -->
               <template v-if="order.status === 'negotiating'">
