@@ -292,7 +292,6 @@ const confirmOrder = () => {
   }
   
   error.value = null;
-  confirmTitle.value = 'Confirm Purchase';
   if (form.value.negotiate && (!form.value.offer_price || form.value.offer_price <= 0)) {
     error.value = 'Please enter a valid offer price.';
     return;

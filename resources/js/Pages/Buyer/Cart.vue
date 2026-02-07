@@ -28,8 +28,14 @@
       <div v-else class="space-y-6">
         <div class="bg-white rounded-xl shadow divide-y">
           <div v-for="item in cartItems" :key="item.id" class="p-6 flex gap-6">
-            <div class="w-20 h-20 bg-green-100 rounded-lg flex items-center justify-center text-4xl flex-shrink-0">
-              🌾
+            <div class="w-20 h-20 bg-green-100 rounded-lg flex items-center justify-center text-4xl flex-shrink-0 overflow-hidden">
+              <img
+                v-if="item.rice_product?.images?.length"
+                :src="item.rice_product.images[0]"
+                :alt="item.rice_product?.name"
+                class="w-full h-full object-cover"
+              />
+              <span v-else>🌾</span>
             </div>
             <div class="flex-1">
               <h3 class="font-semibold text-gray-900 mb-1">{{ item.rice_product?.name }}</h3>

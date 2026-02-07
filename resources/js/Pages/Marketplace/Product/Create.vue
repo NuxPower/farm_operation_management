@@ -491,7 +491,7 @@ watch(() => form.harvest_id, (newId) => {
        }
     }
 
-    // 5. Auto-fill Price per Unit if available
+    // 5. Auto-fill Price if available
     if (harvest.price_per_unit) {
        form.price_per_unit = Number(harvest.price_per_unit)
     }

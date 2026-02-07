@@ -130,12 +130,11 @@
               <div>
                 <h3 class="font-medium text-gray-900 mb-2">Pickup Address</h3>
                 <div class="text-gray-600 space-y-1">
-                  <div>{{ deliveryAddress.street || 'Provided during checkout' }}</div>
-                  <div v-if="deliveryAddress.city">
-                    {{ deliveryAddress.city }} {{ deliveryAddress.state ? ', ' + deliveryAddress.state : '' }}
-                    {{ deliveryAddress.postal_code }}
+                  <div>Managok, Malaybalay City</div>
+                  <div>Bukidnon, Philippines</div>
+                  <div class="mt-2">
+                    <span class="font-medium">📞 Phone:</span> 0917-123-4567
                   </div>
-                  <div v-if="deliveryAddress.country">{{ deliveryAddress.country }}</div>
                 </div>
               </div>
               <div>
@@ -143,7 +142,7 @@
                 <div class="space-y-2 text-gray-600">
                   <div class="flex justify-between">
                     <span>Method:</span>
-                    <span>{{ order.delivery_method || 'Pickup' }}</span>
+                    <span>{{ order.delivery_method || 'pickup' }}</span>
                   </div>
                   <!-- Preferred Pickup Date (buyer's request) -->
                   <div v-if="order.preferred_pickup_date" class="flex justify-between">
@@ -162,12 +161,6 @@
                   <div v-if="order.available_date" class="flex justify-between">
                     <span>Available:</span>
                     <span>{{ formatDate(order.available_date) }}</span>
-                  </div>
-                  <!-- Pickup Deadline -->
-                  <div v-if="order.status === 'ready_for_pickup' && order.pickup_deadline" 
-                    class="flex justify-between bg-orange-50 p-2 rounded-md border border-orange-200">
-                    <span class="text-orange-700 font-medium">⏰ Pickup Deadline:</span>
-                    <span class="text-orange-700 font-medium">{{ formatDateTime(order.pickup_deadline) }}</span>
                   </div>
                 </div>
               </div>

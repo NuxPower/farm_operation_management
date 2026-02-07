@@ -975,6 +975,7 @@ Net Cash Flow = Projected Revenue - Projected Expenses
 
 **Citations:**
 - Lim, C. T. N. (2023). Empirical analysis of rice prices, production, and consumption in the Philippines: Implications for self-sufficiency policy. *Review of Integrative Business and Economics Research*, 12(4), 45-62.
+- World Bank & FAO. *Smallholder Farm Financial Analysis Principles*.
 
 ---
 
@@ -995,6 +996,7 @@ Raw ratios are normalized to a 0-100 scale using configurable benchmarks (e.g., 
 
 **Citations:**
 - Nagangoudar, M. B., et al. (2025). Impact of water and nitrogen management strategies on productivity, resource use efficiency, and greenhouse gases emission in aerobic rice. *Environmental and Sustainability Indicators*, 27, 100750.
+- Dobermann, A. (2007). *Nutrient use efficiency – measurement and management*. International Rice Research Institute (IRRI). establishes PFP Target > 40 kg grain/kg N.
 
 ---
 
@@ -1039,6 +1041,28 @@ Computes average yield and planting density per season to identify the "Preferre
 - Ortega-Espaldon, M. V., & Medina, C. D. (2024). Climate change and food security in the Philippines: Impacts, adaptation, and climate change action. In *Climate Emergency in the Philippines* (pp. 97–118). Springer Nature.
 
 ---
+
+### 12. Yield Gap Analysis (Gap II)
+
+**Methodology:** Comparative analysis between Potential Yield (Variety-specific genetic potential) and Actual Farm Yield to identify "exploitable" yield gaps caused by management constraints.
+
+**Formula:**
+```
+Yield Gap = Potential Yield (Y_p) - Actual Yield (Y_a)
+Gap % = ((Y_p - Y_a) / Y_p) × 100
+```
+*Gap II (Management Gap):* The difference between attainable water-limited potential yield and actual farm yield.
+
+**Implementation:** [`RiceProductionAnalyticsService.php`](app/Services/Analytics/RiceProductionAnalyticsService.php)
+
+**Scientific Basis:** Focuses on closing "Gap II" which is addressable through improved nutrient, water, and pest management, distinct from "Gap I" (Environmental/Genetic limits).
+
+**Citations:**
+- FAO (2020). *Yield gap analysis of field crops: Methods and case studies*. FAO Water Reports No. 41.
+- Global Yield Gap Atlas (GYGA). *Standard protocols for determining potential vs. actual yield*.
+
+---
+
 
 ### Methodological Summary
 
