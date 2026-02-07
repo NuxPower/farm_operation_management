@@ -34,37 +34,6 @@
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Checkout Form -->
         <div class="lg:col-span-2 space-y-6">
-          
-          <!-- Shipping Address -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Shipping Address</h3>
-            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-              <div class="sm:col-span-6">
-                <label for="street" class="block text-sm font-medium text-gray-700">Street Address</label>
-                <input type="text" id="street" v-model="form.address.street" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label for="city" class="block text-sm font-medium text-gray-700">City</label>
-                <input type="text" id="city" v-model="form.address.city" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label for="state" class="block text-sm font-medium text-gray-700">State / Province</label>
-                <input type="text" id="state" v-model="form.address.state" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-
-              <div class="sm:col-span-2">
-                <label for="postal_code" class="block text-sm font-medium text-gray-700">Postal Code</label>
-                <input type="text" id="postal_code" v-model="form.address.postal_code" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-              
-              <div class="sm:col-span-6">
-                <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
-                <input type="text" id="country" v-model="form.address.country" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
-              </div>
-            </div>
-          </div>
 
           <!-- Delivery Method -->
           <div class="bg-white rounded-lg shadow p-6">
@@ -288,14 +257,7 @@ const totalAmount = computed(() => {
 });
 
 const confirmOrder = () => {
-  // Basic validation before showing confirmation
-  if (!form.value.address.street || !form.value.address.city) {
-    error.value = 'Please complete the shipping address.';
-    return;
-  }
-  
   error.value = null;
-  confirmTitle.value = 'Confirm Purchase';
   if (form.value.negotiate && (!form.value.offer_price || form.value.offer_price <= 0)) {
     error.value = 'Please enter a valid offer price.';
     return;

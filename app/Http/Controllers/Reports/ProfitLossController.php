@@ -27,7 +27,7 @@ class ProfitLossController extends Controller
         $startDate = $request->start_date ? Carbon::parse($request->start_date) : now()->subYear();
         $endDate = $request->end_date ? Carbon::parse($request->end_date) : now();
 
-        $farm = $user->farms()->first();
+        $farm = $user->farm;
 
         if (!$farm) {
             return response()->json(['message' => 'No farm found'], 404);
@@ -75,7 +75,7 @@ class ProfitLossController extends Controller
         // For now, let's delegate to Service's crop profitability if it matches.
 
         $user = Auth::user();
-        $farm = $user->farms()->first();
+        $farm = $user->farm;
 
         if (!$farm) {
             return response()->json(['message' => 'No farm found'], 404);

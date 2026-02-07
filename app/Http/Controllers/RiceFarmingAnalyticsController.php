@@ -38,7 +38,7 @@ class RiceFarmingAnalyticsController extends Controller
     {
         try {
             $user = $request->user();
-            $farm = $user->farms()->first(); // Assuming single farm focus for now
+            $farm = $user->farm; // Assuming single farm focus for now
 
             if (!$farm) {
                 return response()->json(['message' => 'No farm found'], 404);
