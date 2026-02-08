@@ -100,8 +100,14 @@
                 :key="item.id"
                 class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg"
               >
-                <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span class="text-gray-500 text-2xl">🌾</span>
+                <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                  <img 
+                    v-if="order.rice_product?.images?.[0]" 
+                    :src="order.rice_product.images[0]" 
+                    :alt="order.rice_product?.name"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else class="text-gray-500 text-2xl">🌾</span>
                 </div>
                 <div class="flex-1">
                   <h3 class="font-medium text-gray-900">{{ item.name }}</h3>
@@ -140,7 +146,7 @@
               <div>
                 <h3 class="font-medium text-gray-900 mb-2">Pickup Details</h3>
                 <div class="space-y-2 text-gray-600">
-                  <div class="flex justify-between">
+                  <div class="flex gap-2">
                     <span>Method:</span>
                     <span>{{ order.delivery_method || 'pickup' }}</span>
                   </div>

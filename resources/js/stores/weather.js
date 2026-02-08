@@ -69,7 +69,10 @@ export const useWeatherStore = defineStore('weather', {
         const response = await axios.get(`/api/weather/fields/${fieldId}/forecast`, {
           params: { days }
         });
-        this.forecast = response.data.forecast || [];
+        // Backend returns { forecast: { daily_forecasts: [...], summary: {...} }, ... }
+        // Extract the daily_forecasts array for the UI
+        const forecastData = response.data.forecast || {};
+        this.forecast = forecastData.daily_forecasts || forecastData || [];
         return response.data;
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to fetch forecast';

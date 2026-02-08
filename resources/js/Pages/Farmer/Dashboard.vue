@@ -752,7 +752,8 @@
       
       const temp = weather.temperature || weather.temp;
       const humidity = weather.humidity;
-      const description = (weather.description || weather.weather || '').toLowerCase();
+      // Backend returns 'conditions' for current weather
+      const description = (weather.conditions || weather.description || weather.weather || '').toLowerCase();
       const windSpeed = weather.wind_speed || weather.windSpeed || 0;
       
       // Heavy rain warning
@@ -806,8 +807,9 @@
       }
       
       // Check forecast for upcoming rain
-      const upcomingRain = forecast.slice(0, 3).find(f => {
-        const desc = (f.description || f.weather || '').toLowerCase();
+      // Backend forecast items have 'most_common_condition'
+      const upcomingRain = Array.isArray(forecast) && forecast.slice(0, 3).find(f => {
+        const desc = (f.most_common_condition || f.condition || f.description || f.weather || '').toLowerCase();
         return desc.includes('rain') || desc.includes('storm');
       });
       

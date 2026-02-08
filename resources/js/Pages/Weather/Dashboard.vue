@@ -89,32 +89,20 @@
           <!-- Weather Map -->
           <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-xl font-semibold">Weather Map</h2>
-              <div class="flex items-center space-x-2">
-                <select
-                  v-model="selectedWeatherLayer"
-                  @change="updateWeatherLayer"
-                  class="text-sm px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="windy">Windy.com (Full Featured)</option>
-                  <option value="temperature">Temperature</option>
-                  <option value="precipitation">Precipitation</option>
-                  <option value="clouds">Clouds</option>
-                  <option value="pressure">Pressure</option>
-                  <option value="wind">Wind</option>
-                  <option value="base">Base Map Only</option>
-                </select>
-                <button
-                  @click="refreshWeather"
-                  :disabled="loading"
-                  class="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50"
-                >
-                  {{ loading ? 'Refreshing...' : 'Refresh' }}
-                </button>
+              <div>
+                <h2 class="text-xl font-semibold">Weather Map</h2>
+                <p class="text-sm text-gray-500 mt-1">Use the controls on the map to switch between Wind, Rain, Temperature, Clouds, and more</p>
               </div>
+              <button
+                @click="refreshWeather"
+                :disabled="loading"
+                class="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50"
+              >
+                {{ loading ? 'Refreshing...' : 'Refresh' }}
+              </button>
             </div>
             <!-- Windy.com Embed (Full Featured Weather Map) -->
-            <div v-if="selectedWeatherLayer === 'windy'" class="w-full rounded-lg overflow-hidden" style="height: 500px;">
+            <div class="w-full rounded-lg overflow-hidden" style="height: 500px;">
               <iframe
                 ref="windyIframe"
                 src="https://embed.windy.com/embed2.html?lat=14.5995&lon=120.9842&zoom=6&level=surface&overlay=wind&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&detailLat=14.5995&detailLon=120.9842&metricWind=default&metricTemp=default&radarRange=-1"
@@ -127,8 +115,6 @@
                 @load="handleIframeLoad"
               ></iframe>
             </div>
-            <!-- Leaflet Map with Weather Overlays -->
-            <div v-else ref="mapContainer" class="w-full rounded-lg" style="height: 500px; z-index: 0;"></div>
           </div>
 
           <!-- 7-Day Forecast -->
@@ -197,7 +183,7 @@
               >
                 <div class="flex items-start">
                   <div class="flex-shrink-0">
-                    <span class="text-lg">{{ getAlertIcon(alert.severity) }}</span>
+                    <span class="text-lg">{{ alert.icon || getAlertIcon(alert.severity) }}</span>
                   </div>
                   <div class="ml-3">
                     <h3 class="font-medium">{{ alert.title }}</h3>
@@ -293,13 +279,6 @@
           <div class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
             <div class="space-y-3">
-              <button
-                @click="viewHistoricalData"
-                class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                📊 View Historical Data
-              </button>
-
               <button
                 @click="exportWeatherData"
                 class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
@@ -421,35 +400,138 @@ const currentWeather = computed(() => {
 // Forecast from weather store
 const forecast = computed(() => {
   if (weatherStore.forecast && weatherStore.forecast.length > 0) {
-    return weatherStore.forecast.map(day => ({
-      date: day.date || day.time,
-      condition: day.condition || day.weather || 'Clear',
-      description: day.description || day.weather_description || 'Clear skies',
-      high: day.high || day.temperature_max || day.max_temp || 75,
-      low: day.low || day.temperature_min || day.min_temp || 55,
-      rain_chance: day.rain_chance || day.precipitation_probability || day.precipitation_chance || 0,
-      wind_speed: day.wind_speed || day.wind || 5,
-      icon: getWeatherIcon(day.weather_code || day.code)
-    }))
+    return weatherStore.forecast.map(day => {
+      // Backend returns: most_common_condition, temperature: {min, max, avg}, humidity_avg, wind_speed_avg
+      const condition = day.most_common_condition || day.condition || day.weather || 'Clear'
+      
+      // Get icon from condition text (backend doesn't provide weather_code for forecasts)
+      const icon = getWeatherIconFromCondition(condition)
+      
+      // Generate description from condition
+      const description = getDescriptionFromCondition(condition)
+      
+      // Handle temperature - backend has temperature.min/max or flat fields
+      const tempMin = day.temperature?.min ?? day.low ?? day.temperature_min ?? day.min_temp ?? null
+      const tempMax = day.temperature?.max ?? day.high ?? day.temperature_max ?? day.max_temp ?? null
+      
+      return {
+        date: day.date || day.time,
+        condition: condition,
+        description: description,
+        high: tempMax,
+        low: tempMin,
+        rain_chance: day.precipitation_probability ?? day.rain_chance ?? day.precipitation_chance ?? 0,
+        wind_speed: day.wind_speed_avg ?? day.wind_speed ?? day.wind ?? 5,
+        icon: icon
+      }
+    })
   }
   
   // Return empty array if no forecast data
   return []
 })
 
-// Weather alerts from store
+// Weather alerts from store and generated from data
 const weatherAlerts = computed(() => {
+  const alerts = []
+  
+  // 1. Add alerts from store (backend)
   if (weatherStore.alerts && weatherStore.alerts.length > 0) {
-    return weatherStore.alerts.map((alert, index) => ({
-      id: alert.id || index + 1,
-      title: alert.title || alert.type || 'Weather Alert',
-      description: alert.description || alert.message || '',
-      severity: alert.severity || alert.level || 'info',
-      issued_at: alert.issued_at || alert.created_at || new Date().toISOString()
-    }))
+    weatherStore.alerts.forEach((alert, index) => {
+      alerts.push({
+        id: alert.id || `store-${index}`,
+        title: alert.title || alert.type || 'Weather Alert',
+        description: alert.description || alert.message || '',
+        severity: alert.severity || alert.level || 'info',
+        issued_at: alert.issued_at || alert.created_at || new Date().toISOString(),
+        icon: getAlertIcon(alert.type || 'info')
+      })
+    })
   }
   
-  return []
+  // 2. Generate local alerts based on current weather and forecast
+  // This ensures UI consistency (if you see "Stormy", you get an alert)
+  try {
+    const weather = weatherStore.currentWeather;
+    const forecastList = weatherStore.forecast || [];
+    
+    // Helper to check if an alert title already exists to avoid duplicates
+    const hasAlert = (title) => alerts.some(a => a.title === title)
+    
+    if (weather) {
+      const temp = weather.temperature || weather.temp;
+      const humidity = weather.humidity;
+      // Backend returns 'conditions' for current weather
+      const description = (weather.conditions || weather.description || weather.weather || '').toLowerCase();
+      const windSpeed = weather.wind_speed || weather.windSpeed || 0;
+      
+      // Heavy rain warning (Current)
+      if ((description.includes('rain') || description.includes('storm') || description.includes('shower')) && !hasAlert('Rain Warning')) {
+        alerts.push({
+          id: 'local-rain-current',
+          type: 'warning',
+          severity: 'medium',
+          title: 'Rain Warning',
+          description: 'Rain or storm conditions detected. Field work involving spraying should be postponed.',
+          issued_at: new Date().toISOString(),
+          icon: '⚠️'
+        });
+      }
+      
+      // Extreme heat warning
+      if (temp && temp > 35 && !hasAlert('Extreme Heat Alert')) {
+        alerts.push({
+          id: 'local-heat',
+          type: 'danger',
+          severity: 'high',
+          title: 'Extreme Heat Alert',
+          description: `High temperature (${Math.round(temp)}°C). Avoid strenuous field work during peak hours.`,
+          issued_at: new Date().toISOString(),
+          icon: '🚨'
+        });
+      }
+      
+      // High winds
+      if (windSpeed > 20 && !hasAlert('High Wind Advisory')) {
+        alerts.push({
+          id: 'local-wind',
+          type: 'warning',
+          severity: 'medium',
+          title: 'High Wind Advisory',
+          description: `High wind speeds (${Math.round(windSpeed)} km/h) detected.`,
+          issued_at: new Date().toISOString(),
+          icon: '⚠️'
+        });
+      }
+    }
+    
+    // Check forecast for upcoming rain/storm
+    const upcomingRain = Array.isArray(forecastList) && forecastList.slice(0, 3).find(f => {
+      const desc = (f.most_common_condition || f.condition || f.description || f.weather || '').toLowerCase();
+      return desc.includes('rain') || desc.includes('storm') || desc.includes('thunder');
+    });
+    
+    if (upcomingRain && !hasAlert('Rain Expected Soon') && !hasAlert('Rain Warning')) {
+      alerts.push({
+        id: 'local-rain-forecast',
+        type: 'info',
+        severity: 'low',
+        title: 'Rain Expected Soon',
+        description: 'Forecast indicates rain or storms within the next 3 days. Plan field activities accordingly.',
+        issued_at: new Date().toISOString(),
+        icon: '⚠️'
+      });
+    }
+    
+  } catch (e) {
+    console.error('Error generating local alerts:', e)
+  }
+  
+  return alerts.sort((a, b) => {
+    // Sort by severity (high > medium > low > info)
+    const severityScore = { high: 3, medium: 2, low: 1, info: 0, critical: 4 }
+    return (severityScore[b.severity] || 0) - (severityScore[a.severity] || 0)
+  })
 })
 
 // Field weather computed from actual fields and weather data
@@ -541,13 +623,28 @@ const getAlertClass = (severity) => {
   return classes[severity] || 'bg-gray-50 border-gray-400'
 }
 
-const getAlertIcon = (severity) => {
+const getAlertIcon = (typeOrSeverity) => {
   const icons = {
+    // Severity
     warning: '⚠️',
     info: 'ℹ️',
-    danger: '🚨'
+    danger: '🚨',
+    high: '🚨',
+    medium: '⚠️',
+    low: 'ℹ️',
+    critical: '🚨',
+    
+    // Types - mapped to standard alert icons
+    rain: '⚠️',
+    heavy_rain: '⚠️',
+    storm: '⚠️',
+    thunderstorm: '⚠️',
+    heat: '🚨',
+    wind: '⚠️',
+    cold: '⚠️',
+    drought: '⚠️'
   }
-  return icons[severity] || '📢'
+  return icons[typeOrSeverity] || '⚠️'
 }
 
 const refreshWeather = async () => {
@@ -602,11 +699,11 @@ const viewForecast = () => {
   const defaultField = fieldsWithCoordinates.value?.[0]?.id
   if (defaultField) {
     router.push({
-      path: '/weather/analytics',
+      path: '/reports/weather',
       query: { field: defaultField }
     })
   } else {
-    router.push('/weather/analytics')
+    router.push('/reports/weather')
   }
 }
 
@@ -616,7 +713,7 @@ const viewFieldWeather = (fieldId) => {
 
 const viewHistoricalData = () => {
   // Navigate to historical data page (Analytics)
-  router.push('/weather/analytics')
+  router.push('/reports/weather')
 }
 
 const exportWeatherData = () => {
@@ -1090,7 +1187,37 @@ const getWeatherIcon = (code) => {
   if (code >= 80 && code <= 82) return '🌧️' // Rain showers
   if (code >= 85 && code <= 86) return '🌨️' // Snow showers
   if (code >= 95 && code <= 99) return '⛈️' // Thunderstorm
+  return null // Return null instead of default, so we can check for condition-based fallback
+}
+
+// Get weather icon based on condition text (fallback when code is not available)
+const getWeatherIconFromCondition = (condition) => {
+  if (!condition) return '🌤️'
+  const c = condition.toLowerCase()
+  if (c.includes('storm') || c.includes('thunder')) return '⛈️'
+  if (c.includes('rain') || c.includes('shower')) return '🌧️'
+  if (c.includes('drizzle')) return '🌦️'
+  if (c.includes('snow')) return '❄️'
+  if (c.includes('fog') || c.includes('mist') || c.includes('haze')) return '🌫️'
+  if (c.includes('cloud') || c.includes('overcast')) return '☁️'
+  if (c.includes('partly')) return '⛅'
+  if (c.includes('clear') || c.includes('sunny')) return '☀️'
   return '🌤️' // Default
+}
+
+// Generate weather description from condition text
+const getDescriptionFromCondition = (condition) => {
+  if (!condition) return 'Fair weather expected'
+  const c = condition.toLowerCase()
+  if (c.includes('storm') || c.includes('thunder')) return 'Thunderstorms expected'
+  if (c.includes('rain') || c.includes('shower')) return 'Rainy conditions expected'
+  if (c.includes('drizzle')) return 'Light drizzle expected'
+  if (c.includes('snow')) return 'Snowy conditions'
+  if (c.includes('fog') || c.includes('mist')) return 'Foggy conditions'
+  if (c.includes('cloud') || c.includes('overcast')) return 'Cloudy skies'
+  if (c.includes('partly')) return 'Partly cloudy'
+  if (c.includes('clear') || c.includes('sunny')) return 'Clear skies'
+  return 'Fair weather expected'
 }
 
 onMounted(async () => {

@@ -1,26 +1,24 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-4">
-          <div class="flex items-center">
-            <router-link to="/dashboard" class="text-gray-500 hover:text-gray-700 mr-4">
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </router-link>
-            <div>
-              <h1 class="text-xl font-semibold text-gray-900">Record Rice Harvest</h1>
-              <p class="text-sm text-gray-500">Track your rice harvest yield and quality</p>
-            </div>
-          </div>
+    <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Standard Header -->
+      <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+        <div>
+          <button
+            type="button"
+            @click="router.push('/harvests')"
+            class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
+          >
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Harvests
+          </button>
+          <h1 class="text-3xl font-bold text-gray-900">Record Rice Harvest</h1>
+          <p class="text-gray-600 mt-2">Track your rice harvest yield and quality</p>
         </div>
       </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <form @submit.prevent="submitHarvest" class="space-y-8">
         <!-- Planting Selection -->
         <div class="bg-white rounded-lg shadow p-6">
@@ -306,7 +304,7 @@
           </button>
         </div>
       </form>
-    </main>
+    </div>
   </div>
 </template>
 

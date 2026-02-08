@@ -1052,7 +1052,25 @@ class ReportController extends Controller
             ];
         })->sortBy('date')->values();
 
-        // Growing Degree Days (GDD) - calculate from daily averages to avoid duplicates
+        // Determine which field to use for analysis (moved up for GDD calculation)
+        $analysisField = null;
+        if ($request->has('field_id') && $request->field_id) {
+            $analysisField = $fields->firstWhere('id', $request->field_id);
+        } else {
+            // Try to find a field with active planting
+            foreach ($fields as $f) {
+                if ($f->getCurrentRicePlanting()) {
+                    $analysisField = $f;
+                    break;
+                }
+            }
+            // Fallback to first field
+            if (!$analysisField && $fields->isNotEmpty()) {
+                $analysisField = $fields->first();
+            }
+        }
+
+        // Growing Degree Days (GDD)
         $baseTemp = 10; // Base temperature for rice
         $todayGDD = 0;
         $weekGDD = 0;
@@ -1062,16 +1080,45 @@ class ReportController extends Controller
         $today = now();
         $weekAgo = now()->subDays(7);
         $monthAgo = now()->subDays(30);
-        $seasonStart = now()->subDays($days);
 
-        // Group weather data by day and calculate daily average temperature
+        // Determine correct season start date
+        // If we have an active planting, start from planting date
+        // Otherwise, default to 4 months ago (approximate season)
+        $seasonStartDate = now()->subMonths(4);
+        if ($analysisField) {
+            $currentPlanting = $analysisField->getCurrentRicePlanting();
+            if ($currentPlanting) {
+                $seasonStartDate = Carbon::parse($currentPlanting->planting_date);
+            }
+        }
+
+        // Calculate Season GDD independently of the requested report period
+        // This ensures "This Season" is accurate even if looking at "Last 7 Days" or "Last Year" reports
+        if ($analysisField) {
+            $seasonWeatherData = \App\Models\WeatherLog::where('field_id', $analysisField->id)
+                ->where('recorded_at', '>=', $seasonStartDate)
+                ->where('recorded_at', '<=', now())
+                ->get();
+
+            $seasonDailyTemps = $seasonWeatherData->groupBy(function ($record) {
+                return Carbon::parse($record->recorded_at)->format('Y-m-d');
+            })->map(function ($dayRecords) {
+                return $dayRecords->avg('temperature') ?: 0;
+            });
+
+            foreach ($seasonDailyTemps as $avgTemp) {
+                $seasonGDD += max(0, $avgTemp - $baseTemp);
+            }
+        }
+
+        // Group weather data by day and calculate daily average temperature for the reported period
         $dailyTemperatures = $weatherData->groupBy(function ($record) {
             return Carbon::parse($record->recorded_at)->format('Y-m-d');
         })->map(function ($dayRecords) {
             return $dayRecords->avg('temperature') ?: 0;
         });
 
-        // Calculate GDD for each day based on daily average
+        // Calculate GDD for today, week, month based on available data
         foreach ($dailyTemperatures as $dateStr => $avgTemp) {
             $recordDate = Carbon::parse($dateStr);
             $gdd = max(0, $avgTemp - $baseTemp);
@@ -1084,9 +1131,6 @@ class ReportController extends Controller
             }
             if ($recordDate >= $monthAgo) {
                 $monthGDD += $gdd;
-            }
-            if ($recordDate >= $seasonStart) {
-                $seasonGDD += $gdd;
             }
         }
 
@@ -1123,27 +1167,64 @@ class ReportController extends Controller
             $eventType = 'weather';
             $title = 'Weather Event';
             $description = '';
+            $intensity = 'Moderate';
+            $impact = 'Neutral';
 
             if ($record->conditions === 'stormy') {
                 $eventType = 'storm';
                 $title = 'Storm Warning';
                 $description = 'Stormy conditions detected';
+                $intensity = 'Severe';
+                $impact = 'Negative';
             } elseif ($record->conditions === 'rainy') {
                 $eventType = 'rain';
                 $title = 'Rainfall Event';
                 $description = 'Rainy conditions with ' . round($record->humidity ?? 0, 0) . '% humidity';
+
+                $rainfall = $record->rainfall ?? 0;
+                if ($rainfall > 50) {
+                    $intensity = 'Heavy';
+                    $impact = 'Negative';
+                } elseif ($rainfall > 20) {
+                    $intensity = 'Moderate';
+                    $impact = 'Positive';
+                } else {
+                    $intensity = 'Light';
+                    $impact = 'Neutral';
+                }
             } elseif (($record->wind_speed ?? 0) > 15) {
                 $eventType = 'wind';
                 $title = 'Strong Winds';
                 $description = 'Wind speeds reached ' . round($record->wind_speed ?? 0, 1) . ' km/h';
+
+                if (($record->wind_speed ?? 0) > 40) {
+                    $intensity = 'High';
+                    $impact = 'Negative';
+                } elseif (($record->wind_speed ?? 0) > 20) {
+                    $intensity = 'Moderate';
+                    $impact = 'Neutral';
+                } else {
+                    $intensity = 'Low';
+                    $impact = 'Neutral';
+                }
             } elseif (($record->temperature ?? 0) > 35) {
                 $eventType = 'heat';
                 $title = 'High Temperature';
                 $description = 'Temperature reached ' . round($record->temperature ?? 0, 1) . '°C';
+
+                if (($record->temperature ?? 0) > 38) {
+                    $intensity = 'Extreme';
+                    $impact = 'Negative';
+                } else {
+                    $intensity = 'High';
+                    $impact = 'Negative';
+                }
             } elseif (($record->temperature ?? 0) < 5) {
                 $eventType = 'frost';
                 $title = 'Low Temperature';
                 $description = 'Temperature dropped to ' . round($record->temperature ?? 0, 1) . '°C';
+                $intensity = 'Extreme';
+                $impact = 'Negative';
             }
 
             $weatherEvents[] = [
@@ -1153,8 +1234,8 @@ class ReportController extends Controller
                 'description' => $description,
                 'date' => $record->recorded_at,
                 'duration' => '1 day',
-                'intensity' => 'Moderate',
-                'impact' => 'Neutral',
+                'intensity' => $intensity,
+                'impact' => $impact,
             ];
         }
 
@@ -1173,24 +1254,7 @@ class ReportController extends Controller
             'recommendations' => [],
         ];
 
-        // Determine which field to use for impact analysis
-        // Priority: 1. Requested field 2. First field with active planting 3. First field
-        $analysisField = null;
-        if ($request->has('field_id') && $request->field_id) {
-            $analysisField = $fields->firstWhere('id', $request->field_id);
-        } else {
-            // Try to find a field with active planting
-            foreach ($fields as $f) {
-                if ($f->getCurrentRicePlanting()) {
-                    $analysisField = $f;
-                    break;
-                }
-            }
-            // Fallback to first field
-            if (!$analysisField && $fields->isNotEmpty()) {
-                $analysisField = $fields->first();
-            }
-        }
+        // Field chosen for analysis is now determined earlier in the GDD section
 
         if ($analysisField) {
             // Get detailed analytics and recommendations

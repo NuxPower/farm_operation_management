@@ -260,16 +260,10 @@
             <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
             <div class="space-y-3">
               <button
-                @click="viewHistoricalData"
-                class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                📊 View Historical Data
-              </button>
-              <button
                 @click="viewWeatherAnalytics"
                 class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
               >
-                📈 View Weather Analytics
+                📈 View Weather Reports
               </button>
               <button
                 @click="exportFieldData"
@@ -362,17 +356,17 @@ const viewFieldDetails = () => {
 }
 
 const viewHistoricalData = () => {
-  // Navigate to weather analytics page with field filter (consistent with dashboard)
+  // Navigate to weather reports page with field filter (consistent with dashboard)
   router.push({
-    path: '/weather/analytics',
+    path: '/reports/weather',
     query: { field: field.value.id }
   })
 }
 
 const viewWeatherAnalytics = () => {
-  // Navigate to weather analytics page with field filter
+  // Navigate to weather reports page with field filter
   router.push({
-    path: '/weather/analytics',
+    path: '/reports/weather',
     query: { field: field.value.id }
   })
 }

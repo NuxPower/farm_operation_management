@@ -25,17 +25,20 @@ class DataAnalysisController extends Controller
     protected $financialService;
     protected $weatherAnalyticsService;
     protected $pestPredictionService;
+    protected $weatherService;
 
     public function __construct(
         ReportService $reportService,
         FinancialService $financialService,
         WeatherAnalyticsService $weatherAnalyticsService,
-        PestPredictionService $pestPredictionService
+        PestPredictionService $pestPredictionService,
+        \App\Services\WeatherService $weatherService
     ) {
         $this->reportService = $reportService;
         $this->financialService = $financialService;
         $this->weatherAnalyticsService = $weatherAnalyticsService;
         $this->pestPredictionService = $pestPredictionService;
+        $this->weatherService = $weatherService;
     }
 
     /**
@@ -117,6 +120,8 @@ class DataAnalysisController extends Controller
             'avg_humidity' => null,
         ];
 
+        $weatherForecast = null;
+
         if ($farm) {
             $fieldIds = $farm->fields->pluck('id');
             $recentWeather = WeatherLog::whereIn('field_id', $fieldIds)
@@ -129,6 +134,20 @@ class DataAnalysisController extends Controller
                     'total_rainfall' => round($recentWeather->sum('rainfall'), 1),
                     'avg_humidity' => round($recentWeather->avg('humidity'), 1),
                 ];
+            }
+
+            // Get Forecast for suggestions
+            $firstField = $farm->fields->first();
+            if ($firstField && isset($firstField->location['lat'], $firstField->location['lon'])) {
+                $weatherForecast = $this->weatherService->getForecast(
+                    (float) $firstField->location['lat'],
+                    (float) $firstField->location['lon']
+                );
+            } elseif ($firstField && isset($firstField->field_coordinates['lat'], $firstField->field_coordinates['lon'])) {
+                $weatherForecast = $this->weatherService->getForecast(
+                    (float) $firstField->field_coordinates['lat'],
+                    (float) $firstField->field_coordinates['lon']
+                );
             }
         }
 
@@ -237,7 +256,7 @@ class DataAnalysisController extends Controller
 
         // 12. Executive Summary & Action Suggestions (Generated)
         $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData);
-        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData);
+        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast);
 
         return response()->json([
             'executive_summary' => $executiveSummary,
@@ -314,9 +333,33 @@ class DataAnalysisController extends Controller
     /**
      * Generate action suggestions based on analytics data
      */
-    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery): array
+    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null): array
     {
         $suggestions = [];
+
+        // Weather suggestion (Priority)
+        if ($weatherForecast) {
+            $todayForecast = $weatherForecast['list'][0] ?? null;
+            if ($todayForecast) {
+                $rainfall = $todayForecast['pop'] > 0 ? ($todayForecast['rain'] ?? 0) : 0; // Check structure
+                // Assuming OWM format might vary, but pop is probability. 
+                // Let's rely on rain volume or description if available or simple conditions.
+
+                // Check if weather condition indicates rain/storm
+                $conditionCode = $todayForecast['weather'][0]['main'] ?? '';
+
+                if (in_array(strtolower($conditionCode), ['rainy', 'stormy', 'thunderstorm', 'rain'])) {
+                    $suggestions[] = [
+                        'icon' => '🌧️',
+                        'category' => 'Weather Alert',
+                        'message' => 'Rain is in the forecast. Check drainage and delay sensitive activities.',
+                        'priority' => 'high',
+                        'action_label' => 'View Forecast',
+                        'action_url' => '/reports/weather',
+                    ];
+                }
+            }
+        }
 
         // Overdue tasks suggestion
         if (($tasks['overdue_tasks'] ?? 0) > 0) {

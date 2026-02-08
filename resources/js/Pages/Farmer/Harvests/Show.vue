@@ -2,22 +2,22 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
+      <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <nav class="flex items-center text-sm text-gray-500 mb-2">
-            <router-link to="/harvests" class="hover:text-gray-700">Harvests</router-link>
-            <span class="mx-2">/</span>
-            <span class="text-gray-900">Harvest Details</span>
-          </nav>
+          <button
+            type="button"
+            @click="goBack"
+            class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
+          >
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Harvests
+          </button>
           <h1 class="text-3xl font-bold text-gray-800">Harvest Details</h1>
         </div>
         <div class="flex gap-3">
-          <button
-            @click="goBack"
-            class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Back to List
-          </button>
           <button
             @click="editHarvest"
             class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"

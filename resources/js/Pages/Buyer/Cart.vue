@@ -4,6 +4,15 @@
       <!-- Standard Header -->
       <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
+          <router-link
+            to="/buyer/products"
+            class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
+          >
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Marketplace
+          </router-link>
           <h1 class="text-3xl font-bold text-gray-800">Shopping Cart</h1>
           <p class="text-gray-500 mt-1">Review and manage your cart items</p>
         </div>
@@ -30,20 +39,20 @@
           <div v-for="item in cartItems" :key="item.id" class="p-6 flex gap-6">
             <div class="w-20 h-20 bg-green-100 rounded-lg flex items-center justify-center text-4xl flex-shrink-0 overflow-hidden">
               <img
-                v-if="item.rice_product?.images?.length"
-                :src="item.rice_product.images[0]"
-                :alt="item.rice_product?.name"
+                v-if="getItemImage(item)"
+                :src="getItemImage(item)"
+                :alt="item.name"
                 class="w-full h-full object-cover"
               />
               <span v-else>🌾</span>
             </div>
             <div class="flex-1">
-              <h3 class="font-semibold text-gray-900 mb-1">{{ item.rice_product?.name }}</h3>
+              <h3 class="font-semibold text-gray-900 mb-1">{{ item.name }}</h3>
               <p class="text-sm text-gray-500 mb-2">
-                Seller: {{ item.rice_product?.farmer?.name || 'N/A' }}
+                Seller: {{ item.farmer?.name || 'N/A' }}
               </p>
               <p class="text-lg font-medium text-green-600">
-                {{ formatCurrency(item.rice_product?.price_per_unit || 0) }} / {{ item.rice_product?.unit || 'kg' }}
+                {{ formatCurrency(item.price || 0) }} / {{ item.unit || 'kg' }}
               </p>
             </div>
             <div class="flex flex-col items-end gap-2">
@@ -53,7 +62,7 @@
                   class="w-16 text-center border rounded-md" @change="saveQuantity(item)" />
                 <button @click="updateQuantity(item, 1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300">+</button>
               </div>
-              <p class="font-semibold text-gray-900">{{ formatCurrency(item.quantity * (item.rice_product?.price_per_unit || 0)) }}</p>
+              <p class="font-semibold text-gray-900">{{ formatCurrency(item.quantity * (item.price || 0)) }}</p>
               <button @click="confirmRemoveItem(item)" class="text-red-600 text-sm hover:underline">Remove</button>
             </div>
           </div>
@@ -275,7 +284,19 @@ const handleConfirmAction = () => {
   pendingAction.value = null
 }
 
-
+// Helper to get product image from various possible property names
+const getItemImage = (item) => {
+  if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+    return item.images[0];
+  }
+  if (item.image) {
+    return item.image;
+  }
+  if (item.thumbnail) {
+    return item.thumbnail;
+  }
+  return null;
+}
 
 onMounted(() => {
   marketplaceStore.fetchCart()

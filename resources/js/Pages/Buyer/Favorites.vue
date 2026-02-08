@@ -4,6 +4,15 @@
       <!-- Standard Header -->
       <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
+          <router-link
+            to="/buyer/products"
+            class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
+          >
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Marketplace
+          </router-link>
           <h1 class="text-3xl font-bold text-gray-800">My Favorites</h1>
           <p class="text-gray-500 mt-1">Products you've saved for later</p>
         </div>

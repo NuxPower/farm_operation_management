@@ -4,21 +4,17 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <nav class="flex items-center text-sm text-gray-500 mb-2">
-            <router-link to="/marketplace" class="hover:text-gray-700">Products</router-link>
-            <span class="mx-2">/</span>
-            <span class="text-gray-900">{{ product.name || 'Product Details' }}</span>
-          </nav>
-          <h1 class="text-3xl font-bold text-gray-800">{{ product.name || 'Loading...' }}</h1>
-          <p class="text-gray-500 mt-1">View product details and place orders</p>
-        </div>
-        <div class="flex gap-3">
           <button
             @click="goBack"
-            class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
           >
-            ← Back to Products
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Products
           </button>
+          <h1 class="text-3xl font-bold text-gray-800">{{ product.name || 'Loading...' }}</h1>
+          <p class="text-gray-500 mt-1">View product details and place orders</p>
         </div>
       </div>
 

@@ -34,7 +34,7 @@ import LaborerGroupsIndex from '@/Pages/Farmer/LaborerGroups/Index.vue';
 import LaborerGroupsShow from '@/Pages/Farmer/LaborerGroups/Show.vue';
 
 // Weather
-import WeatherAnalytics from '@/Pages/Farmer/Weather/Analytics.vue';
+
 
 // Marketplace
 import Marketplace from '@/Pages/Marketplace/Index.vue';
@@ -285,12 +285,6 @@ const routes = [
     component: WeatherDashboard,
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
-  {
-    path: '/weather/analytics',
-    name: 'weather-analytics',
-    component: WeatherAnalytics,
-    meta: { requiresAuth: true, roles: ['farmer'] }
-  },
 
   // Data Analytics Route
   {
@@ -385,6 +379,12 @@ const routes = [
     path: '/farmer/orders',
     name: 'farmer-orders',
     component: () => import('@/Pages/Farmer/Orders/Index.vue'),
+    meta: { requiresAuth: true, roles: ['farmer'] }
+  },
+  {
+    path: '/farmer/orders/:id',
+    name: 'farmer-order-detail',
+    component: () => import('@/Pages/Marketplace/Orders/Show.vue'),
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
 

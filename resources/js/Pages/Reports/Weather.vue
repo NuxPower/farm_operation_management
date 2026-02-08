@@ -568,7 +568,7 @@ onMounted(async () => {
   // Load fields for dropdown
   try {
     const response = await fieldsAPI.getAll()
-    fields.value = response.data.data || response.data
+    fields.value = response.data.fields || response.data.data || []
   } catch (error) {
     console.error('Failed to load fields:', error)
   }

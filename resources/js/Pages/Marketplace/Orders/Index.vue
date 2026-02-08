@@ -214,13 +214,31 @@
               >
                 {{ formatStatus(order.status) }}
               </span>
+              <span
+                v-if="order.payment_status === 'paid'"
+                class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 ml-1"
+              >
+                Paid
+              </span>
+              <span
+                v-else
+                class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 ml-1"
+              >
+                Unpaid
+              </span>
             </div>
           </div>
           
           <div class="space-y-3">
             <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-              <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                <span class="text-2xl">🌾</span>
+              <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                <img
+                  v-if="order.rice_product?.images?.length"
+                  :src="order.rice_product.images[0]"
+                  :alt="order.rice_product?.name"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else class="text-2xl">🌾</span>
               </div>
               <div class="flex-1">
                 <h4 class="font-medium text-gray-900">
@@ -241,9 +259,9 @@
             <div v-if="order.is_pre_order" class="text-sm text-yellow-700">
               Available {{ order.available_date ? formatDate(order.available_date) : 'soon' }}
             </div>
-            <div v-if="order.delivery_address" class="text-sm text-gray-600">
-              <span class="font-medium">Deliver to:</span>
-              {{ order.delivery_address.street || 'Customer provided address' }}
+            <div class="text-sm text-gray-600">
+              <span class="font-medium">Ordered by: </span>
+              <span>{{ order.buyer?.name || 'Unknown buyer' }}</span>
             </div>
           </div>
           
