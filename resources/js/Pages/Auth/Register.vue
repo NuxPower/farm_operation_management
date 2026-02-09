@@ -83,37 +83,7 @@
             />
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Verification Method</label>
-            <div class="flex items-center space-x-4">
-              <div class="flex items-center">
-                <input
-                  id="verify_sms"
-                  name="verification_method"
-                  type="radio"
-                  value="sms"
-                  v-model="form.verification_method"
-                  class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300"
-                />
-                <label for="verify_sms" class="ml-2 block text-sm text-gray-700">
-                  SMS
-                </label>
-              </div>
-              <div class="flex items-center">
-                <input
-                  id="verify_email"
-                  name="verification_method"
-                  type="radio"
-                  value="email"
-                  v-model="form.verification_method"
-                  class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300"
-                />
-                <label for="verify_email" class="ml-2 block text-sm text-gray-700">
-                  Email
-                </label>
-              </div>
-            </div>
-          </div>
+
           
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
@@ -197,7 +167,7 @@ const form = ref({
   last_name: '',
   email: '',
   phone: '',
-  verification_method: 'sms', // Default to SMS
+  verification_method: 'email', // Default to Email
   role: 'buyer', // Default to buyer
   password: '',
   password_confirmation: ''

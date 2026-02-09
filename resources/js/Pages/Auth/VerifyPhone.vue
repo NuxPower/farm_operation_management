@@ -97,7 +97,7 @@ const loading = ref(false);
 const error = ref('');
 const phone = route.query.phone; // Pass phone via query param
 const email = route.query.email; // Pass email via query param
-const method = route.query.method || 'sms'; // Verification method (sms or email)
+const method = route.query.method || 'email'; // Verification method (sms or email)
 const debugCode = route.query.debug_code; // Debug code for development testing
 const isEmailVerification = method === 'email';
 

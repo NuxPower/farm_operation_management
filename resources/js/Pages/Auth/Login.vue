@@ -163,6 +163,14 @@
                   <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                </router-link>
             </div>
+
+            <div class="mt-4 pt-4 border-t border-gray-200 text-center">
+               <p class="text-sm text-gray-500 mb-2">Just browsing?</p>
+               <router-link to="/marketplace" class="inline-flex items-center text-amber-600 hover:text-amber-700 font-medium transition-colors">
+                  View Marketplace as Guest
+                  <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+               </router-link>
+            </div>
           </div>
         </form>
       </div>

@@ -66,7 +66,7 @@
               </svg>
               Adding...
             </span>
-            <span v-else>Add to Cart</span>
+            <span v-else>{{ !authStore.isAuthenticated ? 'Login to Add' : 'Add to Cart' }}</span>
           </button>
           <button
             type="button"
@@ -219,7 +219,7 @@
                   </svg>
                   Adding...
                 </span>
-                <span v-else>Add to Cart</span>
+                <span v-else>{{ !authStore.isAuthenticated ? 'Login to Add' : 'Add to Cart' }}</span>
               </button>
             </div>
           </div>
@@ -371,6 +371,12 @@ const authStore = useAuthStore();
 const addToCart = async () => {
   if (isAddingToCart.value) return;
   
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } });
+    return;
+  }
+  
   isAddingToCart.value = true;
   try {
     await marketplaceStore.addToCart(product.value, quantity.value);
@@ -474,6 +480,12 @@ const checkFavoriteStatus = async (productId) => {
 
 const toggleFavorite = async () => {
   if (processingFavorite.value) return
+  
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } });
+    return;
+  }
   
   processingFavorite.value = true
   try {

@@ -25,6 +25,14 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/verify-phone', [\App\Http\Controllers\Auth\VerificationController::class, 'verify']);
 Route::post('/resend-verification', [\App\Http\Controllers\Auth\VerificationController::class, 'resend']);
 
+// Public marketplace routes (guest browsing)
+Route::prefix('rice-marketplace')->group(function () {
+    Route::get('/products', [\App\Http\Controllers\RiceMarketplaceController::class, 'getProducts']);
+    Route::get('/products/{product}', [\App\Http\Controllers\RiceMarketplaceController::class, 'getProduct']);
+    Route::get('/stats', [\App\Http\Controllers\RiceMarketplaceController::class, 'getMarketplaceStats']);
+    Route::get('/products/{product}/reviews', [\App\Http\Controllers\MarketPlace\ProductReviewController::class, 'index']);
+});
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Proxy routes for PSGC API
@@ -211,14 +219,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/alerts/low-stock', [\App\Http\Controllers\Inventory\InventoryItemController::class, 'lowStockAlerts']);
     });
 
-    // Rice Marketplace routes
+    // Rice Marketplace routes (protected - auth required)
     Route::prefix('rice-marketplace')->group(function () {
-        Route::get('/products', [\App\Http\Controllers\RiceMarketplaceController::class, 'getProducts']);
-        Route::get('/products/{product}', [\App\Http\Controllers\RiceMarketplaceController::class, 'getProduct']);
-        Route::get('/stats', [\App\Http\Controllers\RiceMarketplaceController::class, 'getMarketplaceStats']);
-
-        // Product reviews (public)
-        Route::get('/products/{product}/reviews', [\App\Http\Controllers\MarketPlace\ProductReviewController::class, 'index']);
+        // NOTE: Public GET routes for products, stats, and reviews are defined 
+        // OUTSIDE the auth middleware at the top of this file.
 
         // Product management (farmers only)
         Route::middleware('farmer')->group(function () {

@@ -8,7 +8,9 @@
           <p class="text-gray-500 mt-1">Browse and purchase premium rice products</p>
         </div>
         <div class="flex items-center space-x-4">
+          <!-- Only show cart for authenticated buyers -->
           <router-link 
+            v-if="authStore.isAuthenticated && authStore.user?.role === 'buyer'"
             to="/cart"
             class="relative p-2 text-gray-500 hover:text-gray-700 transition-colors bg-white rounded-lg border border-gray-300"
           >
@@ -21,6 +23,17 @@
             >
               {{ marketplaceStore.cartItemsCount }}
             </span>
+          </router-link>
+          <!-- Login button for guests -->
+          <router-link
+            v-if="!authStore.isAuthenticated"
+            to="/login"
+            class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+          >
+            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            Login to Order
           </router-link>
         </div>
       </div>
@@ -153,7 +166,7 @@
                 :disabled="!product.quantity_available || product.quantity_available <= 0"
                 class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {{ !product.quantity_available || product.quantity_available <= 0 ? 'Out of Stock' : 'Add to Cart' }}
+                {{ !product.quantity_available || product.quantity_available <= 0 ? 'Out of Stock' : (!authStore.isAuthenticated ? 'Login to Add' : 'Add to Cart') }}
               </button>
               <button 
                 type="button"
@@ -316,10 +329,12 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMarketplaceStore } from '@/stores/marketplace';
+import { useAuthStore } from '@/stores/auth';
 import { formatCurrency } from '@/utils/format';
 
 const router = useRouter();
 const marketplaceStore = useMarketplaceStore();
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const searchQuery = ref('');
@@ -398,6 +413,12 @@ const showToast = (message, type = 'success') => {
 };
 
 const addToCart = (product) => {
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    // Redirect to login with return URL
+    router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } });
+    return;
+  }
   selectedProduct.value = product;
   selectedQuantity.value = 1;
   showQuantityModal.value = true;

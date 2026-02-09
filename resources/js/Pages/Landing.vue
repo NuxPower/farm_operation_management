@@ -7,6 +7,8 @@
         <router-link to="/login" class="text-indigo-600 hover:text-indigo-500">Login</router-link>
         <span class="text-gray-300">|</span>
         <router-link to="/register" class="text-indigo-600 hover:text-indigo-500">Register</router-link>
+        <span class="text-gray-300">|</span>
+        <router-link to="/marketplace" class="text-emerald-600 hover:text-emerald-500 font-semibold">Browse Marketplace</router-link>
       </div>
     </div>
   </div>

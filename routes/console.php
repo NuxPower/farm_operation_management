@@ -35,8 +35,17 @@ Schedule::command('orders:send-deadline-warnings')
 
 // Schedule auto-cancel expired pickups to run hourly
 // Cancels orders past deadline, restores inventory, notifies buyer+farmer
+
 Schedule::command('orders:cancel-expired-pickups')
     ->hourly()
     ->timezone('Asia/Manila')
     ->withoutOverlapping();
+
+// Schedule weather monitoring to run hourly
+// Checks fields for critical conditions and triggers alerts
+Schedule::command('weather:monitor')
+    ->hourly()
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping();
+
 

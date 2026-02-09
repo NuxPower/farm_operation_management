@@ -388,12 +388,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
 
-  // Marketplace Routes
+  // Marketplace Routes (guest browsing allowed)
   {
     path: '/marketplace',
     name: 'marketplace',
     component: Marketplace,
-    meta: { requiresAuth: true }
+    meta: { allowGuest: true }
   },
   {
     path: '/marketplace/product/create',
@@ -435,7 +435,7 @@ const routes = [
     path: '/marketplace/products/:id',
     name: 'product-detail',
     component: ProductDetail,
-    meta: { requiresAuth: true }
+    meta: { allowGuest: true }
   },
   {
     path: '/checkout',

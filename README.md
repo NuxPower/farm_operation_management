@@ -85,7 +85,7 @@ All five core project objectives have been **fully achieved** with comprehensive
 
 | Category | Features Implemented |
 |----------|---------------------|
-| **Data Storage** | 32 database models covering farms, weather, labor, inventory, financial, marketplace, pest management |
+| **Data Storage** | 35 database models covering farms, weather, labor, inventory, financial, marketplace, pest management |
 | **Analytics Engine** | 8+ module aggregation, executive summary generation, action suggestions, financial forecasting |
 | **Reporting** | Crop yield reports, financial reports, profit/loss analysis, weather impact reports |
 
@@ -97,7 +97,7 @@ All five core project objectives have been **fully achieved** with comprehensive
 
 | Category | Features Implemented |
 |----------|---------------------|
-| **Marketplace Core** | Product listings with filters, product details with reviews, buyer registration |
+| **Marketplace Core** | Guest browsing (no login required), product listings with filters, product details with reviews, buyer registration |
 | **Order Management** | Shopping cart, checkout with negotiation, order state machine (Pending → Confirmed → Ready → Delivered) |
 | **Commerce Features** | Price negotiation, favorites, order history, auto-sales integration |
 
@@ -260,59 +260,234 @@ All five core project objectives have been **fully achieved** with comprehensive
 
 ---
 
-## ��️ User Flow Diagram
+## 🔄️ User Flow Diagram
 
 ```text
-       +-------+
-       | Start |
-       +---+---+
-           |
-           v
-    +-------------+
-    | User Login  |
-    +-----+-------+
-          |
-          v
-   +----------------+        No
-   |  Has Account?  |------------------+
-   +------+---------+                  |
-          | Yes                        |
-          v                            v
- +--------------------+        +---------------+
- | User Authentication|<-------| Register User |
- +--------+-----------+        +---------------+
-          |
-          v
-   +--------------+
-   |  Check Role  |
-   +------+-------+
-          |
-          +--------------------------------------+
-          |                                      |
-          v                                      v
-   +--------------+                      +------------------+
-   |     Buyer    |                      |      Farmer      |
-   +------+-------+                      +--------+---------+
-          |                                       |
-          v                                       v
- +-----------------+                    +--------------------+
- | Buyer Dashboard |                    |  Farmer Dashboard  |
- +--------+--------+                    +---------+----------+
-          |                                       |
-          |                                       |
-    +-----+-------+                    +----------+----------------+----------------+----------------+
-    |             |                    |          |                |                |                |
-    v             v                    v          v                v                v                v
-+---------+   +-------+           +--------+  +-----------+  +---------+  +----------+  +--------------+
-|  Order  |   | Track |           | Manage |  |   Manage  |  | Manage  |  |  Manage  |  | Manage Sales |
-| Product |   | Order |           |Laborers|  | Plantings |  | Harvest |  | Expenses |  |   & Orders   |
-+---------+   +-------+           +--------+  +-----------+  +---------+  +----------+  +--------------+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                           START                                                      │
+└─────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                                  │
+                                                  ▼
+                                    ┌─────────────────────────┐
+                                    │      Landing Page       │
+                                    │   (Welcome / Login)     │
+                                    └────────────┬────────────┘
+                                                 │
+                          ┌──────────────────────┼──────────────────────┐
+                          │                      │                      │
+                          ▼                      ▼                      ▼
+               ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+               │   Login (Email)  │   │  Register New    │   │   Browse as      │
+               │                  │   │     Account      │   │     Guest        │
+               └────────┬─────────┘   └────────┬─────────┘   └────────┬─────────┘
+                        │                      │                      │
+                        │                      ▼                      │
+                        │           ┌──────────────────┐              │
+                        │           │  Select Role:    │              │
+                        │           │ Farmer or Buyer  │              │
+                        │           └────────┬─────────┘              │
+                        │                    │                        │
+                        │         ┌──────────┴──────────┐             │
+                        │         │                     │             │
+                        │         ▼                     ▼             │
+                        │  ┌─────────────┐      ┌─────────────┐       │
+                        │  │   Farmer    │      │    Buyer    │       │
+                        │  │ Registration│      │ Registration│       │
+                        │  └──────┬──────┘      └──────┬──────┘       │
+                        │         │                    │              │
+                        │         └─────────┬──────────┘              │
+                        │                   │                         │
+                        │                   ▼                         │
+                        │         ┌──────────────────┐                │
+                        │         │  Email OTP       │                │
+                        │         │  Verification    │                │
+                        │         └────────┬─────────┘                │
+                        │                  │                          │
+                        └──────────────────┼──────────────────────────┘
+                                           │
+                                           ▼
+                              ┌────────────────────────┐
+                              │   Authentication OK    │
+                              │      Check Role        │
+                              └───────────┬────────────┘
+                                          │
+                   ┌──────────────────────┴──────────────────────┐
+                   │                                             │
+                   ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│          FARMER FLOW                │       │           BUYER FLOW                │
+└─────────────────┬───────────────────┘       └─────────────────┬───────────────────┘
+                  │                                             │
+                  ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│     First Login? → Onboarding       │       │         Buyer Dashboard             │
+│  • Create Farm Profile              │       │  • View Order Stats                 │
+│  • Register Fields (GPS)            │       │  • Recent Orders                    │
+│  • Set Location (Bukidnon)          │       │  • Recommended Products             │
+└─────────────────┬───────────────────┘       └─────────────────┬───────────────────┘
+                  │                                             │
+                  ▼                                             ▼
+┌─────────────────────────────────────┐       ┌─────────────────────────────────────┐
+│        Farmer Dashboard             │       │        Browse Marketplace           │
+│  • Weather Widget (Current/Alerts)  │       │  • Filter by Variety/Grade          │
+│  • Active Plantings Status          │       │  • Search Products                  │
+│  • Pending Tasks                    │       │  • View Product Details & Reviews   │
+│  • Low Stock Alerts                 │       │  • Add to Favorites                 │
+│  • Recent Sales & Orders            │       └─────────────────┬───────────────────┘
+└─────────────────┬───────────────────┘                         │
+                  │                                             ▼
+                  │                           ┌─────────────────────────────────────┐
+   ┌──────────────┴────────────────────────┐  │         Add to Cart                 │
+   │                                       │  │  • Select Quantity                  │
+   ▼                                       │  │  • View Farmer Info                 │
+┌──────────────────────┐                   │  └─────────────────┬───────────────────┘
+│   FARM OPERATIONS    │                   │                    │
+├──────────────────────┤                   │                    ▼
+│ Field Management     │                   │  ┌─────────────────────────────────────┐
+│ • Add/Edit Fields    │                   │  │           Checkout                  │
+│ • View Field Map     │                   │  │  • Review Cart Items                │
+│ • GPS Coordinates    │                   │  │  • Negotiate Price? (Optional)      │
+├──────────────────────┤                   │  │    └─► Farmer Reviews & Responds    │
+│ Planting Lifecycle   │                   │  │  • Select Pickup Date               │
+│ • Create Planting    │                   │  │  • Confirm Order                    │
+│ • Track Growth Stage │                   │  └─────────────────┬───────────────────┘
+│   (Seedling →        │                   │                    │
+│    Tillering →       │                   │                    ▼
+│    Flowering →       │                   │  ┌─────────────────────────────────────┐
+│    Grain Fill →      │                   │  │    Order Placed (Pending)           │
+│    Maturity)         │                   │  │  • Await Farmer Confirmation        │
+│ • Weather Analysis   │                   │  └─────────────────┬───────────────────┘
+├──────────────────────┤                   │                    │
+│ Nursery Management   │                   │                    ▼
+│ • Seedling Batches   │                   │  ┌─────────────────────────────────────┐
+│ • Transplant Ready   │                   │  │   [FARMER] Confirm Order            │
+├──────────────────────┤                   │  │  • Accept / Reject                  │
+│ Harvest Recording    │                   │  │  • Set Pickup Date                  │
+│ • Log Yield (kg)     │◄──────────────────┘  └─────────────────┬───────────────────┘
+│ • Quality Grade      │                                        │
+│ • Harvester Share    │                                        ▼
+└──────────────────────┘                      ┌─────────────────────────────────────┐
+         │                                    │      Order Confirmed                │
+         ▼                                    │  • Buyer Notified via Email         │
+┌──────────────────────┐                      └─────────────────┬───────────────────┘
+│   LABOR MANAGEMENT   │                                        │
+├──────────────────────┤                                        ▼
+│ Laborer Profiles     │                      ┌─────────────────────────────────────┐
+│ • Add/Edit Laborers  │                      │   [FARMER] Prepare Order            │
+│ • Set Pay Rates      │                      │  • Pack Products                    │
+│ Task Assignment      │                      │  • Mark "Ready for Pickup"          │
+│ • Create Tasks       │                      └─────────────────┬───────────────────┘
+│ • Assign to Field    │                                        │
+│ • Track Completion   │                                        ▼
+│ Payment Types:       │                      ┌─────────────────────────────────────┐
+│ • Daily Rate         │                      │      Buyer Pickup                   │
+│ • Piece Rate         │                      │  • Pickup Deadline Reminder         │
+│ • Pakyao (Contract)  │                      │  • Buyer Arrives at Farm            │
+│ → Auto-Expense Gen   │                      │  • Complete Handover                │
+└──────────────────────┘                      └─────────────────┬───────────────────┘
+         │                                                      │
+         ▼                                                      ▼
+┌──────────────────────┐                      ┌─────────────────────────────────────┐
+│ INVENTORY MANAGEMENT │                      │   [FARMER] Mark as Delivered        │
+├──────────────────────┤                      │  • Record Payment (COD/Bank)        │
+│ Stock Tracking       │                      │  • Auto-Generate Sale Record        │
+│ • Seeds, Fertilizer  │                      └─────────────────┬───────────────────┘
+│ • Pesticides, Tools  │                                        │
+│ WAC Calculation      │                                        ▼
+│ Low Stock Alerts     │                      ┌─────────────────────────────────────┐
+│ Expiry Tracking      │                      │   [BUYER] Rate & Review             │
+│ → Auto-Expense Gen   │                      │  • Leave Product Review             │
+└──────────────────────┘                      │  • Rate Farmer (1-5 Stars)          │
+         │                                    └─────────────────┬───────────────────┘
+         ▼                                                      │
+┌──────────────────────┐                                        │
+│   MARKETPLACE SALES  │                                        │
+├──────────────────────┤                                        │
+│ Product Listing      │                                        │
+│ • Link to Harvest    │                                        │
+│ • Set Price & Grade  │                                        │
+│ • Add Photos         │                                        │
+│ • Publish to Market  │                                        │
+│ Order Management     │◄───────────────────────────────────────┘
+│ • View Incoming Ord  │
+│ • Confirm/Reject     │
+│ • Price Negotiation  │
+│ • Mark Ready/Done    │
+│ Direct Sales         │
+│ • Record Off-Market  │
+│ • Track Revenue      │
+└──────────────────────┘
+         │
+         ▼
+┌──────────────────────┐
+│  FINANCIAL TRACKING  │
+├──────────────────────┤
+│ Expense Categories   │
+│ • Labor, Inventory   │
+│ • Equipment, Others  │
+│ Revenue Tracking     │
+│ • Marketplace Sales  │
+│ • Direct Sales       │
+│ Profit/Loss Reports  │
+│ Financial Forecasts  │
+└──────────────────────┘
+         │
+         ▼
+┌──────────────────────┐
+│  WEATHER & ANALYTICS │
+├──────────────────────┤
+│ Real-Time Weather    │
+│ • Current Conditions │
+│ • 10-Day Forecast    │
+│ • GDD Calculation    │
+│ Agronomic Alerts     │
+│ • Heat/Cold Stress   │
+│ • Disease Risk       │
+│ • Irrigation Advice  │
+│ Pest Prediction      │
+│ • Rice Blast Risk    │
+│ • Stem Borer Risk    │
+└──────────────────────┘
+         │
+         ▼
+┌──────────────────────┐
+│   REPORTS & INSIGHTS │
+├──────────────────────┤
+│ Data Analytics       │
+│ • Executive Summary  │
+│ • Action Suggestions │
+│ • Yield Predictions  │
+│ Scheduled Reports    │
+│ • Email Summaries    │
+│ • PDF/CSV Export     │
+└──────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                          LOGOUT / END                                                │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Description:**
-The User Flow Diagram visually outlines the application's access control and feature distribution. It begins with **User Authentication**, where the system checks for existing accounts and directs users to registration if needed. Upon successful login, the system identifies the user's role:
-- **Farmers** are directed to a specialized dashboard for managing farm operations, including laborers, plantings, harvests, expenses, and sales.
-- **Buyers** are routed to the marketplace interface to browse products, place orders, and track shipments.
+This comprehensive User Flow Diagram illustrates the complete start-to-finish journey for all user types in the ANIBUKID system:
+
+**Authentication & Onboarding:**
+- Users begin at the landing page and can login, register, or browse as guests.
+- Registration requires role selection (Farmer/Buyer) and email OTP verification.
+- First-time farmers complete onboarding to create farm profiles and register fields with GPS coordinates.
+
+**Farmer Journey:**
+- **Farm Operations:** Manage fields, track planting lifecycle through 5 growth stages, and record harvests with quality grading.
+- **Labor Management:** Assign tasks to laborers with multiple payment types (daily, piece, contract) with auto-expense generation.
+- **Inventory:** Track seeds, fertilizers, pesticides with WAC calculation, low stock alerts, and expiry tracking.
+- **Marketplace Sales:** List products linked to harvests, manage incoming orders, handle price negotiations, and process fulfillment.
+- **Financial Tracking:** Automated expense generation, revenue tracking, and profit/loss analysis.
+- **Weather & Analytics:** Real-time weather data, agronomic alerts, pest predictions, and actionable insights.
+
+**Buyer Journey:**
+- Browse marketplace with filters, add products to cart, and optionally negotiate prices.
+- Place orders with pickup scheduling and track order status through confirmation → ready → delivered.
+- Complete transactions with payment recording and leave product reviews.
 
 
 ---
@@ -611,9 +786,10 @@ The system automatically generates prioritized suggestions based on specific tri
   - **Sales Tracking:** Unified view of marketplace and off-platform sales.
 
 ### 7. Marketplace
-- **Models:** `RiceProduct`, `RiceOrder`, `Cart`, `CartItem`
+- **Models:** `RiceProduct`, `RiceOrder`, `CartItem`, `Favorite`, `ProductReview`, `PriceNegotiation`
 - **Controllers:** `RiceProductController`, `RiceOrderController`, `CartController`
 - **Features:**
+  - **Guest Browsing:** Unauthenticated users can browse products and view details; login required for cart/favorites/orders
   - Product listing with quality grades and certifications
   - Price negotiation flow
   - Order state machine (Pending → Confirmed → Ready → Picked Up)
@@ -1097,7 +1273,7 @@ Gap % = ((Y_p - Y_a) / Y_p) × 100
 ### 3. Marketplace
 - **Buyers** can register, browse products, and place orders.
 - **Farmers** can post rice products with pricing, quality, and grading details.
-- System supports **Direct Messaging** between buyers and farmers.
+- System supports **Order Messaging** between buyers and farmers within order context.
 - **Payment Handling**: The system tracks payment status but does *not* process online payments automatically; transactions are confirmed manually (COD/Bank Transfer).
 
 ### 4. User Management
@@ -1146,7 +1322,9 @@ The system relies on Laravel Scheduler to perform background maintenance and not
 |---------|----------|---------|
 | `inventory:check-expiry` | Daily (8:00 AM) | Checks for expiring items and notifies farmers. |
 | `reports:send-scheduled` | Hourly | Checks for due scheduled reports and emails them. |
-| `pre-orders:send-notifications` | Hourly | Sends emails for producation availability and pickup reminders. |
+| `pre-orders:send-notifications` | Daily (9:00 AM) | Sends emails for production availability and pickup reminders. |
+| `orders:send-deadline-warnings` | Daily (8:00 AM) | Sends email to farmers about orders expiring in 24 hours. |
+| `orders:cancel-expired-pickups` | Hourly | Cancels orders past deadline, restores inventory, notifies buyer+farmer. |
 | `weather:monitor` | Hourly | Monitors fields for critical weather conditions and triggers Email/Push alerts. |
 
 ---
@@ -1219,10 +1397,19 @@ composer run dev
 | POST | `/api/tasks` | Create task |
 | POST | `/api/tasks/{id}/complete` | Mark task complete |
 
-### Marketplace Routes (Protected: `auth:sanctum`)
+### Marketplace Routes
+
+#### Public Routes (No Auth Required - Guest Browsing)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/rice-marketplace/products` | List available products |
+| GET | `/api/rice-marketplace/products/{id}` | View product details |
+| GET | `/api/rice-marketplace/products/{id}/reviews` | View product reviews |
+| GET | `/api/rice-marketplace/stats` | Marketplace statistics |
+
+#### Protected Routes (Requires: `auth:sanctum`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | POST | `/api/rice-marketplace/products` | Create product (Farmer only) |
 | GET | `/api/rice-marketplace/cart` | View cart |
 | POST | `/api/rice-marketplace/cart` | Add item to cart |
