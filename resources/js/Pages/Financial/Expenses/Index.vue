@@ -241,6 +241,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
+import { formatCurrency, formatDate } from '@/utils/format'
 import axios from 'axios'
 
 const router = useRouter()
@@ -336,17 +337,7 @@ const exportCsv = async () => {
   }
 }
 
-const formatCurrency = (value) => {
-  const num = Number(value)
-  if (Number.isNaN(num)) return value ? `\u20B1${value}` : '\u20B10.00'
-  return `\u20B1${num.toFixed(2)}`
-}
-
-const formatDate = (value) => {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString()
-}
+// formatCurrency and formatDate imported from @/utils/format
 
 const formatCategory = (category) => {
   if (!category) return 'Other'
