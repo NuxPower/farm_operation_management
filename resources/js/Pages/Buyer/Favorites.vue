@@ -55,15 +55,15 @@
       </div>
 
       <!-- Favorites Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div v-else class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div
           v-for="item in favorites"
           :key="item.id"
           class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
         >
-          <div class="p-6">
+          <div class="p-3 md:p-6">
             <!-- Product Image -->
-            <div class="h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg mb-4 overflow-hidden relative">
+            <div class="aspect-square bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg mb-3 md:mb-4 overflow-hidden relative">
               <img
                 v-if="item.rice_product?.images?.length"
                 :src="item.rice_product.images[0]"
@@ -71,7 +71,7 @@
                 class="w-full h-full object-cover"
               />
               <div v-else class="w-full h-full flex items-center justify-center">
-                <span class="text-5xl">🌾</span>
+                <span class="text-4xl md:text-5xl">🌾</span>
               </div>
               <!-- Remove Button -->
               <button
@@ -90,18 +90,18 @@
             </div>
 
             <!-- Product Info -->
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ item.rice_product?.name || 'Product' }}</h3>
-            <p class="text-sm text-gray-500 mb-2">{{ item.rice_product?.rice_variety?.name || 'Rice' }}</p>
+            <h3 class="text-sm md:text-lg font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-2">{{ item.rice_product?.name || 'Product' }}</h3>
+            <p class="text-xs md:text-sm text-gray-500 mb-2 truncate">{{ item.rice_product?.rice_variety?.name || 'Rice' }}</p>
             
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-lg font-bold text-green-600">
+            <div class="flex items-center justify-between mb-2 md:mb-4">
+              <span class="text-sm md:text-lg font-bold text-green-600">
                 {{ formatCurrency(item.rice_product?.price_per_unit || 0) }}
               </span>
-              <span class="text-sm text-gray-500">per {{ item.rice_product?.unit || 'kg' }}</span>
+              <span class="text-xs md:text-sm text-gray-500">per {{ item.rice_product?.unit || 'kg' }}</span>
             </div>
 
             <!-- Stock Status -->
-            <div class="mb-4">
+            <div class="mb-2 md:mb-4 hidden md:block">
               <span 
                 v-if="item.rice_product?.quantity_available > 0"
                 class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
@@ -120,14 +120,14 @@
             <div class="space-y-2">
               <router-link
                 :to="`/marketplace/products/${item.rice_product_id}`"
-                class="block w-full text-center bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                class="block w-full text-center bg-green-600 text-white py-2 px-3 md:px-4 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm md:text-base"
               >
                 View Details
               </router-link>
               <button
                 @click="addToCart(item.rice_product)"
                 :disabled="!item.rice_product?.quantity_available || addingToCartId === item.id"
-                class="w-full text-center bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full text-center bg-gray-100 text-gray-700 py-2 px-3 md:px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base hidden md:block"
               >
                 <span v-if="addingToCartId === item.id" class="flex items-center justify-center gap-2">
                   <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">

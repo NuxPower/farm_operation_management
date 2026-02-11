@@ -36,8 +36,8 @@
       <!-- Cart Items -->
       <div v-else class="space-y-6">
         <div class="bg-white rounded-xl shadow divide-y">
-          <div v-for="item in cartItems" :key="item.id" class="p-6 flex gap-6">
-            <div class="w-20 h-20 bg-green-100 rounded-lg flex items-center justify-center text-4xl flex-shrink-0 overflow-hidden">
+          <div v-for="item in cartItems" :key="item.id" class="p-4 sm:p-6 flex flex-row gap-4 sm:gap-6">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-lg flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 overflow-hidden">
               <img
                 v-if="getItemImage(item)"
                 :src="getItemImage(item)"
@@ -46,24 +46,23 @@
               />
               <span v-else>🌾</span>
             </div>
-            <div class="flex-1">
-              <h3 class="font-semibold text-gray-900 mb-1">{{ item.name }}</h3>
-              <p class="text-sm text-gray-500 mb-2">
-                Seller: {{ item.farmer?.name || 'N/A' }}
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-gray-900 mb-1 text-sm sm:text-base truncate">{{ item.name }}</h3>
+              <p class="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2 truncate">
+                {{ item.farmer?.name || 'Farmer' }}
               </p>
-              <p class="text-lg font-medium text-green-600">
-                {{ formatCurrency(item.price || 0) }} / {{ item.unit || 'kg' }}
+              <p class="text-sm sm:text-lg font-medium text-green-600">
+                {{ formatCurrency(item.price || 0) }}/{{ item.unit || 'kg' }}
               </p>
             </div>
-            <div class="flex flex-col items-end gap-2">
-              <div class="flex items-center gap-2">
-                <button @click="updateQuantity(item, -1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300">−</button>
-                <input v-model.number="item.quantity" type="number" min="1" 
-                  class="w-16 text-center border rounded-md" @change="saveQuantity(item)" />
-                <button @click="updateQuantity(item, 1)" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300">+</button>
+            <div class="flex flex-col items-end gap-1 sm:gap-2">
+              <div class="flex items-center gap-1 sm:gap-2">
+                <button @click="updateQuantity(item, -1)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-sm">−</button>
+                <span class="w-6 sm:w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
+                <button @click="updateQuantity(item, 1)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-sm">+</button>
               </div>
-              <p class="font-semibold text-gray-900">{{ formatCurrency(item.quantity * (item.price || 0)) }}</p>
-              <button @click="confirmRemoveItem(item)" class="text-red-600 text-sm hover:underline">Remove</button>
+              <p class="font-semibold text-gray-900 text-sm sm:text-base">{{ formatCurrency(item.quantity * (item.price || 0)) }}</p>
+              <button @click="confirmRemoveItem(item)" class="text-red-600 text-xs sm:text-sm hover:underline">Remove</button>
             </div>
           </div>
         </div>

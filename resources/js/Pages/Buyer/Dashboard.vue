@@ -134,15 +134,15 @@
           </div>
         </div>
 
-        <div v-else-if="featuredProducts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div v-else-if="featuredProducts.length" class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <div
             v-for="product in featuredProducts"
             :key="product.id"
             class="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
             @click="viewProduct(product)"
           >
-            <div class="p-6">
-              <div class="h-32 rounded-lg mb-4 overflow-hidden">
+            <div class="p-3 md:p-6">
+              <div class="aspect-square rounded-lg mb-3 md:mb-4 overflow-hidden">
                 <img
                   v-if="getProductImage(product)"
                   :src="getProductImage(product)"

@@ -118,16 +118,16 @@
       </div>
 
       <!-- Products Grid -->
-      <div v-else-if="products.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div v-else-if="products.length > 0" class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div
           v-for="product in products"
           :key="product.id"
           class="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
           @click="viewProduct(product.id)"
         >
-          <div class="p-6">
+          <div class="p-3 md:p-6">
             <!-- Product Image -->
-            <div class="h-48 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg mb-4 overflow-hidden">
+            <div class="aspect-square bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg mb-3 md:mb-4 overflow-hidden">
               <img
                 v-if="product.images && product.images.length > 0"
                 :src="product.images[0]"
@@ -135,39 +135,39 @@
                 class="w-full h-full object-cover"
               />
               <div v-else class="w-full h-full flex items-center justify-center">
-                <span class="text-6xl">🌾</span>
+                <span class="text-4xl md:text-6xl">🌾</span>
               </div>
             </div>
 
             <!-- Product Info -->
-            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">{{ product.name }}</h3>
-            <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ product.description }}</p>
+            <h3 class="font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-2 text-sm md:text-base">{{ product.name }}</h3>
+            <p class="text-xs md:text-sm text-gray-600 mb-2 md:mb-3 line-clamp-2 hidden md:block">{{ product.description }}</p>
 
             <!-- Production Status Badge -->
-            <div class="mb-3">
+            <div class="mb-2 md:mb-3">
               <span
                 v-if="product.production_status === 'in_production'"
-                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
+                class="inline-flex px-1.5 md:px-2 py-0.5 md:py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800"
               >
-                Pre-order Available
+                Pre-order
               </span>
               <span
                 v-else-if="product.production_status === 'available'"
-                class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
+                class="inline-flex px-1.5 md:px-2 py-0.5 md:py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
               >
-                Available Now
+                Available
               </span>
             </div>
 
             <!-- Available From (for pre-orders) -->
-            <div v-if="product.production_status === 'in_production' && product.available_from" class="mb-3">
+            <div v-if="product.production_status === 'in_production' && product.available_from" class="mb-2 md:mb-3 hidden md:block">
               <p class="text-xs text-gray-500">
                 Available from: {{ formatDate(product.available_from) }}
               </p>
             </div>
 
             <!-- Stock Info -->
-            <div class="mb-3">
+            <div class="mb-2 md:mb-3 hidden md:block">
               <p class="text-sm text-gray-600">
                 <span v-if="product.production_status === 'available'">
                   Stock: {{ product.quantity_available }} {{ product.unit }}
@@ -179,11 +179,11 @@
             </div>
 
             <!-- Price -->
-            <div class="flex justify-between items-center mb-4">
-              <span class="text-lg font-bold text-green-600">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-3 md:mb-4">
+              <span class="text-sm md:text-lg font-bold text-green-600">
                 {{ formatCurrency(product.price_per_unit) }}/{{ product.unit }}
               </span>
-              <div v-if="product.average_rating > 0" class="flex items-center">
+              <div v-if="product.average_rating > 0" class="flex items-center hidden md:flex">
                 <span class="text-yellow-400 text-sm">★</span>
                 <span class="text-sm text-gray-600 ml-1">{{ product.average_rating.toFixed(1) }}</span>
               </div>
@@ -192,9 +192,9 @@
             <!-- Action Button -->
             <button
               @click.stop="viewProduct(product.id)"
-              class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+              class="w-full bg-green-600 text-white py-2 px-3 md:px-4 rounded-lg hover:bg-green-700 transition-colors text-sm md:text-base"
             >
-              {{ product.production_status === 'in_production' ? 'Pre-order Now' : 'View Details' }}
+              {{ product.production_status === 'in_production' ? 'Pre-order' : 'View' }}
             </button>
           </div>
         </div>
