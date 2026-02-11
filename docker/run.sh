@@ -27,6 +27,13 @@ php artisan event:cache || echo "Warning: event:cache failed"
 # Run migrations (skip errors for existing tables)
 php artisan migrate --force 2>/dev/null || echo "Warning: migrate skipped (tables may already exist)"
 
+# Run seeders (safe to re-run — they use updateOrCreate/firstOrCreate)
+echo "==> Running database seeders..."
+php artisan db:seed --class=RiceVarietySeeder --force 2>&1 || echo "Warning: RiceVarietySeeder failed"
+php artisan db:seed --class=RiceGrowthStageSeeder --force 2>&1 || echo "Warning: RiceGrowthStageSeeder failed"
+php artisan db:seed --class=PestLibrarySeeder --force 2>&1 || echo "Warning: PestLibrarySeeder failed"
+php artisan db:seed --class=WeatherSeeder --force 2>&1 || echo "Warning: WeatherSeeder failed"
+
 # Configure Nginx PORT - Railway sets PORT env var
 LISTEN_PORT=${PORT:-8080}
 echo "==> Configuring nginx to listen on port: $LISTEN_PORT"
