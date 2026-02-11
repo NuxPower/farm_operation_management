@@ -30,13 +30,25 @@ php artisan migrate --force 2>/dev/null || echo "Warning: migrate skipped (table
 # Configure Nginx PORT - Railway sets PORT env var
 LISTEN_PORT=${PORT:-8080}
 echo "==> Configuring nginx to listen on port: $LISTEN_PORT"
-sed -i "s/listen 8080;/listen $LISTEN_PORT default_server;/g" /etc/nginx/sites-available/default
+
+# Update port in nginx config if Railway assigns a different port
+if [ "$LISTEN_PORT" != "8080" ]; then
+    sed -i "s/listen 8080 default_server;/listen $LISTEN_PORT default_server;/g" /etc/nginx/sites-available/default
+fi
+
+# Remove any conflicting default nginx configs
+rm -f /etc/nginx/sites-enabled/default 2>/dev/null
+ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Verify nginx config
 echo "==> Testing nginx configuration..."
 nginx -t 2>&1
 
-echo "==> Starting supervisord..."
+# Quick health check - test PHP is working
+echo "==> Testing PHP-FPM..."
+php -r "echo 'PHP is working: ' . phpversion() . PHP_EOL;"
+
+echo "==> Starting supervisord on port $LISTEN_PORT..."
 
 # Start Supervisor (nginx + php-fpm)
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
