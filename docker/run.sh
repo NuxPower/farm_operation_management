@@ -2,21 +2,17 @@
 
 cd /var/www/html
 
-# Generate .env from environment variables if no .env file exists
+# Create an empty .env if none exists.
+# Laravel will read environment variables directly from the system,
+# which Railway sets via its dashboard. No need to duplicate them in .env.
 if [ ! -f .env ]; then
-    echo "No .env file found, generating from environment variables..."
-    env | grep -E '^(APP_|DB_|MAIL_|LOG_|CACHE_|SESSION_|QUEUE_|REDIS_|BROADCAST_|FILESYSTEM_|SANCTUM_|TRUSTED_|VITE_|AWS_|PUSHER_)' | sort > .env
-    # Ensure APP_KEY is set
-    if [ -n "$APP_KEY" ]; then
-        grep -q "^APP_KEY=" .env || echo "APP_KEY=$APP_KEY" >> .env
-    fi
+    echo "No .env file found, creating empty .env (using system environment variables)..."
+    touch .env
 fi
 
 # Generate application key if not set
-if ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
-    if [ -z "$APP_KEY" ]; then
-        php artisan key:generate --force
-    fi
+if [ -z "$APP_KEY" ]; then
+    php artisan key:generate --force
 fi
 
 # Create storage link if it doesn't exist
