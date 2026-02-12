@@ -77,19 +77,16 @@ class DashboardController extends Controller
                 ->limit(5)
                 ->get();
 
-            // Efficiently fetch latest weather for all fields in one query
-            $fields->load([
-                'weatherLogs' => function ($query) {
-                    $query->latest('recorded_at')->take(1);
-                }
-            ]);
+            // Efficiently fetch latest weather for the user's farms
+            $farms = \App\Models\Farm::where('user_id', $user->id)
+                ->with(['latestWeather'])
+                ->get();
 
-            $weatherData = $fields->map(function ($field) {
-                $latestWeather = $field->weatherLogs->first();
-                if ($latestWeather) {
+            $weatherData = $farms->map(function ($farm) {
+                if ($farm->latestWeather) {
                     return [
-                        'field' => $field,
-                        'weather' => $latestWeather
+                        'farm' => $farm,
+                        'weather' => $farm->latestWeather
                     ];
                 }
                 return null;

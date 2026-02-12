@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Field;
+use App\Models\Farm;
 use App\Models\WeatherLog;
 use App\Models\Task;
 use App\Exceptions\WeatherServiceException;
@@ -166,27 +166,19 @@ class WeatherService
     }
 
     /**
-     * Update weather data for a field
+     * Update weather data for a farm
      */
-    public function updateFieldWeather(Field $field, ?array $weatherData = null): ?WeatherLog
+    public function updateFarmWeather(Farm $farm, ?array $weatherData = null): ?WeatherLog
     {
-        // Get coordinates from location or fallback to field_coordinates
-        $lat = null;
-        $lon = null;
+        $coords = $farm->weather_coordinates;
 
-        if (isset($field->location['lat']) && isset($field->location['lon'])) {
-            $lat = (float) $field->location['lat'];
-            $lon = (float) $field->location['lon'];
-        } elseif (isset($field->field_coordinates['lat']) && isset($field->field_coordinates['lon'])) {
-            // Fallback to field_coordinates if location doesn't have coordinates
-            $lat = (float) $field->field_coordinates['lat'];
-            $lon = (float) $field->field_coordinates['lon'];
-        }
-
-        if ($lat === 0.0 || $lon === 0.0) {
-            Log::warning('Field location coordinates missing', ['field_id' => $field->id]);
+        if (!$coords || !$coords['lat'] || !$coords['lon']) {
+            Log::warning('Farm coordinates missing', ['farm_id' => $farm->id]);
             return null;
         }
+
+        $lat = (float) $coords['lat'];
+        $lon = (float) $coords['lon'];
 
         if ($weatherData === null) {
             $weatherData = $this->getCurrentWeather($lat, $lon);
@@ -198,7 +190,7 @@ class WeatherService
 
         if (!isset($weatherData['main']['temp'], $weatherData['main']['humidity'])) {
             Log::warning('Incomplete weather payload from weather provider', [
-                'field_id' => $field->id,
+                'farm_id' => $farm->id,
                 'weather_data' => $weatherData,
             ]);
             return null;
@@ -209,20 +201,20 @@ class WeatherService
                 ? round($weatherData['wind']['speed'] * 3.6, 1) // convert m/s to km/h
                 : 0;
 
-            // Extract rainfall from API response (OpenWeatherMap provides rain in mm for last 1h or 3h)
+            // Extract rainfall from API response
             $rainfall = 0;
             if (isset($weatherData['rain']['1h'])) {
                 $rainfall = round($weatherData['rain']['1h'], 2);
             } elseif (isset($weatherData['rain']['3h'])) {
-                $rainfall = round($weatherData['rain']['3h'] / 3, 2); // Convert 3h to hourly estimate
+                $rainfall = round($weatherData['rain']['3h'] / 3, 2);
             }
 
             $recordedAt = isset($weatherData['dt'])
                 ? Carbon::createFromTimestamp($weatherData['dt'])
                 : now();
 
-            // Prevent duplicate logs for the same field within the same hour
-            $existingLog = WeatherLog::where('field_id', $field->id)
+            // Prevent duplicate logs for the same farm within the same hour
+            $existingLog = WeatherLog::where('farm_id', $farm->id)
                 ->whereBetween('recorded_at', [
                     (clone $recordedAt)->subMinutes(30),
                     (clone $recordedAt)->addMinutes(30)
@@ -230,7 +222,6 @@ class WeatherService
                 ->first();
 
             if ($existingLog) {
-                // If it exists, update it instead of creating a new one to keep data fresh but avoid duplicates
                 $existingLog->update([
                     'temperature' => round($weatherData['main']['temp'], 1),
                     'humidity' => $weatherData['main']['humidity'],
@@ -239,12 +230,12 @@ class WeatherService
                     'conditions' => $this->mapWeatherCondition($weatherData['weather'][0]['main'] ?? 'clear'),
                 ]);
 
-                $field->setRelation('latestWeather', $existingLog);
+                $farm->setRelation('latestWeather', $existingLog);
                 return $existingLog;
             }
 
             $weatherLog = WeatherLog::create([
-                'field_id' => $field->id,
+                'farm_id' => $farm->id,
                 'temperature' => round($weatherData['main']['temp'], 1),
                 'humidity' => $weatherData['main']['humidity'],
                 'wind_speed' => $windSpeed,
@@ -253,14 +244,13 @@ class WeatherService
                 'recorded_at' => $recordedAt,
             ]);
 
-            // Ensure subsequent calls use the freshly created log without re-querying
-            $field->setRelation('latestWeather', $weatherLog);
+            $farm->setRelation('latestWeather', $weatherLog);
 
             return $weatherLog;
         } catch (\Exception $e) {
             Log::error('Failed to save weather data', [
                 'error' => $e->getMessage(),
-                'field_id' => $field->id,
+                'farm_id' => $farm->id,
                 'weather_data' => $weatherData
             ]);
 
@@ -279,7 +269,7 @@ class WeatherService
 
         return [
             'id' => $weatherLog->id,
-            'field_id' => $weatherLog->field_id,
+            'farm_id' => $weatherLog->farm_id,
             'temperature' => (float) $weatherLog->temperature,
             'temperature_fahrenheit' => round(($weatherLog->temperature * 9 / 5) + 32, 1),
             'humidity' => (float) $weatherLog->humidity,
@@ -293,48 +283,27 @@ class WeatherService
     }
 
     /**
-     * Update weather data for all fields
+     * Update weather data for all farms
      */
-    public function updateAllFieldsWeather(): int
+    public function updateAllFarmsWeather(): int
     {
-        $fields = Field::whereNotNull('location')->get();
+        $farms = Farm::whereNotNull('farm_coordinates')->get();
         $updated = 0;
 
-        // Group fields by rounded coordinates to minimize API calls
-        $groupedFields = [];
-        foreach ($fields as $field) {
-            if (isset($field->location['lat']) && isset($field->location['lon'])) {
-                $lat = round((float) $field->location['lat'], 2);
-                $lon = round((float) $field->location['lon'], 2);
-                $key = "{$lat}_{$lon}";
-                $groupedFields[$key][] = $field;
-            } elseif (isset($field->field_coordinates['lat']) && isset($field->field_coordinates['lon'])) {
-                $lat = round((float) $field->field_coordinates['lat'], 2);
-                $lon = round((float) $field->field_coordinates['lon'], 2);
-                $key = "{$lat}_{$lon}";
-                $groupedFields[$key][] = $field;
-            }
-        }
-
-        foreach ($groupedFields as $key => $fieldsInGroup) {
-            // Coordinate key is lat_lon
-            [$lat, $lon] = explode('_', $key);
-
-            // Get weather once for this group (will hit cache if available)
-            $weatherData = $this->getCurrentWeather((float) $lat, (float) $lon);
-
-            if ($weatherData) {
-                foreach ($fieldsInGroup as $field) {
-                    /** @var Field $field */
-                    // Pass the fetched weather data to avoid re-fetching
-                    if ($this->updateFieldWeather($field, $weatherData)) {
-                        $updated++;
-                    }
-                }
+        foreach ($farms as $farm) {
+            /** @var \App\Models\Farm $farm */
+            $coords = $farm->weather_coordinates;
+            if (!$coords || !$coords['lat'] || !$coords['lon']) {
+                continue;
             }
 
-            // Small delay between groups to differ load slightly if cache misses occur
-            usleep(100000); // 100ms
+            $weatherData = $this->getCurrentWeather((float) $coords['lat'], (float) $coords['lon']);
+
+            if ($weatherData && $this->updateFarmWeather($farm, $weatherData)) {
+                $updated++;
+            }
+
+            usleep(100000); // 100ms delay between farms
         }
 
         return $updated;
@@ -343,19 +312,27 @@ class WeatherService
     /**
      * Get weather alerts for rice farming conditions
      */
-    public function getWeatherAlerts(Field $field): array
+    public function getWeatherAlerts(Farm $farm): array
     {
         $alerts = [];
-        $latestWeather = $field->latestWeather;
+        $latestWeather = $farm->latestWeather;
         /** @var WeatherLog|null $latestWeather */
 
         if (!$latestWeather) {
             return $alerts;
         }
 
-        // Get current rice planting if exists
-        $currentPlanting = $field->getCurrentRicePlanting();
-        $currentStage = $currentPlanting?->getCurrentStage();
+        // Get current rice planting from any field on this farm
+        $currentPlanting = null;
+        $currentStage = null;
+        foreach ($farm->fields as $field) {
+            $planting = $field->getCurrentRicePlanting();
+            if ($planting) {
+                $currentPlanting = $planting;
+                $currentStage = $planting->getCurrentStage();
+                break;
+            }
+        }
 
         // Rice-specific temperature alerts
         // Use property access on the WeatherLog model instance
@@ -518,13 +495,13 @@ class WeatherService
     }
 
     /**
-     * Get weather statistics for a field
+     * Get weather statistics for a farm
      */
-    public function getFieldWeatherStats(Field $field, int $days = 30): array
+    public function getFarmWeatherStats(Farm $farm, int $days = 30): array
     {
         $startDate = Carbon::now()->subDays($days);
 
-        $weatherLogs = WeatherLog::where('field_id', $field->id)
+        $weatherLogs = WeatherLog::where('farm_id', $farm->id)
             ->where('recorded_at', '>=', $startDate)
             ->orderBy('recorded_at')
             ->get();
@@ -568,11 +545,11 @@ class WeatherService
     /**
      * Get rice-specific weather analytics
      */
-    public function getRiceWeatherAnalytics(Field $field, int $days = 30): array
+    public function getRiceWeatherAnalytics(Farm $farm, int $days = 30, ?\App\Models\Field $specificField = null): array
     {
         $startDate = Carbon::now()->subDays($days);
 
-        $weatherLogs = WeatherLog::where('field_id', $field->id)
+        $weatherLogs = WeatherLog::where('farm_id', $farm->id)
             ->where('recorded_at', '>=', $startDate)
             ->orderBy('recorded_at')
             ->get();
@@ -582,7 +559,7 @@ class WeatherService
         }
 
         // Basic stats
-        $basicStats = $this->getFieldWeatherStats($field, $days);
+        $basicStats = $this->getFarmWeatherStats($farm, $days);
 
         // Rice-specific analytics
         $riceAnalytics = [
@@ -598,8 +575,20 @@ class WeatherService
             'weather_suitability_score' => $this->calculateWeatherSuitabilityScore($weatherLogs),
         ];
 
-        // Growth stage specific analytics
-        $currentPlanting = $field->getCurrentRicePlanting();
+        // Growth stage specific analytics — check all fields on this farm
+        $currentPlanting = null;
+        if ($specificField) {
+            $currentPlanting = $specificField->getCurrentRicePlanting();
+        } else {
+            foreach ($farm->fields as $field) {
+                $planting = $field->getCurrentRicePlanting();
+                if ($planting) {
+                    $currentPlanting = $planting;
+                    break;
+                }
+            }
+        }
+
         if ($currentPlanting) {
             $riceAnalytics['current_planting'] = [
                 'days_since_planting' => $currentPlanting->getDaysSincePlanting(),
@@ -611,7 +600,6 @@ class WeatherService
             $waterImpact = $this->assessWaterManagementImpact($currentPlanting);
             if ($waterImpact) {
                 $riceAnalytics['water_management'] = $waterImpact;
-                // Override soil moisture if we have direct evidence from tasks
                 if (isset($waterImpact['soil_moisture_status'])) {
                     $riceAnalytics['estimated_soil_moisture'] = $waterImpact['soil_moisture_status'];
                 }
@@ -844,10 +832,10 @@ class WeatherService
     /**
      * Get rice farming weather recommendations
      */
-    public function getRiceFarmingRecommendations(Field $field): array
+    public function getRiceFarmingRecommendations(Farm $farm, ?\App\Models\Field $specificField = null): array
     {
-        $weatherAnalytics = $this->getRiceWeatherAnalytics($field, 7); // Last 7 days
-        $alerts = $this->getWeatherAlerts($field);
+        $weatherAnalytics = $this->getRiceWeatherAnalytics($farm, 7, $specificField); // Last 7 days
+        $alerts = $this->getWeatherAlerts($farm);
 
         $recommendations = [];
 

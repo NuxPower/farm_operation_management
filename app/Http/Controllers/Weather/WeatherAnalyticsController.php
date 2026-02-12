@@ -24,15 +24,18 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get weather analytics for a field
      */
-    public function getFieldAnalytics(Request $request, $fieldId)
+    /**
+     * Get weather analytics for a farm
+     */
+    public function getAnalytics(Request $request, $farmId)
     {
         $request->validate([
             'period_days' => 'integer|min:1|max:365',
             'analysis_type' => 'in:basic,rice_specific,detailed,comparative',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $periodDays = $request->period_days ?? 30;
         $analysisType = $request->analysis_type ?? 'basic';
@@ -42,33 +45,32 @@ class WeatherAnalyticsController extends Controller
         switch ($analysisType) {
             case 'basic':
                 $analytics = [
-                    'weather_stats' => $this->weatherService->getFieldWeatherStats($field, $periodDays),
-                    'alerts' => $this->weatherService->getWeatherAlerts($field),
+                    'weather_stats' => $this->weatherService->getFarmWeatherStats($farm, $periodDays),
+                    'alerts' => $this->weatherService->getWeatherAlerts($farm),
                 ];
                 break;
 
             case 'rice_specific':
-                $analytics = $this->weatherService->getRiceWeatherAnalytics($field, $periodDays);
+                $analytics = $this->weatherService->getRiceWeatherAnalytics($farm, $periodDays);
                 break;
 
             case 'detailed':
                 $analytics = [
-                    'weather_stats' => $this->weatherService->getFieldWeatherStats($field, $periodDays),
-                    'rice_analytics' => $this->weatherService->getRiceWeatherAnalytics($field, $periodDays),
-                    'alerts' => $this->weatherService->getWeatherAlerts($field),
-                    'recommendations' => $this->weatherService->getRiceFarmingRecommendations($field),
-                    'historical_comparison' => $this->weatherAnalyticsService->getHistoricalComparison($field, $periodDays),
+                    'weather_stats' => $this->weatherService->getFarmWeatherStats($farm, $periodDays),
+                    'rice_analytics' => $this->weatherService->getRiceWeatherAnalytics($farm, $periodDays),
+                    'alerts' => $this->weatherService->getWeatherAlerts($farm),
+                    'recommendations' => $this->weatherService->getRiceFarmingRecommendations($farm),
+                    'historical_comparison' => $this->weatherAnalyticsService->getHistoricalComparison($farm, $periodDays),
                 ];
                 break;
 
             case 'comparative':
-                $farm = $field->farm;
-                $analytics = $this->weatherAnalyticsService->getComparativeAnalytics($farm, $fieldId, $periodDays);
+                $analytics = $this->weatherAnalyticsService->getComparativeAnalytics($farm, null, $periodDays);
                 break;
         }
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'analytics' => $analytics,
             'period_days' => $periodDays,
             'analysis_type' => $analysisType,
@@ -117,7 +119,7 @@ class WeatherAnalyticsController extends Controller
         $plantingId = $request->planting_id;
         $analysisPeriod = $request->analysis_period ?? 'planting_season';
 
-        $impact = $this->weatherAnalyticsService->analyzeWeatherImpact($field, $plantingId, $analysisPeriod);
+        $impact = $this->weatherAnalyticsService->analyzeWeatherImpact($field->farm, $plantingId, $analysisPeriod);
 
         return response()->json([
             'field' => $field,
@@ -142,7 +144,7 @@ class WeatherAnalyticsController extends Controller
         $plantingId = $request->planting_id;
         $predictionModel = $request->prediction_model ?? 'simple';
 
-        $predictions = $this->weatherAnalyticsService->predictYield($field, $plantingId, $predictionModel);
+        $predictions = $this->weatherAnalyticsService->predictYield($field->farm, $plantingId, $predictionModel);
 
         return response()->json([
             'field' => $field,
@@ -194,7 +196,7 @@ class WeatherAnalyticsController extends Controller
         $riskTypes = $request->risk_types ?? ['drought', 'flood', 'heat_stress', 'cold_stress'];
         $assessmentPeriod = $request->assessment_period ?? 'current';
 
-        $riskAssessment = $this->weatherAnalyticsService->assessWeatherRisks($field, $riskTypes, $assessmentPeriod);
+        $riskAssessment = $this->weatherAnalyticsService->assessWeatherRisks($field->farm, $riskTypes, $assessmentPeriod);
 
         return response()->json([
             'field' => $field,
@@ -220,7 +222,7 @@ class WeatherAnalyticsController extends Controller
         $soilMoistureLevel = $request->soil_moisture_level;
         $cropStage = $request->crop_stage;
 
-        $recommendations = $this->weatherAnalyticsService->getIrrigationRecommendations($field, $soilMoistureLevel, $cropStage);
+        $recommendations = $this->weatherAnalyticsService->getIrrigationRecommendations($field->farm, $soilMoistureLevel, $cropStage);
 
         return response()->json([
             'field' => $field,
@@ -248,7 +250,7 @@ class WeatherAnalyticsController extends Controller
         $pestTypes = $request->pest_types ?? ['brown_planthopper', 'stem_borer'];
         $diseaseTypes = $request->disease_types ?? ['rice_blast', 'bacterial_blight'];
 
-        $riskAssessment = $this->weatherAnalyticsService->assessPestDiseaseRisk($field, $pestTypes, $diseaseTypes);
+        $riskAssessment = $this->weatherAnalyticsService->assessPestDiseaseRisk($field->farm, $pestTypes, $diseaseTypes);
 
         return response()->json([
             'field' => $field,
@@ -288,7 +290,7 @@ class WeatherAnalyticsController extends Controller
     /**
      * Export weather analytics report
      */
-    public function exportAnalyticsReport(Request $request, $fieldId)
+    public function exportAnalyticsReport(Request $request, $farmId)
     {
         $request->validate([
             'format' => 'required|in:pdf,excel,csv',
@@ -296,26 +298,24 @@ class WeatherAnalyticsController extends Controller
             'period_days' => 'integer|min:1|max:365',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
-        $format = $request->format ?? 'json';
-        $reportType = $request->report_type ?? 'summary';
-        $periodDays = $request->period_days ?? 30;
+        $format = $request->input('format', 'json');
+        $periodDays = $request->input('period_days', 30);
 
-        // Get weather analytics data
         $weatherService = app(\App\Services\WeatherService::class);
-        $analytics = $weatherService->getRiceWeatherAnalytics($field, $periodDays);
-        
-        $weatherLogs = \App\Models\WeatherLog::where('field_id', $field->id)
+        $analytics = $weatherService->getRiceWeatherAnalytics($farm, $periodDays);
+
+        $weatherLogs = \App\Models\WeatherLog::where('farm_id', $farm->id)
             ->where('recorded_at', '>=', now()->subDays($periodDays))
             ->orderBy('recorded_at', 'desc')
             ->get();
 
         $reportData = [
-            'field' => [
-                'id' => $field->id,
-                'name' => $field->name,
+            'farm' => [
+                'id' => $farm->id,
+                'name' => $farm->name,
             ],
             'analytics' => $analytics,
             'weather_logs' => $weatherLogs->map(function ($log) {
@@ -333,7 +333,7 @@ class WeatherAnalyticsController extends Controller
 
         // Return based on format
         if ($format === 'csv') {
-            return $this->exportWeatherDataToCsv($reportData, $field->name);
+            return $this->exportWeatherDataToCsv($reportData, $farm->name);
         } elseif ($format === 'json') {
             return response()->json([
                 'message' => 'Weather analytics report',
@@ -352,18 +352,18 @@ class WeatherAnalyticsController extends Controller
     private function exportWeatherDataToCsv($data, $fieldName)
     {
         $filename = 'weather-report-' . $fieldName . '-' . now()->format('Y-m-d') . '.csv';
-        
+
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $callback = function() use ($data) {
+        $callback = function () use ($data) {
             $file = fopen('php://output', 'w');
-            
+
             // Write header row
             fputcsv($file, ['Date', 'Temperature (°C)', 'Humidity (%)', 'Rainfall (mm)', 'Conditions']);
-            
+
             // Write data rows
             foreach ($data['weather_logs'] as $log) {
                 fputcsv($file, [
@@ -374,7 +374,7 @@ class WeatherAnalyticsController extends Controller
                     $log['conditions'],
                 ]);
             }
-            
+
             fclose($file);
         };
 
@@ -391,7 +391,7 @@ class WeatherAnalyticsController extends Controller
 
         $periodDays = $request->period_days ?? 30;
 
-        $qualityMetrics = $this->weatherAnalyticsService->getDataQualityMetrics($field, $periodDays);
+        $qualityMetrics = $this->weatherAnalyticsService->getDataQualityMetrics($field->farm, $periodDays);
 
         return response()->json([
             'field' => $field,

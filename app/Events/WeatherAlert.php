@@ -14,7 +14,7 @@ class WeatherAlert implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $fieldId;
+    public $farmId;
     public $userId;
     public $alertType;
     public $severity;
@@ -24,9 +24,9 @@ class WeatherAlert implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct($fieldId, $userId, $alertType, $severity, $message, $weatherData = [])
+    public function __construct($farmId, $userId, $alertType, $severity, $message, $weatherData = [])
     {
-        $this->fieldId = $fieldId;
+        $this->farmId = $farmId;
         $this->userId = $userId;
         $this->alertType = $alertType;
         $this->severity = $severity;
@@ -54,7 +54,7 @@ class WeatherAlert implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'field_id' => $this->fieldId,
+            'farm_id' => $this->farmId,
             'alert_type' => $this->alertType,
             'severity' => $this->severity,
             'message' => $this->message,
@@ -76,10 +76,10 @@ class WeatherAlert implements ShouldBroadcast
     /**
      * Create weather alert instances for different conditions
      */
-    public static function createHeavyRainAlert($fieldId, $userId, $rainfallData)
+    public static function createHeavyRainAlert($farmId, $userId, $rainfallData)
     {
         return new self(
-            $fieldId,
+            $farmId,
             $userId,
             'heavy_rain',
             'high',
@@ -88,10 +88,10 @@ class WeatherAlert implements ShouldBroadcast
         );
     }
 
-    public static function createDroughtAlert($fieldId, $userId, $weatherData)
+    public static function createDroughtAlert($farmId, $userId, $weatherData)
     {
         return new self(
-            $fieldId,
+            $farmId,
             $userId,
             'drought',
             'critical',
@@ -100,10 +100,10 @@ class WeatherAlert implements ShouldBroadcast
         );
     }
 
-    public static function createTyphoonAlert($fieldId, $userId, $weatherData)
+    public static function createTyphoonAlert($farmId, $userId, $weatherData)
     {
         return new self(
-            $fieldId,
+            $farmId,
             $userId,
             'typhoon',
             'critical',
@@ -112,15 +112,15 @@ class WeatherAlert implements ShouldBroadcast
         );
     }
 
-    public static function createExtremeTemperatureAlert($fieldId, $userId, $weatherData)
+    public static function createExtremeTemperatureAlert($farmId, $userId, $weatherData)
     {
         $severity = $weatherData['temperature'] > 35 || $weatherData['temperature'] < 5 ? 'critical' : 'high';
-        $message = $weatherData['temperature'] > 35 
+        $message = $weatherData['temperature'] > 35
             ? "Extreme heat warning: {$weatherData['temperature']}°C. Ensure adequate irrigation and crop protection."
             : "Freezing temperature warning: {$weatherData['temperature']}°C. Protect sensitive crops from frost damage.";
 
         return new self(
-            $fieldId,
+            $farmId,
             $userId,
             'extreme_temperature',
             $severity,

@@ -14,7 +14,6 @@ class Field extends Model
      * @property int $id
      * @property array|null $location
      * @property array|null $field_coordinates
-     * @property WeatherLog|null $latestWeather
      */
 
     protected $fillable = [
@@ -83,27 +82,27 @@ class Field extends Model
     }
 
     /**
-     * Get the weather logs for this field
-     */
-    public function weatherLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(WeatherLog::class);
-    }
-
-    /**
-     * Get the latest weather log
-     */
-    public function latestWeather(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(WeatherLog::class)->latest('recorded_at');
-    }
-
-    /**
      * Get the farm that owns this field
      */
     public function farm(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Farm::class);
+    }
+
+    /**
+     * Convenience: get weather from the parent farm
+     */
+    public function getWeatherFromFarm(): ?WeatherLog
+    {
+        return $this->farm?->latestWeather;
+    }
+
+    /**
+     * Accessor for latestWeather to maintain backward compatibility
+     */
+    public function getLatestWeatherAttribute(): ?WeatherLog
+    {
+        return $this->getWeatherFromFarm();
     }
 
     /**

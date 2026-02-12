@@ -229,7 +229,13 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"
                       :class="transaction.type === 'income' ? 'text-green-600' : 'text-red-600'">
-                    {{ transaction.type === 'income' ? '+' : '-' }}{{ formatCurrency(Math.abs(transaction.amount)) }}
+                    {{ transaction.type === 'income' ? '+' : '-' }}
+                    <template v-if="transaction.payment_method === 'revenue_share'">
+                      {{ formatNumber(Math.abs(transaction.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}%
+                    </template>
+                    <template v-else>
+                      {{ formatCurrency(Math.abs(transaction.amount)) }}
+                    </template>
                   </td>
                 </tr>
               </tbody>
@@ -243,7 +249,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatNumber } from '@/utils/format'
 import { reportsAPI } from '@/services/api'
 import LineChart from '@/Components/Charts/LineChart.vue'
 import { pdfExport } from '@/utils/pdfExport'

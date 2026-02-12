@@ -240,45 +240,45 @@ class ReportController extends Controller
     public function generateWeatherReport(Request $request)
     {
         $request->validate([
-            'field_id' => 'required|exists:fields,id',
+            'farm_id' => 'required|exists:farms,id',
             'period_days' => 'integer|min:1|max:365',
             'report_type' => 'in:summary,analytics,alerts,recommendations',
         ]);
 
-        $fieldId = $request->field_id;
+        $farmId = $request->farm_id;
         $periodDays = $request->period_days ?? 30;
         $reportType = $request->report_type ?? 'summary';
 
-        $field = \App\Models\Field::findOrFail($fieldId);
+        $farm = \App\Models\Farm::findOrFail($farmId);
         $report = [];
 
         switch ($reportType) {
             case 'summary':
                 $report = [
-                    'field' => $field,
-                    'weather_stats' => $this->weatherService->getFieldWeatherStats($field, $periodDays),
-                    'latest_weather' => $field->latestWeather,
+                    'farm' => $farm,
+                    'weather_stats' => $this->weatherService->getFarmWeatherStats($farm, $periodDays),
+                    'latest_weather' => $farm->latestWeather,
                 ];
                 break;
 
             case 'analytics':
                 $report = [
-                    'rice_analytics' => $this->weatherService->getRiceWeatherAnalytics($field, $periodDays),
-                    'weather_stats' => $this->weatherService->getFieldWeatherStats($field, $periodDays),
+                    'rice_analytics' => $this->weatherService->getRiceWeatherAnalytics($farm, $periodDays),
+                    'weather_stats' => $this->weatherService->getFarmWeatherStats($farm, $periodDays),
                 ];
                 break;
 
             case 'alerts':
                 $report = [
-                    'current_alerts' => $this->weatherService->getWeatherAlerts($field),
-                    'field_info' => $field,
+                    'current_alerts' => $this->weatherService->getWeatherAlerts($farm),
+                    'farm_info' => $farm,
                 ];
                 break;
 
             case 'recommendations':
                 $report = [
-                    'recommendations' => $this->weatherService->getRiceFarmingRecommendations($field),
-                    'weather_analytics' => $this->weatherService->getRiceWeatherAnalytics($field, 7),
+                    'recommendations' => $this->weatherService->getRiceFarmingRecommendations($farm),
+                    'weather_analytics' => $this->weatherService->getRiceWeatherAnalytics($farm, 7),
                 ];
                 break;
         }
@@ -401,15 +401,12 @@ class ReportController extends Controller
             'low_stock_items' => $this->inventoryService->getLowStockItems($userId),
         ];
 
-        // Add weather data for each field
-        $weatherSummary = [];
-        foreach ($farm->fields as $field) {
-            $weatherSummary[$field->id] = [
-                'field_name' => $field->name,
-                'weather_stats' => $this->weatherService->getFieldWeatherStats($field, $periodDays),
-                'alerts' => $this->weatherService->getWeatherAlerts($field),
-            ];
-        }
+        // Add weather data for the farm
+        $weatherSummary = [
+            'farm_name' => $farm->name,
+            'weather_stats' => $this->weatherService->getFarmWeatherStats($farm, $periodDays),
+            'alerts' => $this->weatherService->getWeatherAlerts($farm),
+        ];
         $report['weather_summary'] = $weatherSummary;
 
         return response()->json([
@@ -555,12 +552,12 @@ class ReportController extends Controller
 
     private function getWeatherReportData($userId, $startDate)
     {
-        $fields = \App\Models\Field::where('user_id', $userId)->get();
+        $farms = \App\Models\Farm::where('user_id', $userId)->get();
         $weatherData = [];
 
-        foreach ($fields as $field) {
+        foreach ($farms as $farm) {
             $request = new Request([
-                'field_id' => $field->id,
+                'farm_id' => $farm->id,
                 'period_days' => now()->diffInDays($startDate),
                 'report_type' => 'summary',
             ]);
@@ -570,15 +567,15 @@ class ReportController extends Controller
 
             if (isset($data['report'])) {
                 $weatherData[] = [
-                    'field_name' => $field->name,
-                    'field_id' => $field->id,
+                    'farm_name' => $farm->name,
+                    'farm_id' => $farm->id,
                     'weather_report' => $data['report'],
                 ];
             }
         }
 
         return [
-            'fields_weather' => $weatherData,
+            'farms_weather' => $weatherData,
             'period_start' => $startDate,
             'period_end' => now(),
         ];
@@ -745,14 +742,14 @@ class ReportController extends Controller
             $riceOrderRevenue = $riceOrders->sum('total_amount');
         }
 
-        $totalExpenses = $expenses->sum('amount');
+        $totalExpenses = $expenses->where('payment_method', '!=', 'revenue_share')->sum('amount');
         $salesRevenue = $sales->sum('total_amount');
         $totalRevenue = $salesRevenue + $riceOrderRevenue;
         $netProfit = $totalRevenue - $totalExpenses;
         $profitMargin = $totalRevenue > 0 ? ($netProfit / $totalRevenue) * 100 : 0;
 
         // Expense breakdown by category
-        $expenseBreakdown = $expenses->groupBy('category')->map(function ($categoryExpenses, $category) use ($totalExpenses) {
+        $expenseBreakdown = $expenses->where('payment_method', '!=', 'revenue_share')->groupBy('category')->map(function ($categoryExpenses, $category) use ($totalExpenses) {
             $amount = $categoryExpenses->sum('amount');
             return [
                 'category' => ucfirst(str_replace('_', ' ', $category)),
@@ -801,6 +798,7 @@ class ReportController extends Controller
                 'category' => ucfirst(str_replace('_', ' ', $expense->category)),
                 'type' => 'expense',
                 'amount' => $expense->amount,
+                'payment_method' => $expense->payment_method,
             ]);
         }
         foreach ($sales->take(10) as $sale) {
@@ -979,16 +977,16 @@ class ReportController extends Controller
         $period = (int) ($request->get('period', 365));
         $days = min($period, 365); // Limit to 365 days for weather data
 
-        // Get user's fields
-        $fieldsQuery = \App\Models\Field::where('user_id', $user->id);
+        // Get user's farms
+        $farmsQuery = \App\Models\Farm::where('user_id', $user->id);
 
-        if ($request->has('field_id') && $request->field_id) {
-            $fieldsQuery->where('id', $request->field_id);
+        if ($request->has('farm_id') && $request->farm_id) {
+            $farmsQuery->where('id', $request->farm_id);
         }
 
-        $fields = $fieldsQuery->get();
+        $farms = $farmsQuery->get();
 
-        if ($fields->isEmpty()) {
+        if ($farms->isEmpty()) {
             return response()->json([
                 'data' => [
                     'weather_summary' => [
@@ -1010,11 +1008,14 @@ class ReportController extends Controller
             ]);
         }
 
-        // Get weather data from WeatherLog model
-        $weatherData = \App\Models\WeatherLog::whereIn('field_id', $fields->pluck('id'))
+        // Get weather data from WeatherLog model using farm_ids
+        $weatherData = \App\Models\WeatherLog::whereIn('farm_id', $farms->pluck('id'))
             ->where('recorded_at', '>=', now()->subDays($days))
             ->orderBy('recorded_at', 'desc')
             ->get();
+
+        // Get fields for analysis (e.g. GDD based on planting)
+        $fields = \App\Models\Field::whereIn('farm_id', $farms->pluck('id'))->get();
 
         // Calculate summary statistics
         $avgTemperature = $weatherData->avg('temperature') ?: 0;
@@ -1095,7 +1096,7 @@ class ReportController extends Controller
         // Calculate Season GDD independently of the requested report period
         // This ensures "This Season" is accurate even if looking at "Last 7 Days" or "Last Year" reports
         if ($analysisField) {
-            $seasonWeatherData = \App\Models\WeatherLog::where('field_id', $analysisField->id)
+            $seasonWeatherData = \App\Models\WeatherLog::where('farm_id', $analysisField->farm_id)
                 ->where('recorded_at', '>=', $seasonStartDate)
                 ->where('recorded_at', '<=', now())
                 ->get();
@@ -1258,8 +1259,8 @@ class ReportController extends Controller
 
         if ($analysisField) {
             // Get detailed analytics and recommendations
-            $analytics = $this->weatherService->getRiceWeatherAnalytics($analysisField, $days);
-            $recommendations = $this->weatherService->getRiceFarmingRecommendations($analysisField);
+            $analytics = $this->weatherService->getRiceWeatherAnalytics($analysisField->farm, $days, $analysisField);
+            $recommendations = $this->weatherService->getRiceFarmingRecommendations($analysisField->farm, $analysisField);
 
             // Map data to frontend structure
             if (isset($analytics['rice_analytics'])) {
@@ -1321,7 +1322,7 @@ class ReportController extends Controller
 
             // Determine dominant condition
             $conditionCounts = $dayRecords->groupBy('conditions')->map->count();
-            $dominantCondition = $conditionCounts->sortDesc()->keys()->first() ?: 'Unknown';
+            $dominantCondition = $conditionCounts->sortByDesc(fn($count) => $count)->keys()->first() ?: 'Unknown';
 
             return [
                 'date' => $date,

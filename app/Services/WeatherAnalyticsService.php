@@ -22,12 +22,12 @@ class WeatherAnalyticsService
     /**
      * Get historical weather comparison
      */
-    public function getHistoricalComparison(Field $field, int $periodDays = 30)
+    public function getHistoricalComparison(Farm $farm, int $periodDays = 30)
     {
         // Use DB aggregates for efficient querying
-        $currentStats = $this->getPeriodStats($field, now()->subDays($periodDays), now());
-        $previousStats = $this->getPeriodStats($field, now()->subDays($periodDays * 2), now()->subDays($periodDays));
-        $lastYearStats = $this->getPeriodStats($field, now()->subYear()->subDays($periodDays), now()->subYear());
+        $currentStats = $this->getPeriodStats($farm, now()->subDays($periodDays), now());
+        $previousStats = $this->getPeriodStats($farm, now()->subDays($periodDays * 2), now()->subDays($periodDays));
+        $lastYearStats = $this->getPeriodStats($farm, now()->subYear()->subDays($periodDays), now()->subYear());
 
         return [
             'current_period' => $currentStats,
@@ -43,7 +43,7 @@ class WeatherAnalyticsService
     /**
      * Get comparative analytics across farm fields
      */
-    public function getComparativeAnalytics(Farm $farm, int $focusFieldId, int $periodDays = 30)
+    public function getComparativeAnalytics(Farm $farm, ?int $focusFieldId = null, int $periodDays = 30)
     {
         $fields = $farm->fields;
         $analytics = [];
@@ -52,9 +52,9 @@ class WeatherAnalyticsService
         foreach ($fields as $field) {
             $fieldAnalytics = [
                 'field' => $field,
-                'weather_stats' => $this->weatherService->getFieldWeatherStats($field, $periodDays),
-                'rice_analytics' => $this->weatherService->getRiceWeatherAnalytics($field, $periodDays),
-                'suitability_score' => $this->calculateFieldSuitabilityScore($field, $periodDays),
+                'weather_stats' => $this->weatherService->getFarmWeatherStats($farm, $periodDays),
+                'rice_analytics' => $this->weatherService->getRiceWeatherAnalytics($farm, $periodDays),
+                'suitability_score' => $this->calculateFieldSuitabilityScore($farm, $periodDays),
             ];
 
             if ($field->id === $focusFieldId) {
@@ -113,16 +113,24 @@ class WeatherAnalyticsService
     /**
      * Analyze weather impact on crop performance
      */
-    public function analyzeWeatherImpact(Field $field, int $plantingId = null, string $analysisPeriod = 'planting_season')
+    public function analyzeWeatherImpact(Farm $farm, int $plantingId = null, string $analysisPeriod = 'planting_season')
     {
-        $planting = $plantingId ? Planting::find($plantingId) : $field->getCurrentRicePlanting();
+        $planting = $plantingId ? Planting::find($plantingId) : null;
+        if (!$planting) {
+            // Find active planting from any field on this farm
+            foreach ($farm->fields as $field) {
+                $planting = $field->getCurrentRicePlanting();
+                if ($planting)
+                    break;
+            }
+        }
 
         if (!$planting) {
             return ['error' => 'No planting data available for analysis'];
         }
 
         $analysisData = $this->getAnalysisPeriodData($planting, $analysisPeriod);
-        $weatherData = $this->getWeatherDataForPeriod($field, $analysisData['start_date'], $analysisData['end_date']);
+        $weatherData = $this->getWeatherDataForPeriod($farm, $analysisData['start_date'], $analysisData['end_date']);
 
         $impact = [
             'planting_info' => [
@@ -145,10 +153,10 @@ class WeatherAnalyticsService
     /**
      * Predict yield based on weather patterns
      */
-    public function predictYield(Field $field, int $plantingId, string $predictionModel = 'simple')
+    public function predictYield(Farm $farm, int $plantingId, string $predictionModel = 'simple')
     {
         $planting = Planting::findOrFail($plantingId);
-        $weatherData = $this->getWeatherDataForPeriod($field, $planting->planting_date, now());
+        $weatherData = $this->getWeatherDataForPeriod($farm, $planting->planting_date, now());
 
         switch ($predictionModel) {
             case 'simple':
@@ -188,17 +196,17 @@ class WeatherAnalyticsService
     /**
      * Assess weather risks
      */
-    public function assessWeatherRisks(Field $field, array $riskTypes, string $assessmentPeriod = 'current')
+    public function assessWeatherRisks(Farm $farm, array $riskTypes, string $assessmentPeriod = 'current')
     {
         $risks = [];
-        $weatherData = $this->getWeatherDataForAssessmentPeriod($field, $assessmentPeriod);
+        $weatherData = $this->getWeatherDataForAssessmentPeriod($farm, $assessmentPeriod);
 
         foreach ($riskTypes as $riskType) {
-            $risks[$riskType] = $this->assessSpecificRisk($riskType, $weatherData, $field);
+            $risks[$riskType] = $this->assessSpecificRisk($riskType, $weatherData, $farm);
         }
 
         return [
-            'field' => $field,
+            'farm' => $farm,
             'assessment_period' => $assessmentPeriod,
             'individual_risks' => $risks,
             'overall_risk_score' => $this->calculateOverallRiskScore($risks),
@@ -210,17 +218,22 @@ class WeatherAnalyticsService
     /**
      * Get irrigation recommendations
      */
-    public function getIrrigationRecommendations(Field $field, float $soilMoistureLevel = null, string $cropStage = null)
+    public function getIrrigationRecommendations(Farm $farm, float $soilMoistureLevel = null, string $cropStage = null)
     {
-        $currentWeather = $field->latestWeather;
-        $forecast = $this->getWeatherForecast($field, 7); // 7-day forecast
-        $planting = $field->getCurrentRicePlanting();
+        $currentWeather = $farm->latestWeather;
+        $forecast = $this->getWeatherForecast($farm, 7); // 7-day forecast
+        $planting = null;
+        foreach ($farm->fields as $field) {
+            $planting = $field->getCurrentRicePlanting();
+            if ($planting)
+                break;
+        }
 
         $recommendations = [
             'immediate_action' => $this->getImmediateIrrigationAction($currentWeather, $soilMoistureLevel, $cropStage),
             'weekly_schedule' => $this->generateWeeklyIrrigationSchedule($forecast, $soilMoistureLevel, $cropStage),
-            'water_requirements' => $this->calculateWaterRequirements($field, $planting, $cropStage),
-            'efficiency_tips' => $this->getIrrigationEfficiencyTips($field, $currentWeather),
+            'water_requirements' => $this->calculateWaterRequirements($farm, $planting, $cropStage),
+            'efficiency_tips' => $this->getIrrigationEfficiencyTips($farm, $currentWeather),
             'risk_warnings' => $this->getIrrigationRiskWarnings($forecast, $soilMoistureLevel),
         ];
 
@@ -230,10 +243,10 @@ class WeatherAnalyticsService
     /**
      * Assess pest and disease risk based on weather
      */
-    public function assessPestDiseaseRisk(Field $field, array $pestTypes, array $diseaseTypes)
+    public function assessPestDiseaseRisk(Farm $farm, array $pestTypes, array $diseaseTypes)
     {
-        $weatherData = $this->getWeatherDataForPeriod($field, now()->subDays(14), now());
-        $forecast = $this->getWeatherForecast($field, 7);
+        $weatherData = $this->getWeatherDataForPeriod($farm, now()->subDays(14), now());
+        $forecast = $this->getWeatherForecast($farm, 7);
 
         $pestRisks = [];
         foreach ($pestTypes as $pest) {
@@ -246,7 +259,7 @@ class WeatherAnalyticsService
         }
 
         return [
-            'field' => $field,
+            'farm' => $farm,
             'pest_risks' => $pestRisks,
             'disease_risks' => $diseaseRisks,
             'overall_risk_level' => $this->calculateOverallPestDiseaseRisk($pestRisks, $diseaseRisks),
@@ -280,10 +293,10 @@ class WeatherAnalyticsService
     /**
      * Get data quality metrics
      */
-    public function getDataQualityMetrics(Field $field, int $periodDays = 30)
+    public function getDataQualityMetrics(Farm $farm, int $periodDays = 30)
     {
         $startDate = now()->subDays($periodDays);
-        $weatherLogs = WeatherLog::where('field_id', $field->id)
+        $weatherLogs = WeatherLog::where('farm_id', $farm->id)
             ->where('recorded_at', '>=', $startDate)
             ->orderBy('recorded_at')
             ->get();
@@ -305,9 +318,9 @@ class WeatherAnalyticsService
 
     // Private helper methods
 
-    private function getWeatherDataForPeriod(Field $field, Carbon $startDate, Carbon $endDate)
+    private function getWeatherDataForPeriod(Farm $farm, $startDate, $endDate)
     {
-        return WeatherLog::where('field_id', $field->id)
+        return WeatherLog::where('farm_id', $farm->id)
             ->whereBetween('recorded_at', [$startDate, $endDate])
             ->orderBy('recorded_at')
             ->get();
@@ -358,9 +371,9 @@ class WeatherAnalyticsService
     /**
      * Efficiently get calculated stats directly from DB
      */
-    public function getPeriodStats(Field $field, Carbon $startDate, Carbon $endDate)
+    public function getPeriodStats(Farm $farm, Carbon $startDate, Carbon $endDate)
     {
-        $query = WeatherLog::where('field_id', $field->id)
+        $query = WeatherLog::where('farm_id', $farm->id)
             ->whereBetween('recorded_at', [$startDate, $endDate]);
 
         // Aggregate stats
@@ -378,7 +391,7 @@ class WeatherAnalyticsService
         }
 
         // Mode of conditions (separate efficient query)
-        $mostCommon = WeatherLog::where('field_id', $field->id)
+        $mostCommon = WeatherLog::where('farm_id', $farm->id)
             ->whereBetween('recorded_at', [$startDate, $endDate])
             ->select('conditions', DB::raw('count(*) as count'))
             ->groupBy('conditions')
@@ -396,9 +409,9 @@ class WeatherAnalyticsService
         ];
     }
 
-    private function calculateFieldSuitabilityScore(Field $field, int $periodDays)
+    private function calculateFieldSuitabilityScore(Farm $farm, int $periodDays)
     {
-        $riceAnalytics = $this->weatherService->getRiceWeatherAnalytics($field, $periodDays);
+        $riceAnalytics = $this->weatherService->getRiceWeatherAnalytics($farm, $periodDays);
         return $riceAnalytics['rice_analytics']['weather_suitability_score'] ?? 0;
     }
 
@@ -473,7 +486,7 @@ class WeatherAnalyticsService
         $fieldTrends = [];
 
         foreach ($fields as $field) {
-            $weatherLogs = WeatherLog::where('field_id', $field->id)
+            $weatherLogs = WeatherLog::where('farm_id', $field->farm_id)
                 ->whereBetween('recorded_at', [$startDate, $endDate])
                 ->orderBy('recorded_at')
                 ->get();
@@ -526,7 +539,7 @@ class WeatherAnalyticsService
         $fieldTrends = [];
 
         foreach ($fields as $field) {
-            $weatherLogs = WeatherLog::where('field_id', $field->id)
+            $weatherLogs = WeatherLog::where('farm_id', $field->farm_id)
                 ->whereBetween('recorded_at', [$startDate, $endDate])
                 ->orderBy('recorded_at')
                 ->get();
@@ -578,7 +591,7 @@ class WeatherAnalyticsService
         $fieldConditions = [];
 
         foreach ($fields as $field) {
-            $weatherLogs = WeatherLog::where('field_id', $field->id)
+            $weatherLogs = WeatherLog::where('farm_id', $field->farm_id)
                 ->whereBetween('recorded_at', [$startDate, $endDate])
                 ->get();
 
@@ -627,7 +640,7 @@ class WeatherAnalyticsService
         $fieldTrends = [];
 
         foreach ($fields as $field) {
-            $weatherLogs = WeatherLog::where('field_id', $field->id)
+            $weatherLogs = WeatherLog::where('farm_id', $field->farm_id)
                 ->whereBetween('recorded_at', [$startDate, $endDate])
                 ->orderBy('recorded_at')
                 ->get();
@@ -758,7 +771,7 @@ class WeatherAnalyticsService
         $monthlyData = [];
 
         foreach ($fields as $field) {
-            $weatherLogs = WeatherLog::where('field_id', $field->id)
+            $weatherLogs = WeatherLog::where('farm_id', $field->farm_id)
                 ->whereBetween('recorded_at', [$startDate, $endDate])
                 ->get();
 
@@ -1499,7 +1512,7 @@ class WeatherAnalyticsService
             $fieldPatterns = [];
 
             foreach ($years as $year) {
-                $yearLogs = WeatherLog::where('field_id', $field->id)
+                $yearLogs = WeatherLog::where('farm_id', $field->farm_id)
                     ->whereYear('recorded_at', $year)
                     ->get();
 
@@ -2019,7 +2032,7 @@ class WeatherAnalyticsService
     {
         // Integrate with WeatherForecastService
         $forecastService = app(WeatherForecastService::class);
-        $forecast = $forecastService->getFieldForecast($field, $days);
+        $forecast = $forecastService->getForecast($field->farm, $days);
 
         if (isset($forecast['error'])) {
             return collect();
@@ -2691,7 +2704,7 @@ class WeatherAnalyticsService
                 $yearStart = Carbon::create($year, 1, 1);
                 $yearEnd = Carbon::create($year, 12, 31);
 
-                $yearLogs = WeatherLog::where('field_id', $field->id)
+                $yearLogs = WeatherLog::where('farm_id', $field->farm_id)
                     ->whereYear('recorded_at', $year)
                     ->get();
 

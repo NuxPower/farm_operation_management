@@ -17,22 +17,22 @@ class MonitorWeatherAlerts extends Command
     {
         $this->info('Starting weather alert monitoring...');
 
-        $fields = Field::whereNotNull('location')->get();
+        $farms = \App\Models\Farm::whereNotNull('weather_coordinates')->get();
         $sentCount = 0;
 
-        foreach ($fields as $field) {
-            /** @var Field $field */
+        foreach ($farms as $farm) {
+            /** @var \App\Models\Farm $farm */
             try {
                 // Get Owner User
-                $user = $field->farm->user ?? null;
+                $user = $farm->user;
                 if (!$user)
                     continue;
 
                 // Check for alerts
-                $alerts = $service->getWeatherAlerts($field);
+                $alerts = $service->getWeatherAlerts($farm);
 
                 foreach ($alerts as $alert) {
-                    $cacheKey = "weather_alert_{$field->id}_{$alert['type']}_{$alert['severity']}";
+                    $cacheKey = "weather_alert_{$farm->id}_{$alert['type']}_{$alert['severity']}";
 
                     // Rate Limit: 24h
                     if (Cache::has($cacheKey)) {
@@ -41,7 +41,7 @@ class MonitorWeatherAlerts extends Command
 
                     // 1. Dispatch Push Notification (Websockets)
                     \App\Events\WeatherAlert::dispatch(
-                        $field->id,
+                        $farm->id,
                         $user->id,
                         $alert['type'],
                         $alert['severity'],
@@ -63,7 +63,7 @@ class MonitorWeatherAlerts extends Command
                 }
 
             } catch (\Exception $e) {
-                $this->error("Error monitoring field {$field->id}: " . $e->getMessage());
+                $this->error("Error monitoring farm {$farm->id}: " . $e->getMessage());
             }
         }
 

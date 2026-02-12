@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Weather;
 
 use App\Http\Controllers\Controller;
+use App\Models\Farm;
 use App\Models\Field;
 use App\Models\WeatherLog;
 use App\Services\WeatherService;
@@ -24,39 +25,31 @@ class WeatherController extends Controller
     }
 
     /**
-     * Get current weather for a field
+     * Get current weather for a farm
      */
-    public function getCurrentWeather(Request $request, Field $field): JsonResponse
+    public function getCurrentWeather(Request $request, Farm $farm): JsonResponse
     {
-        // Check if user can access this field
+        // Check if user can access this farm
         $user = $request->user();
-        if ($field->user_id !== $user->id) {
+        if ($farm->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Get coordinates from location or fallback to field_coordinates
-        $lat = null;
-        $lon = null;
-
-        if (isset($field->location['lat']) && isset($field->location['lon'])) {
-            $lat = (float) $field->location['lat'];
-            $lon = (float) $field->location['lon'];
-        } elseif (isset($field->field_coordinates['lat']) && isset($field->field_coordinates['lon'])) {
-            // Fallback to field_coordinates if location doesn't have coordinates
-            $lat = (float) $field->field_coordinates['lat'];
-            $lon = (float) $field->field_coordinates['lon'];
-        }
+        // Get coordinates from farm weather coordinates
+        $coords = $farm->weather_coordinates;
+        $lat = $coords['lat'] ?? null;
+        $lon = $coords['lon'] ?? null;
 
         if ($lat === null || $lon === null) {
             return response()->json([
-                'message' => 'Field location coordinates are required'
+                'message' => 'Farm location coordinates are required'
             ], 400);
         }
 
         // First, check if we have a fresh weather log (within last 30 minutes)
         // This acts as a first-level cache using the database
         $recencyThreshold = now()->subMinutes(30);
-        $recentLog = $field->weatherLogs()
+        $recentLog = $farm->weatherLogs()
             ->where('recorded_at', '>=', $recencyThreshold)
             ->orderBy('recorded_at', 'desc')
             ->first();
@@ -66,7 +59,7 @@ class WeatherController extends Controller
             $weatherLog = $recentLog;
 
             // Set relation for subsequent usage
-            $field->setRelation('latestWeather', $weatherLog);
+            $farm->setRelation('latestWeather', $weatherLog);
         } else {
             // Fetch fresh data from service (which has its own cache)
             try {
@@ -88,7 +81,7 @@ class WeatherController extends Controller
             }
 
             // Save weather data to database
-            $weatherLog = $this->weatherService->updateFieldWeather($field, $weatherData);
+            $weatherLog = $this->weatherService->updateFarmWeather($farm, $weatherData);
 
             if (!$weatherLog) {
                 return response()->json([
@@ -98,39 +91,31 @@ class WeatherController extends Controller
         }
 
         return response()->json([
-            'field' => $field,
-            'weather' => $this->weatherService->formatWeatherLog($field->latestWeather ?? $weatherLog),
-            'alerts' => $this->weatherService->getWeatherAlerts($field)
+            'farm' => $farm,
+            'weather' => $this->weatherService->formatWeatherLog($farm->latestWeather ?? $weatherLog),
+            'alerts' => $this->weatherService->getWeatherAlerts($farm)
         ]);
     }
 
     /**
-     * Get weather forecast for a field
+     * Get weather forecast for a farm
      */
-    public function getForecast(Request $request, Field $field): JsonResponse
+    public function getForecast(Request $request, Farm $farm): JsonResponse
     {
-        // Check if user can access this field
+        // Check if user can access this farm
         $user = $request->user();
-        if ($field->user_id !== $user->id) {
+        if ($farm->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Get coordinates from location or fallback to field_coordinates
-        $lat = null;
-        $lon = null;
-
-        if (isset($field->location['lat']) && isset($field->location['lon'])) {
-            $lat = (float) $field->location['lat'];
-            $lon = (float) $field->location['lon'];
-        } elseif (isset($field->field_coordinates['lat']) && isset($field->field_coordinates['lon'])) {
-            // Fallback to field_coordinates if location doesn't have coordinates
-            $lat = (float) $field->field_coordinates['lat'];
-            $lon = (float) $field->field_coordinates['lon'];
-        }
+        // Get coordinates from farm
+        $coords = $farm->weather_coordinates;
+        $lat = $coords['lat'] ?? null;
+        $lon = $coords['lon'] ?? null;
 
         if ($lat === null || $lon === null) {
             return response()->json([
-                'message' => 'Field location coordinates are required'
+                'message' => 'Farm location coordinates are required'
             ], 400);
         }
 
@@ -173,19 +158,19 @@ class WeatherController extends Controller
         }
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'forecast' => $dailyForecasts
         ]);
     }
 
     /**
-     * Get weather history for a field
+     * Get weather history for a farm
      */
-    public function getHistory(Request $request, Field $field): JsonResponse
+    public function getHistory(Request $request, Farm $farm): JsonResponse
     {
-        // Check if user can access this field
+        // Check if user can access this farm
         $user = $request->user();
-        if ($field->user_id !== $user->id) {
+        if ($farm->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -205,51 +190,51 @@ class WeatherController extends Controller
         $days = (int) $request->get('days', 30);
         $perPage = (int) $request->get('per_page', 5000);
 
-        $weatherLogs = WeatherLog::where('field_id', $field->id)
+        $weatherLogs = WeatherLog::where('farm_id', $farm->id)
             ->where('recorded_at', '>=', now()->subDays($days))
             ->orderBy('recorded_at', 'desc')
             ->paginate($perPage);
 
-        $stats = $this->weatherService->getFieldWeatherStats($field, $days);
+        $stats = $this->weatherService->getFarmWeatherStats($farm, $days);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'weather_logs' => $weatherLogs,
             'stats' => $stats
         ]);
     }
 
     /**
-     * Get weather alerts for a field
+     * Get weather alerts for a farm
      */
-    public function getAlerts(Request $request, Field $field): JsonResponse
+    public function getAlerts(Request $request, Farm $farm): JsonResponse
     {
-        // Check if user can access this field
+        // Check if user can access this farm
         $user = $request->user();
-        if ($field->user_id !== $user->id) {
+        if ($farm->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $alerts = $this->weatherService->getWeatherAlerts($field);
+        $alerts = $this->weatherService->getWeatherAlerts($farm);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'alerts' => $alerts
         ]);
     }
 
     /**
-     * Update weather data for a field
+     * Update weather data for a farm
      */
-    public function updateWeather(Request $request, Field $field): JsonResponse
+    public function updateWeather(Request $request, Farm $farm): JsonResponse
     {
-        // Check if user can access this field
+        // Check if user can access this farm
         $user = $request->user();
-        if ($field->user_id !== $user->id) {
+        if ($farm->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $weatherLog = $this->weatherService->updateFieldWeather($field);
+        $weatherLog = $this->weatherService->updateFarmWeather($farm);
 
         if (!$weatherLog) {
             return response()->json([
@@ -259,30 +244,30 @@ class WeatherController extends Controller
 
         return response()->json([
             'message' => 'Weather data updated successfully',
-            'field' => $field,
-            'latest_weather' => $this->weatherService->formatWeatherLog($field->latestWeather ?? $weatherLog),
-            'alerts' => $this->weatherService->getWeatherAlerts($field)
+            'farm' => $farm,
+            'latest_weather' => $this->weatherService->formatWeatherLog($farm->latestWeather ?? $weatherLog),
+            'alerts' => $this->weatherService->getWeatherAlerts($farm)
         ]);
     }
 
     /**
-     * Update weather data for all user's fields
+     * Update weather data for all user's farms
      */
     public function updateAllWeather(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $fields = Field::where('user_id', $user->id)->get();
+        $farms = Farm::where('user_id', $user->id)->get();
         $updated = 0;
 
-        foreach ($fields as $field) {
-            if ($this->weatherService->updateFieldWeather($field)) {
+        foreach ($farms as $farm) {
+            if ($this->weatherService->updateFarmWeather($farm)) {
                 $updated++;
             }
         }
 
         return response()->json([
-            'message' => "Weather data updated for {$updated} fields",
+            'message' => "Weather data updated for {$updated} farms",
             'updated_count' => $updated
         ]);
     }
@@ -294,28 +279,29 @@ class WeatherController extends Controller
     {
         $user = $request->user();
 
-        $fields = Field::where('user_id', $user->id)
-            ->with('latestWeather')
+        $farms = Farm::where('user_id', $user->id)
+            ->with(['latestWeather', 'fields'])
             ->get();
 
         $dashboardData = [
-            'total_fields' => $fields->count(),
-            'fields_with_weather' => $fields->filter(fn($field) => $field->latestWeather)->count(),
+            'total_farms' => $farms->count(),
+            'total_fields' => $farms->sum(fn($farm) => $farm->fields->count()),
+            'farms_with_weather' => $farms->filter(fn($farm) => $farm->latestWeather)->count(),
             'weather_alerts' => [],
-            'field_weather' => []
+            'farm_weather' => []
         ];
 
-        foreach ($fields as $field) {
-            if ($field->latestWeather) {
-                $alerts = $this->weatherService->getWeatherAlerts($field);
+        foreach ($farms as $farm) {
+            if ($farm->latestWeather) {
+                $alerts = $this->weatherService->getWeatherAlerts($farm);
                 $dashboardData['weather_alerts'] = array_merge(
                     $dashboardData['weather_alerts'],
-                    array_map(fn($alert) => array_merge($alert, ['field' => $field->name ?? "Field {$field->id}"]), $alerts)
+                    array_map(fn($alert) => array_merge($alert, ['farm' => $farm->name ?? "Farm {$farm->id}"]), $alerts)
                 );
 
-                $dashboardData['field_weather'][] = [
-                    'field' => $field,
-                    'weather' => $this->weatherService->formatWeatherLog($field->latestWeather),
+                $dashboardData['farm_weather'][] = [
+                    'farm' => $farm,
+                    'weather' => $this->weatherService->formatWeatherLog($farm->latestWeather),
                     'alerts_count' => count($alerts)
                 ];
             }
@@ -325,13 +311,13 @@ class WeatherController extends Controller
     }
 
     /**
-     * Get rice-specific weather analytics for a field
+     * Get rice-specific weather analytics for a farm
      */
-    public function getRiceAnalytics(Request $request, Field $field): JsonResponse
+    public function getRiceAnalytics(Request $request, Farm $farm): JsonResponse
     {
-        // Check if user can access this field
+        // Check if user can access this farm
         $user = $request->user();
-        if ($field->user_id !== $user->id) {
+        if ($farm->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -349,11 +335,11 @@ class WeatherController extends Controller
         $days = $request->get('days', 30);
 
         try {
-            $analytics = $this->weatherService->getRiceWeatherAnalytics($field, $days);
-            $recommendations = $this->weatherService->getRiceFarmingRecommendations($field);
+            $analytics = $this->weatherService->getRiceWeatherAnalytics($farm, $days);
+            $recommendations = $this->weatherService->getRiceFarmingRecommendations($farm);
 
             return response()->json([
-                'field' => $field,
+                'farm' => $farm,
                 'analytics' => $analytics,
                 'recommendations' => $recommendations,
                 'period_days' => $days
@@ -374,7 +360,7 @@ class WeatherController extends Controller
         $user = $request->user();
 
         $fields = Field::where('user_id', $user->id)
-            ->with(['latestWeather', 'plantings.riceVariety'])
+            ->with(['farm.latestWeather', 'plantings.riceVariety'])
             ->get();
 
         $dashboardData = [
@@ -400,8 +386,10 @@ class WeatherController extends Controller
                 $dashboardData['active_plantings']++;
             }
 
-            if ($field->latestWeather) {
-                $alerts = $this->weatherService->getWeatherAlerts($field);
+            // Access weather via farm
+            $farm = $field->farm;
+            if ($farm && $farm->latestWeather) {
+                $alerts = $this->weatherService->getWeatherAlerts($farm);
                 $riceAlerts = array_filter($alerts, fn($alert) => isset($alert['rice_specific']) && $alert['rice_specific']);
 
                 $dashboardData['weather_alerts'] = array_merge(
@@ -409,10 +397,10 @@ class WeatherController extends Controller
                     array_map(fn($alert) => array_merge($alert, ['field' => $field->name ?? "Field {$field->id}"]), $riceAlerts)
                 );
 
-                // Get rice analytics for the field
+                // Get rice analytics for the field (using farm weather)
                 if ($isRiceField) {
                     try {
-                        $analytics = $this->weatherService->getRiceWeatherAnalytics($field, 7);
+                        $analytics = $this->weatherService->getRiceWeatherAnalytics($farm, 7);
                         if (isset($analytics['rice_analytics'])) {
                             $riceAnalytics = $analytics['rice_analytics'];
 

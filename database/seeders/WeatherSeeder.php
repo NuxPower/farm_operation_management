@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Field;
+use App\Models\Farm;
 use App\Models\WeatherLog;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -17,10 +17,10 @@ class WeatherSeeder extends Seeder
      */
     public function run(): void
     {
-        $fields = Field::where('name', 'Block 1')->get();
+        $farms = Farm::whereNotNull('farm_coordinates')->get();
 
-        if ($fields->isEmpty()) {
-            echo "No fields found. Skipping weather seeding.\n";
+        if ($farms->isEmpty()) {
+            echo "No farms with coordinates found. Skipping weather seeding.\n";
             return;
         }
 
@@ -30,11 +30,12 @@ class WeatherSeeder extends Seeder
         $startDateStr = $startDate->format('Y-m-d');
         $endDateStr = $endDate->format('Y-m-d');
 
-        foreach ($fields as $field) {
-            $lat = $field->location['lat'] ?? 8.0276;
-            $lon = $field->location['lon'] ?? 125.1885;
+        foreach ($farms as $farm) {
+            $coordinates = $farm->farm_coordinates;
+            $lat = $coordinates['lat'] ?? 8.0276;
+            $lon = $coordinates['lon'] ?? $coordinates['lng'] ?? 125.1885;
 
-            echo "Fetching weather data for field '{$field->name}' at ({$lat}, {$lon}) from {$startDateStr} to {$endDateStr}...\n";
+            echo "Fetching weather data for farm '{$farm->farm_name}' at ({$lat}, {$lon}) from {$startDateStr} to {$endDateStr}...\n";
 
             try {
                 $response = Http::get("https://archive-api.open-meteo.com/v1/archive", [
@@ -70,7 +71,7 @@ class WeatherSeeder extends Seeder
 
                     WeatherLog::updateOrCreate(
                         [
-                            'field_id' => $field->id,
+                            'farm_id' => $farm->id,
                             'recorded_at' => $recordedAt,
                         ],
                         [
@@ -84,10 +85,10 @@ class WeatherSeeder extends Seeder
                     $count++;
                 }
 
-                echo "Seeded {$count} weather logs for field '{$field->name}'.\n";
+                echo "Seeded {$count} weather logs for farm '{$farm->farm_name}'.\n";
 
             } catch (\Exception $e) {
-                echo "Error seeding weather for field '{$field->name}': " . $e->getMessage() . "\n";
+                echo "Error seeding weather for farm '{$farm->farm_name}': " . $e->getMessage() . "\n";
                 Log::error("WeatherSeeder Error: " . $e->getMessage());
             }
         }

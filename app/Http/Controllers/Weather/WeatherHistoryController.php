@@ -17,22 +17,24 @@ class WeatherHistoryController extends Controller
     {
         $user = $request->user();
 
-        $query = WeatherLog::where('field_id', $fieldId)
-            ->whereHas('field', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
+        $field = \App\Models\Field::findOrFail($fieldId);
+        if ($field->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = WeatherLog::where('farm_id', $field->farm_id);
 
         // Apply date filters
         if ($request->has('date_from')) {
-            $query->where('date', '>=', $request->date_from);
+            $query->where('record_date', '>=', $request->date_from);
         }
 
         if ($request->has('date_to')) {
-            $query->where('date', '<=', $request->date_to);
+            $query->where('record_date', '<=', $request->date_to);
         }
 
-        $weatherLogs = $query->with(['field'])
-            ->orderBy('date', 'desc')
+        $weatherLogs = $query->with('farm')
+            ->orderBy('record_date', 'desc')
             ->get();
 
         return response()->json([
@@ -48,18 +50,20 @@ class WeatherHistoryController extends Controller
     {
         $user = $request->user();
 
-        $query = WeatherLog::where('field_id', $fieldId)
-            ->whereHas('field', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
+        $field = \App\Models\Field::findOrFail($fieldId);
+        if ($field->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = WeatherLog::where('farm_id', $field->farm_id);
 
         // Apply date filters
         if ($request->has('date_from')) {
-            $query->where('date', '>=', $request->date_from);
+            $query->where('record_date', '>=', $request->date_from);
         }
 
         if ($request->has('date_to')) {
-            $query->where('date', '<=', $request->date_to);
+            $query->where('record_date', '<=', $request->date_to);
         }
 
         $logs = $query->get();
@@ -75,8 +79,8 @@ class WeatherHistoryController extends Controller
         $statistics = [
             'total_records' => $logs->count(),
             'date_range' => [
-                'from' => $logs->min('date'),
-                'to' => $logs->max('date')
+                'from' => $logs->min('record_date'),
+                'to' => $logs->max('record_date')
             ],
             'temperature' => [
                 'average' => round($logs->avg('temperature'), 2),
@@ -117,18 +121,20 @@ class WeatherHistoryController extends Controller
     {
         $user = $request->user();
 
-        $query = WeatherLog::where('field_id', $fieldId)
-            ->whereHas('field', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
+        $field = \App\Models\Field::findOrFail($fieldId);
+        if ($field->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = WeatherLog::where('farm_id', $field->farm_id);
 
         // Apply date filters
         if ($request->has('date_from')) {
-            $query->where('date', '>=', $request->date_from);
+            $query->where('record_date', '>=', $request->date_from);
         }
 
         if ($request->has('date_to')) {
-            $query->where('date', '<=', $request->date_to);
+            $query->where('record_date', '<=', $request->date_to);
         }
 
         $groupBy = $request->get('group_by', 'daily'); // daily, weekly, monthly
@@ -136,45 +142,45 @@ class WeatherHistoryController extends Controller
         switch ($groupBy) {
             case 'weekly':
                 $logs = $query->selectRaw('
-                    EXTRACT(YEAR FROM date) as year,
-                    EXTRACT(WEEK FROM date) as week,
+                    EXTRACT(YEAR FROM record_date) as year,
+                    EXTRACT(WEEK FROM record_date) as week,
                     AVG(temperature) as avg_temperature,
                     AVG(humidity) as avg_humidity,
                     SUM(rainfall) as total_rainfall,
                     AVG(wind_speed) as avg_wind_speed,
                     COUNT(*) as record_count
                 ')
-                    ->groupByRaw('EXTRACT(YEAR FROM date), EXTRACT(WEEK FROM date)')
-                    ->orderByRaw('EXTRACT(YEAR FROM date) asc, EXTRACT(WEEK FROM date) asc')
+                    ->groupByRaw('EXTRACT(YEAR FROM record_date), EXTRACT(WEEK FROM record_date)')
+                    ->orderByRaw('EXTRACT(YEAR FROM record_date) asc, EXTRACT(WEEK FROM record_date) asc')
                     ->get();
                 break;
 
             case 'monthly':
                 $logs = $query->selectRaw('
-                    EXTRACT(YEAR FROM date) as year,
-                    EXTRACT(MONTH FROM date) as month,
+                    EXTRACT(YEAR FROM record_date) as year,
+                    EXTRACT(MONTH FROM record_date) as month,
                     AVG(temperature) as avg_temperature,
                     AVG(humidity) as avg_humidity,
                     SUM(rainfall) as total_rainfall,
                     AVG(wind_speed) as avg_wind_speed,
                     COUNT(*) as record_count
                 ')
-                    ->groupByRaw('EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date)')
-                    ->orderByRaw('EXTRACT(YEAR FROM date) asc, EXTRACT(MONTH FROM date) asc')
+                    ->groupByRaw('EXTRACT(YEAR FROM record_date), EXTRACT(MONTH FROM record_date)')
+                    ->orderByRaw('EXTRACT(YEAR FROM record_date) asc, EXTRACT(MONTH FROM record_date) asc')
                     ->get();
                 break;
 
             default: // daily
                 $logs = $query->selectRaw('
-                    date,
+                    record_date,
                     AVG(temperature) as avg_temperature,
                     AVG(humidity) as avg_humidity,
                     SUM(rainfall) as total_rainfall,
                     AVG(wind_speed) as avg_wind_speed,
                     COUNT(*) as record_count
                 ')
-                    ->groupBy('date')
-                    ->orderBy('date', 'asc')
+                    ->groupBy('record_date')
+                    ->orderBy('record_date', 'asc')
                     ->get();
         }
 
@@ -192,18 +198,20 @@ class WeatherHistoryController extends Controller
     {
         $user = $request->user();
 
-        $query = WeatherLog::where('field_id', $fieldId)
-            ->whereHas('field', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
+        $field = \App\Models\Field::findOrFail($fieldId);
+        if ($field->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = WeatherLog::where('farm_id', $field->farm_id);
 
         // Apply date filters
         if ($request->has('date_from')) {
-            $query->where('date', '>=', $request->date_from);
+            $query->where('record_date', '>=', $request->date_from);
         }
 
         if ($request->has('date_to')) {
-            $query->where('date', '<=', $request->date_to);
+            $query->where('record_date', '<=', $request->date_to);
         }
 
         $alerts = [];
@@ -214,7 +222,7 @@ class WeatherHistoryController extends Controller
             $alerts[] = [
                 'type' => 'high_temperature',
                 'severity' => 'warning',
-                'date' => $log->date,
+                'date' => $log->record_date,
                 'value' => $log->temperature,
                 'message' => "High temperature: {$log->temperature}°C"
             ];
@@ -226,7 +234,7 @@ class WeatherHistoryController extends Controller
             $alerts[] = [
                 'type' => 'low_humidity',
                 'severity' => 'warning',
-                'date' => $log->date,
+                'date' => $log->record_date,
                 'value' => $log->humidity,
                 'message' => "Low humidity: {$log->humidity}%"
             ];
@@ -238,7 +246,7 @@ class WeatherHistoryController extends Controller
             $alerts[] = [
                 'type' => 'high_rainfall',
                 'severity' => 'warning',
-                'date' => $log->date,
+                'date' => $log->record_date,
                 'value' => $log->rainfall,
                 'message' => "High rainfall: {$log->rainfall}mm"
             ];
@@ -250,7 +258,7 @@ class WeatherHistoryController extends Controller
             $alerts[] = [
                 'type' => 'high_wind',
                 'severity' => 'warning',
-                'date' => $log->date,
+                'date' => $log->record_date,
                 'value' => $log->wind_speed,
                 'message' => "High wind speed: {$log->wind_speed} km/h"
             ];
@@ -292,11 +300,12 @@ class WeatherHistoryController extends Controller
         $comparison = [];
 
         foreach ($request->field_ids as $fieldId) {
-            $query = WeatherLog::where('field_id', $fieldId)
-                ->whereBetween('date', [$request->date_from, $request->date_to])
-                ->whereHas('field', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                });
+            $field = \App\Models\Field::find($fieldId);
+            if (!$field || $field->user_id !== $user->id)
+                continue;
+
+            $query = WeatherLog::where('farm_id', $field->farm_id)
+                ->whereBetween('record_date', [$request->date_from, $request->date_to]);
 
             $logs = $query->get();
 

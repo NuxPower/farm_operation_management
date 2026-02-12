@@ -23,6 +23,7 @@ class PestWarningRegressionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Cache::flush();
 
         // Create a farmer user
         $this->farmer = User::factory()->create([
@@ -34,6 +35,7 @@ class PestWarningRegressionTest extends TestCase
         $farm = \App\Models\Farm::factory()->create([
             'user_id' => $this->farmer->id,
             'name' => 'Test Farm',
+            'farm_coordinates' => ['lat' => 14.5, 'lon' => 121.0],
         ]);
 
         // Create field
@@ -71,6 +73,24 @@ class PestWarningRegressionTest extends TestCase
             'planting_method' => 'transplanting',
             'season' => 'dry',
         ]);
+
+        // Create PestLibrary and Rules for Rice Blast
+        $riceBlast = \App\Models\PestLibrary::create([
+            'name' => 'Rice Blast',
+            'slug' => 'rice-blast',
+            'scientific_name' => 'Magnaporthe oryzae',
+            'type' => 'disease',
+            'description' => 'Fungal disease affecting rice.',
+        ]);
+
+        \App\Models\PestAnalyticsRule::create([
+            'pest_library_id' => $riceBlast->id,
+            'metric' => 'humidity',
+            'condition' => '>',
+            'value_min' => 85,
+            'risk_level' => 'high',
+            'risk_message' => 'High humidity increases risk of Rice Blast',
+        ]);
     }
 
     /** @test */
@@ -99,7 +119,7 @@ class PestWarningRegressionTest extends TestCase
 
         // We also need to mock these as they might be called by other parts of the controller
         $mockWeatherService->shouldReceive('getWeatherAnalytics')->andReturn([]);
-        $mockWeatherService->shouldReceive('getFieldWeatherStats')->andReturn([]);
+        $mockWeatherService->shouldReceive('getWeatherAlerts')->andReturn([]);
 
         // Note: The controller calls $this->getWeatherAnalytics which calls WeatherLog model, 
         // not WeatherService directly for analytics. 
@@ -124,6 +144,10 @@ class PestWarningRegressionTest extends TestCase
                     }
                 }
             }
+        }
+
+        if (!$hasRisk) {
+            dump($data['pests']);
         }
 
         $this->assertTrue($hasRisk, "Rice Blast warning should be present initially.");

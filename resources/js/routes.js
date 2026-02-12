@@ -491,6 +491,7 @@ const routes = [
   },
   {
     path: '/reports/weather',
+    alias: '/weather/analytics',
     name: 'weather-reports',
     component: WeatherReports,
     meta: { requiresAuth: true, roles: ['farmer'] }

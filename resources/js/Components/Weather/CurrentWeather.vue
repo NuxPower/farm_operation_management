@@ -224,7 +224,7 @@ import { useWeatherStore } from '@/stores/weather';
 import { useFarmStore } from '@/stores/farm';
 
 const props = defineProps({
-  fieldId: {
+  farmId: {
     type: [String, Number],
     required: true
   },
@@ -277,8 +277,8 @@ const isFavorableForFarming = computed(() => {
 });
 
 const refreshWeather = async () => {
-  if (!props.fieldId) {
-    error.value = 'No field ID provided';
+  if (!props.farmId) {
+    error.value = 'No farm ID provided';
     return;
   }
   
@@ -288,8 +288,8 @@ const refreshWeather = async () => {
   try {
     // Use Promise.allSettled to prevent one failure from breaking everything
     const results = await Promise.allSettled([
-      weatherStore.fetchCurrentWeather(props.fieldId),
-      weatherStore.fetchWeatherAlerts(props.fieldId)
+      weatherStore.fetchCurrentWeather(props.farmId),
+      weatherStore.fetchWeatherAlerts(props.farmId)
     ]);
     
     // Check if any promises were rejected

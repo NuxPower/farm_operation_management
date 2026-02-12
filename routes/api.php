@@ -109,13 +109,22 @@ Route::middleware('auth:sanctum')->group(function () {
         // ColorfulClouds Weather API proxy (to avoid CORS)
         Route::get('/colorfulclouds', [\App\Http\Controllers\Weather\WeatherProxyController::class, 'getColorfulCloudsWeather']);
 
-        Route::prefix('fields/{field}')->group(function () {
+        Route::prefix('farms/{farm}')->group(function () {
             Route::get('/current', [WeatherController::class, 'getCurrentWeather']);
             Route::get('/forecast', [WeatherController::class, 'getForecast']);
             Route::get('/history', [WeatherController::class, 'getHistory']);
             Route::get('/alerts', [WeatherController::class, 'getAlerts']);
             Route::get('/rice-analytics', [WeatherController::class, 'getRiceAnalytics']);
             Route::post('/update', [WeatherController::class, 'updateWeather']);
+        });
+
+        // Farm Weather Analytics Routes
+        Route::prefix('analytics/farm/{farm}')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getAnalytics']);
+            Route::get('/trends', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getFarmWeatherTrends']);
+            Route::get('/recommendations', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getPlantingRecommendations']);
+            Route::get('/climate-impact', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getClimateChangeImpact']);
+            Route::get('/export', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'exportAnalyticsReport']);
         });
     });
 

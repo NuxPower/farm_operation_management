@@ -48,4 +48,29 @@ class Farm extends Model
     {
         return $this->hasMany(Field::class);
     }
+
+    public function weatherLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WeatherLog::class);
+    }
+
+    public function latestWeather(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(WeatherLog::class)->latestOfMany('recorded_at');
+    }
+
+    /**
+     * Get lat/lon from farm_coordinates for weather API calls.
+     */
+    public function getWeatherCoordinatesAttribute(): ?array
+    {
+        $coords = $this->farm_coordinates;
+        if (!$coords) {
+            return null;
+        }
+        return [
+            'lat' => $coords['lat'] ?? null,
+            'lon' => $coords['lon'] ?? $coords['lng'] ?? null,
+        ];
+    }
 }

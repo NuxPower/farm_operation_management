@@ -40,9 +40,10 @@ class ReportService
     {
         $farms = Farm::where('user_id', $userId)
             ->with([
+                'latestWeather',
                 'fields' => function ($query) {
                     $query->with([
-                        'latestWeather',
+                        // 'latestWeather', // Moved to Farm
                         'plantings' => function ($q) {
                             $q->where('crop_type', 'rice')
                                 ->whereIn('status', ['planted', 'growing'])
@@ -171,11 +172,10 @@ class ReportService
         ];
 
         // Weather alerts
+        // Weather alerts (Farm level)
         foreach ($farms as $farm) {
-            foreach ($farm->fields as $field) {
-                $weatherAlerts = $this->weatherService->getWeatherAlerts($field);
-                $alerts['weather_alerts'] += count($weatherAlerts);
-            }
+            $weatherAlerts = $this->weatherService->getWeatherAlerts($farm);
+            $alerts['weather_alerts'] += count($weatherAlerts);
         }
 
         // Inventory alerts (low stock)
@@ -487,19 +487,17 @@ class ReportService
         $farm = Farm::findOrFail($farmId);
         $weatherData = [];
 
-        foreach ($farm->fields as $field) {
-            $logs = WeatherLog::where('field_id', $field->id)
-                ->whereBetween('recorded_at', [$startDate, $endDate])
-                ->get();
+        $logs = WeatherLog::where('farm_id', $farm->id)
+            ->whereBetween('recorded_at', [$startDate, $endDate])
+            ->get();
 
-            if ($logs->isNotEmpty()) {
-                $weatherData[] = [
-                    'field_id' => $field->id,
-                    'avg_temperature' => $logs->avg('temperature'),
-                    'avg_humidity' => $logs->avg('humidity'),
-                    'total_readings' => $logs->count(),
-                ];
-            }
+        if ($logs->isNotEmpty()) {
+            $weatherData[] = [
+                'farm_id' => $farm->id,
+                'avg_temperature' => $logs->avg('temperature'),
+                'avg_humidity' => $logs->avg('humidity'),
+                'total_readings' => $logs->count(),
+            ];
         }
 
         return $weatherData;

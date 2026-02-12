@@ -21,18 +21,15 @@ class FieldController extends Controller
 
             $query = Field::where('user_id', $user->id);
 
-            // Eager load plantings with rice variety and latest weather using a constraint
+            // Eager load plantings with rice variety and farm weather
             $fields = $query->with([
                 'plantings.riceVariety',
-                'weatherLogs' => function ($query) {
-                    $query->orderBy('recorded_at', 'desc')->limit(1);
-                }
+                'farm.latestWeather'
             ])->get();
 
-            // Map weatherLogs to latestWeather and compute current_crop for each field
+            // Map farm's latestWeather to the field
             $fields->each(function ($field) {
-                $field->setRelation('latestWeather', $field->weatherLogs->first());
-                $field->unsetRelation('weatherLogs');
+                $field->setRelation('latestWeather', $field->farm->latestWeather ?? null);
 
                 // Get current active planting from eager loaded plantings
                 // Check for rice plantings (case-insensitive comparison)
@@ -163,9 +160,12 @@ class FieldController extends Controller
                 'notes' => $request->notes,
             ]);
 
+            $field->load(['plantings', 'farm.latestWeather']);
+            $field->setRelation('latestWeather', $field->farm->latestWeather ?? null);
+
             return response()->json([
                 'message' => 'Field created successfully',
-                'field' => $field->load(['plantings', 'latestWeather'])
+                'field' => $field
             ], 201);
         } catch (\Exception $e) {
             \Log::error('Error creating field', [
@@ -196,10 +196,13 @@ class FieldController extends Controller
             'plantings.harvests',
             'plantings.tasks',
             'plantings.expenses',
-            'weatherLogs' => function ($query) {
+            'farm.weatherLogs' => function ($query) {
                 $query->orderBy('recorded_at', 'desc')->limit(10);
             }
         ]);
+
+        // Map farm weather logs to field for frontend compatibility if needed
+        $field->setRelation('weatherLogs', $field->farm->weatherLogs ?? collect());
 
         return response()->json([
             'field' => $field
@@ -264,9 +267,12 @@ class FieldController extends Controller
             'notes'
         ]));
 
+        $field->load(['plantings', 'farm.latestWeather']);
+        $field->setRelation('latestWeather', $field->farm->latestWeather ?? null);
+
         return response()->json([
             'message' => 'Field updated successfully',
-            'field' => $field->load(['plantings', 'latestWeather'])
+            'field' => $field
         ]);
     }
 

@@ -225,7 +225,11 @@
                       </span>
                    </td>
                   <td class="px-6 py-4 text-sm text-gray-600">{{ expense.description || '—' }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">{{ formatCurrency(expense.amount) }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                    {{ expense.payment_method === 'revenue_share' 
+                      ? formatNumber(expense.amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' 
+                      : formatCurrency(expense.amount) }}
+                  </td>
                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ formatPaymentMethod(expense.payment_method) }}</td>
                 </tr>
               </tbody>
@@ -271,8 +275,14 @@ const tabs = computed(() => [
 ])
 
 // --- Analytics Helpers ---
-const calculateTotal = (items) => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-const calculateAverage = (items) => items.length ? calculateTotal(items) / items.length : 0
+const calculateTotal = (items) => items
+  .filter(item => item.payment_method !== 'revenue_share')
+  .reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+
+const calculateAverage = (items) => {
+  const cashItems = items.filter(item => item.payment_method !== 'revenue_share')
+  return cashItems.length ? calculateTotal(cashItems) / cashItems.length : 0
+}
 
 const calculateTopCategory = (items) => {
     if (!items.length) return null

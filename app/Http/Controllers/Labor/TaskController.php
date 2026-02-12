@@ -363,71 +363,13 @@ class TaskController extends Controller
             }
 
             // Override with task specific wage amount if available
-            if ($task->wage_amount > 0) {
-                // If the task has a specific wage amount, use that as the total wage for the task.
-                // However, if we have multiple laborers (group), how does this split? 
-                // The prompt implies "standard wage ... autofilled by the rate of the laborer"
-                // If it's a group, usually it's per head or total? 
-                // For now, let's assume if it's assigned to an individual, wage_amount is their wage.
-                // If it's a group and wage_amount is set... let's assume it's the rate PER person if the UI fills it from rate.
-                // Or is it total? "input box for standard wage ... autofilled by the rate of the laborer"
-                // "Laborer" singular.
-                // If it's a group assignment, the UI in Create.vue hides the individual laborer select.
-                // Let's stick to the simple case: if individual, use wage_amount.
-                // If group, use laborer's rate (as logic for group wage override wasn't explicitly requested/designed and might be complex).
-
-                // User said: "autofilled by the rate of laborer... final rate ... to be finalized in tasks create"
-                // "final rate" implies per person rate usually. 
-                // Let's assume wage_amount is the effective rate for the calculation.
-
+            if ($task->payment_type === Task::PAYMENT_TYPE_SHARE) {
+                $wageAmount = (float) ($task->revenue_share_percentage ?? 0);
+            } elseif ($task->wage_amount > 0) {
                 $wageAmount = (float) $task->wage_amount;
-
-                // Recalculate based on hours if it was a rate per day? 
-                // If the input is "Standard Wage", is it "Daily Rate" or "Flat Fee for this task"?
-                // "autofilled by the rate". Laborer rate is "hourly_rate" in DB (from inspection) OR "rate" (from Model inspection).
-                // Model has 'rate' and 'rate_type'. 
-                // If rate_type is per_day, wage_amount is likely the new per_day rate.
-                // If rate_type is per_task, wage_amount is the task fee.
-                // So we should substitute $rate with $task->wage_amount and re-run logic.
-
-                // However, simpler implementation:
-                // The code previously calculated $wageAmount based on rate * hours or fixed.
-                // If we view wage_amount as the "rate", we should re-calculate?
-                // OR is wage_amount the FINAL TOTAL amount?
-                // "input box for standard wage" -> implies rate.
-                // "produce share amount" -> implies percentage or total? Create.vue has "Harvester's Cut (%)".
-
-                // Let's treat wage_amount as the *rate* override.
-
-                if ($rateType === 'per_task') {
-                    $wageAmount = (float) $task->wage_amount;
-                } else {
-                    // per_day
-                    // wage_amount is the daily rate.
-                    // output wage = (hours / 8) * wage_amount ? 
-                    // The previous logic was:
-                    // $hours = $hoursWorked ?? 8;
-                    // $wageAmount = $rate; // Daily rate. Wait, previously it was just $rate.
-                    // The previous code: $wageAmount = $rate; // Daily rate  <-- seemingly assuming $rate is the full day wage?
-                    // Verify previous code: 
-                    // $rate = (float) ($laborer->rate ?? 0);
-                    // if ($rateType === 'per_task') { $wageAmount = $rate; } 
-                    // else { $hours = $hoursWorked ?? 8; $wageAmount = $rate; }
-                    // It didn't multiply by hours for per_day? That's weird if it's hourly.
-                    // Migration said: $table->decimal('hourly_rate', 8, 2); in 2025_08_26_084521_create_laborers_table.php
-                    // But Model says 'rate' and 'rate_type'. 
-                    // Let's look at the laborer migration again. 
-                    // 15: $table->decimal('hourly_rate', 8, 2); 
-                    // But the Model uses 'rate'. Maybe column was renamed or accessor?
-                    // Let's assume the previous code `(float) ($laborer->rate ?? 0)` was working logic for the existing app.
-                    // And it assigned `$wageAmount = $rate` regardless of hours (which implies `rate` is a daily rate effectively, or the previous code satisfied the requirement).
-
-                    // So, if we use wage_amount as strict override of the resulting amount:
-                    $wageAmount = (float) $task->wage_amount;
-                }
             }
 
-            if ($wageAmount <= 0) {
+            if ($wageAmount <= 0 && $task->payment_type !== Task::PAYMENT_TYPE_SHARE) {
                 continue;
             }
 
@@ -453,7 +395,7 @@ class TaskController extends Controller
                 'category' => \App\Models\Expense::CATEGORY_LABOR,
                 'date' => now(),
                 'user_id' => $user->id,
-                'payment_method' => 'cash',
+                'payment_method' => $task->payment_type === Task::PAYMENT_TYPE_SHARE ? 'revenue_share' : 'cash',
                 'notes' => "Auto-generated from task completion. Task ID: {$task->id}, Laborer: {$laborer->name}",
                 'related_entity_type' => \App\Models\Expense::ENTITY_TYPE_TASK,
                 'related_entity_id' => $task->id,

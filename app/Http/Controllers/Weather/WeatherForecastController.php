@@ -24,23 +24,26 @@ class WeatherForecastController extends Controller
     /**
      * Get weather forecast for a field
      */
-    public function getFieldForecast(Request $request, $fieldId)
+    /**
+     * Get weather forecast for a farm
+     */
+    public function getForecast(Request $request, $farmId)
     {
         $request->validate([
             'days' => 'integer|min:1|max:14',
             'forecast_type' => 'in:basic,detailed,agricultural',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $days = $request->days ?? 7;
         $forecastType = $request->forecast_type ?? 'basic';
 
-        $forecast = $this->forecastService->getFieldForecast($field, $days, $forecastType);
+        $forecast = $this->forecastService->getForecast($farm, $days, $forecastType);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'forecast' => $forecast,
             'forecast_type' => $forecastType,
             'days' => $days,
@@ -50,20 +53,23 @@ class WeatherForecastController extends Controller
     /**
      * Get extended weather forecast
      */
-    public function getExtendedForecast(Request $request, $fieldId)
+    /**
+     * Get extended weather forecast
+     */
+    public function getExtendedForecast(Request $request, $farmId)
     {
         $request->validate([
             'period' => 'in:weekly,monthly,seasonal',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $period = $request->period ?? 'weekly';
-        $forecast = $this->forecastService->getExtendedForecast($field, $period);
+        $forecast = $this->forecastService->getExtendedForecast($farm, $period);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'extended_forecast' => $forecast,
             'period' => $period,
         ]);
@@ -72,15 +78,18 @@ class WeatherForecastController extends Controller
     /**
      * Get agricultural weather forecast
      */
-    public function getAgriculturalForecast(Request $request, $fieldId)
+    /**
+     * Get agricultural weather forecast
+     */
+    public function getAgriculturalForecast(Request $request, $farmId)
     {
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
-        $forecast = $this->forecastService->getAgriculturalForecast($field);
+        $forecast = $this->forecastService->getAgriculturalForecast($farm);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'agricultural_forecast' => $forecast,
         ]);
     }
@@ -88,16 +97,19 @@ class WeatherForecastController extends Controller
     /**
      * Get weather alerts and warnings
      */
-    public function getWeatherAlerts(Request $request, $fieldId)
+    /**
+     * Get weather alerts and warnings
+     */
+    public function getWeatherAlerts(Request $request, $farmId)
     {
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
-        $alerts = $this->forecastService->getWeatherAlerts($field);
-        $currentAlerts = $this->weatherService->getWeatherAlerts($field);
+        $alerts = $this->forecastService->getWeatherAlerts($farm);
+        $currentAlerts = $this->weatherService->getWeatherAlerts($farm);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'current_alerts' => $currentAlerts,
             'forecast_alerts' => $alerts,
         ]);
@@ -106,37 +118,23 @@ class WeatherForecastController extends Controller
     /**
      * Get farm-wide weather forecast
      */
-    public function getFarmForecast(Request $request, $farmId)
-    {
-        $request->validate([
-            'days' => 'integer|min:1|max:14',
-        ]);
-
-        $farm = Farm::findOrFail($farmId);
-        $this->authorize('view', $farm);
-
-        $days = $request->days ?? 7;
-        $forecast = $this->forecastService->getFarmForecast($farm, $days);
-
-        return response()->json([
-            'farm' => $farm,
-            'farm_forecast' => $forecast,
-            'days' => $days,
-        ]);
-    }
+    // getFarmForecast replaced by getForecast above or removed as duplicate
 
     /**
      * Get weather-based activity recommendations
      */
-    public function getActivityRecommendations(Request $request, $fieldId)
+    /**
+     * Get weather-based activity recommendations
+     */
+    public function getActivityRecommendations(Request $request, $farmId)
     {
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
-        $recommendations = $this->forecastService->getActivityRecommendations($field);
+        $recommendations = $this->forecastService->getActivityRecommendations($farm);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'activity_recommendations' => $recommendations,
         ]);
     }
@@ -144,23 +142,26 @@ class WeatherForecastController extends Controller
     /**
      * Get optimal timing for farm activities
      */
-    public function getOptimalTiming(Request $request, $fieldId)
+    /**
+     * Get optimal timing for farm activities
+     */
+    public function getOptimalTiming(Request $request, $farmId)
     {
         $request->validate([
             'activity_type' => 'required|in:planting,harvesting,spraying,fertilizing,irrigation',
             'planning_days' => 'integer|min:1|max:30',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $activityType = $request->activity_type;
         $planningDays = $request->planning_days ?? 14;
 
-        $timing = $this->forecastService->getOptimalTiming($field, $activityType, $planningDays);
+        $timing = $this->forecastService->getOptimalTiming($farm, $activityType, $planningDays);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'activity_type' => $activityType,
             'optimal_timing' => $timing,
             'planning_days' => $planningDays,
@@ -170,15 +171,18 @@ class WeatherForecastController extends Controller
     /**
      * Get weather-based crop protection recommendations
      */
-    public function getCropProtectionForecast(Request $request, $fieldId)
+    /**
+     * Get weather-based crop protection recommendations
+     */
+    public function getCropProtectionForecast(Request $request, $farmId)
     {
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
-        $protection = $this->forecastService->getCropProtectionForecast($field);
+        $protection = $this->forecastService->getCropProtectionForecast($farm);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'crop_protection_forecast' => $protection,
         ]);
     }
@@ -212,7 +216,10 @@ class WeatherForecastController extends Controller
     /**
      * Subscribe to weather alerts
      */
-    public function subscribeToAlerts(Request $request, $fieldId)
+    /**
+     * Subscribe to weather alerts
+     */
+    public function subscribeToAlerts(Request $request, $farmId)
     {
         $request->validate([
             'alert_types' => 'required|array',
@@ -222,11 +229,11 @@ class WeatherForecastController extends Controller
             'thresholds' => 'nullable|array',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('update', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('update', $farm);
 
         $subscription = $this->forecastService->subscribeToAlerts(
-            $field,
+            $farm,
             $request->alert_types,
             $request->notification_methods,
             $request->thresholds ?? []
@@ -241,20 +248,23 @@ class WeatherForecastController extends Controller
     /**
      * Get weather forecast accuracy metrics
      */
-    public function getForecastAccuracy(Request $request, $fieldId)
+    /**
+     * Get weather forecast accuracy metrics
+     */
+    public function getForecastAccuracy(Request $request, $farmId)
     {
         $request->validate([
             'period_days' => 'integer|min:7|max:90',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $periodDays = $request->period_days ?? 30;
-        $accuracy = $this->forecastService->getForecastAccuracy($field, $periodDays);
+        $accuracy = $this->forecastService->getForecastAccuracy($farm, $periodDays);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'forecast_accuracy' => $accuracy,
             'period_days' => $periodDays,
         ]);

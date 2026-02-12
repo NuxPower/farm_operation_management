@@ -290,12 +290,14 @@ export const inventoryAPI = {
 };
 
 // Weather API
+// Weather API
 export const weatherAPI = {
-  getCurrentWeather: (fieldId) => api.get(`/weather/fields/${fieldId}/current`),
-  getForecast: (fieldId) => api.get(`/weather/fields/${fieldId}/forecast`),
-  getHistory: (fieldId, days = 30) => api.get(`/weather/fields/${fieldId}/history?days=${days}`),
-  getAlerts: (fieldId) => api.get(`/weather/fields/${fieldId}/alerts`),
-  updateWeather: (fieldId, weatherData) => api.post(`/weather/fields/${fieldId}/update`, weatherData),
+  getCurrentWeather: (farmId) => api.get(`/weather/farms/${farmId}/current`),
+  getForecast: (farmId, days = 7) => api.get(`/weather/farms/${farmId}/forecast`, { params: { days } }),
+  getHistory: (farmId, days = 30) => api.get(`/weather/farms/${farmId}/history`, { params: { days } }),
+  getAlerts: (farmId) => api.get(`/weather/farms/${farmId}/alerts`),
+  updateWeather: (farmId, weatherData) => api.post(`/weather/farms/${farmId}/update`, weatherData),
+  getRiceAnalytics: (farmId) => api.get(`/weather/farms/${farmId}/rice-analytics`),
   // ColorfulClouds Weather API proxy
   getColorfulCloudsWeather: (lat, lon, options = {}) => {
     const params = {
@@ -307,6 +309,11 @@ export const weatherAPI = {
     };
     return api.get('/weather/colorfulclouds', { params });
   },
+
+  // Farm Analytics
+  getAnalytics: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}`, { params }),
+  getTrends: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/trends`, { params }),
+  getRecommendations: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/recommendations`, { params }),
 };
 
 // Rice Marketplace API

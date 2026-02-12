@@ -398,7 +398,7 @@ class RiceFarmingLifecycleController extends Controller
 
             // Weather-based recommendations
             $weatherService = app(\App\Services\WeatherService::class);
-            $weatherRecommendations = $weatherService->getRiceFarmingRecommendations($planting->field);
+            $weatherRecommendations = $weatherService->getRiceFarmingRecommendations($planting->field->farm);
             if (!empty($weatherRecommendations)) {
                 $recommendations['weather_based'] = $weatherRecommendations;
             }

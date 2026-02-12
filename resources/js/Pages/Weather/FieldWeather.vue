@@ -442,6 +442,7 @@ const loadFieldWeatherData = async (id) => {
     // Load field data
     const fieldResponse = await fieldsAPI.getById(id)
     const fieldData = fieldResponse.data.field || fieldResponse.data.data || fieldResponse.data
+    const farmId = fieldData.farm_id
     
     // Get current crop from plantings if available
     let currentCrop = 'None'
@@ -473,12 +474,18 @@ const loadFieldWeatherData = async (id) => {
       size: size,
       soil_type: fieldData.soil_type || 'Not specified',
       current_crop: currentCrop,
-      location: fieldData.location || fieldData.field_coordinates || {}
+      location: fieldData.location || fieldData.field_coordinates || {},
+      farm_id: farmId
     }
     
-    // Load current weather
+    if (!farmId) {
+      console.error('Field has no farm_id, cannot load farm weather')
+      return
+    }
+
+    // Load current weather using Farm ID
     try {
-      const currentResponse = await weatherAPI.getCurrentWeather(id)
+      const currentResponse = await weatherAPI.getCurrentWeather(farmId)
       const responseData = currentResponse.data
       const weatherData = responseData.weather || responseData.data || responseData
       
@@ -528,9 +535,9 @@ const loadFieldWeatherData = async (id) => {
       console.error('Error loading current weather:', weatherError)
     }
     
-    // Load weather history (last 7 days)
+    // Load weather history (last 7 days) using Farm ID
     try {
-      const historyResponse = await weatherAPI.getHistory(id, 7)
+      const historyResponse = await weatherAPI.getHistory(farmId, 7)
       // Handle paginated response structure
       let historyData = []
       if (historyResponse.data) {
@@ -571,9 +578,9 @@ const loadFieldWeatherData = async (id) => {
       weatherData7d.value = []
     }
     
-    // Load 24h weather data (last 24 hours)
+    // Load 24h weather data (last 24 hours) using Farm ID
     try {
-      const history24hResponse = await weatherAPI.getHistory(id, 1)
+      const history24hResponse = await weatherAPI.getHistory(farmId, 1)
       let history24hData = []
       if (history24hResponse.data) {
         if (history24hResponse.data.weather_logs) {
@@ -590,9 +597,9 @@ const loadFieldWeatherData = async (id) => {
       weatherData24h.value = []
     }
     
-    // Load weather alerts
+    // Load weather alerts using Farm ID
     try {
-      const alertsResponse = await weatherAPI.getAlerts(id)
+      const alertsResponse = await weatherAPI.getAlerts(farmId)
       const alertsData = alertsResponse.data.alerts || alertsResponse.data || []
       fieldAlerts.value = Array.isArray(alertsData) ? alertsData.map((alert, index) => ({
         id: alert.id || index + 1,

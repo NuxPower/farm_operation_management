@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\Field;
+use App\Models\Farm;
 use App\Models\WeatherLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,7 +13,7 @@ class WeatherReportTest extends TestCase
     use RefreshDatabase;
 
     protected $farmer;
-    protected $field;
+    protected $farm;
 
     protected function setUp(): void
     {
@@ -22,11 +22,11 @@ class WeatherReportTest extends TestCase
         // Create farmer
         $this->farmer = User::factory()->create(['role' => 'farmer']);
 
-        // Create field with location coordinates
-        $this->field = Field::factory()->create([
+        // Create farm with weather coordinates
+        $this->farm = Farm::factory()->create([
             'user_id' => $this->farmer->id,
-            'name' => 'Weather Test Field',
-            'location' => ['lat' => 14.5995, 'lon' => 120.9842],
+            'name' => 'Weather Test Farm',
+            'farm_coordinates' => ['lat' => 14.5995, 'lon' => 120.9842],
         ]);
     }
 
@@ -34,7 +34,7 @@ class WeatherReportTest extends TestCase
     {
         // Create weather log with rainfall
         $weatherLog = WeatherLog::create([
-            'field_id' => $this->field->id,
+            'farm_id' => $this->farm->id,
             'temperature' => 28.5,
             'humidity' => 75,
             'wind_speed' => 12.5,
@@ -45,7 +45,7 @@ class WeatherReportTest extends TestCase
 
         $this->assertDatabaseHas('weather_logs', [
             'id' => $weatherLog->id,
-            'field_id' => $this->field->id,
+            'farm_id' => $this->farm->id,
             'temperature' => 28.5,
             'rainfall' => 5.25,
         ]);
@@ -67,7 +67,7 @@ class WeatherReportTest extends TestCase
 
         foreach ($logs as $i => $log) {
             WeatherLog::create([
-                'field_id' => $this->field->id,
+                'farm_id' => $this->farm->id,
                 'temperature' => $log['temperature'],
                 'humidity' => $log['humidity'],
                 'wind_speed' => 10,
@@ -96,7 +96,7 @@ class WeatherReportTest extends TestCase
         // Create weather logs for GDD calculation
         for ($i = 0; $i < 7; $i++) {
             WeatherLog::create([
-                'field_id' => $this->field->id,
+                'farm_id' => $this->farm->id,
                 'temperature' => 25 + ($i % 5), // Values between 25-29
                 'humidity' => 70,
                 'wind_speed' => 10,
@@ -118,17 +118,18 @@ class WeatherReportTest extends TestCase
         $this->assertArrayHasKey('month', $data['gdd_data']);
     }
 
-    public function test_weather_report_field_filter_works()
+    public function test_weather_report_farm_filter_works()
     {
-        // Create second field
-        $field2 = Field::factory()->create([
+        // Create second farm
+        $farm2 = Farm::factory()->create([
             'user_id' => $this->farmer->id,
-            'name' => 'Second Field',
+            'name' => 'Second Farm',
+            'farm_coordinates' => ['lat' => 14.6, 'lon' => 121.0],
         ]);
 
-        // Create weather logs for both fields
+        // Create weather logs for both farms
         WeatherLog::create([
-            'field_id' => $this->field->id,
+            'farm_id' => $this->farm->id,
             'temperature' => 30,
             'humidity' => 70,
             'wind_speed' => 10,
@@ -138,7 +139,7 @@ class WeatherReportTest extends TestCase
         ]);
 
         WeatherLog::create([
-            'field_id' => $field2->id,
+            'farm_id' => $farm2->id,
             'temperature' => 28,
             'humidity' => 65,
             'wind_speed' => 8,
@@ -147,28 +148,28 @@ class WeatherReportTest extends TestCase
             'recorded_at' => now(),
         ]);
 
-        // Test without field filter (all fields)
-        $allFieldsResponse = $this->actingAs($this->farmer)
+        // Test without farm filter (all farms)
+        $allFarmsResponse = $this->actingAs($this->farmer)
             ->getJson('/api/reports/weather?period=30');
 
-        $allFieldsResponse->assertStatus(200);
-        $allFieldsData = $allFieldsResponse->json('data');
-        $this->assertEquals(8.0, $allFieldsData['weather_summary']['total_rainfall']); // 5 + 3
+        $allFarmsResponse->assertStatus(200);
+        $allFarmsData = $allFarmsResponse->json('data');
+        $this->assertEquals(8.0, $allFarmsData['weather_summary']['total_rainfall']); // 5 + 3
 
-        // Test with specific field filter
-        $singleFieldResponse = $this->actingAs($this->farmer)
-            ->getJson("/api/reports/weather?period=30&field_id={$this->field->id}");
+        // Test with specific farm filter
+        $singleFarmResponse = $this->actingAs($this->farmer)
+            ->getJson("/api/reports/weather?period=30&farm_id={$this->farm->id}");
 
-        $singleFieldResponse->assertStatus(200);
-        $singleFieldData = $singleFieldResponse->json('data');
-        $this->assertEquals(5.0, $singleFieldData['weather_summary']['total_rainfall']); // Only field 1
+        $singleFarmResponse->assertStatus(200);
+        $singleFarmData = $singleFarmResponse->json('data');
+        $this->assertEquals(5.0, $singleFarmData['weather_summary']['total_rainfall']); // Only farm 1
     }
 
     public function test_weather_report_includes_weather_events()
     {
         // Create stormy weather to trigger event detection
         WeatherLog::create([
-            'field_id' => $this->field->id,
+            'farm_id' => $this->farm->id,
             'temperature' => 25,
             'humidity' => 90,
             'wind_speed' => 25, // High wind
@@ -191,7 +192,7 @@ class WeatherReportTest extends TestCase
         // Create weather logs over several days
         for ($i = 0; $i < 5; $i++) {
             WeatherLog::create([
-                'field_id' => $this->field->id,
+                'farm_id' => $this->farm->id,
                 'temperature' => 25 + $i,
                 'humidity' => 70,
                 'wind_speed' => 10,
@@ -217,7 +218,7 @@ class WeatherReportTest extends TestCase
         // Create weather logs with varying rainfall
         for ($i = 0; $i < 5; $i++) {
             WeatherLog::create([
-                'field_id' => $this->field->id,
+                'farm_id' => $this->farm->id,
                 'temperature' => 28,
                 'humidity' => 70,
                 'wind_speed' => 10,

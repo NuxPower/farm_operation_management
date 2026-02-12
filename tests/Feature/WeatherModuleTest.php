@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Farm;
 use App\Models\Field;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -14,6 +15,7 @@ class WeatherModuleTest extends TestCase
     use RefreshDatabase;
 
     protected $farmer;
+    protected $farm;
     protected $field;
 
     protected function setUp(): void
@@ -22,15 +24,21 @@ class WeatherModuleTest extends TestCase
         // Create Farmer
         $this->farmer = User::factory()->create(['role' => 'farmer']);
 
+        $this->farm = Farm::factory()->create([
+            'user_id' => $this->farmer->id,
+            'name' => 'Test Farm',
+            'farm_coordinates' => ['lat' => 10, 'lon' => 120]
+        ]);
+
         $this->field = Field::factory()->create([
             'user_id' => $this->farmer->id,
+            'farm_id' => $this->farm->id,
             'name' => 'Test Field',
-            'field_coordinates' => json_encode([['lat' => 10, 'lng' => 120]]),
             'size' => 1.5
         ]);
     }
 
-    public function test_can_fetch_field_weather_dashboard()
+    public function test_can_fetch_farm_weather_dashboard()
     {
         // Mocking the WeatherService
         $this->mock(WeatherService::class, function ($mock) {
@@ -47,28 +55,38 @@ class WeatherModuleTest extends TestCase
                             'icon' => '01d'
                         ]
                     ],
-                    'dt' => time()
+                    'dt' => time(),
+                    'wind' => ['speed' => 5],
+                    'rain' => ['1h' => 0]
                 ]);
 
-            $mock->shouldReceive('updateFieldWeather')
+            $mock->shouldReceive('updateFarmWeather')
                 ->withAnyArgs()
-                ->andReturn(new \App\Models\WeatherLog());
+                ->andReturn(new \App\Models\WeatherLog([
+                    'farm_id' => $this->farm->id,
+                    'temperature' => 30,
+                    'humidity' => 70,
+                    'conditions' => 'clear',
+                    'wind_speed' => 18,
+                    'rainfall' => 0,
+                    'recorded_at' => now()
+                ]));
             $mock->shouldReceive('formatWeatherLog')
                 ->withAnyArgs()
-                ->andReturn(['temp' => 30]);
+                ->andReturn(['temperature' => 30, 'conditions' => 'clear']);
             $mock->shouldReceive('getWeatherAlerts')
                 ->withAnyArgs()
                 ->andReturn([]);
         });
 
         $response = $this->actingAs($this->farmer)
-            ->getJson("/api/weather/fields/{$this->field->id}/current");
+            ->getJson("/api/weather/farms/{$this->farm->id}/current");
 
         if ($response->status() !== 200) {
             dump($response->json());
         }
         $response->assertStatus(200)
-            ->assertJsonPath('weather.temp', 30);
+            ->assertJsonPath('weather.temperature', 30);
     }
 
     public function test_rice_specific_weather_analytics()
@@ -82,7 +100,7 @@ class WeatherModuleTest extends TestCase
         });
 
         $response = $this->actingAs($this->farmer)
-            ->getJson("/api/weather/fields/{$this->field->id}/rice-analytics");
+            ->getJson("/api/weather/farms/{$this->farm->id}/rice-analytics");
 
         $response->assertStatus(200);
     }

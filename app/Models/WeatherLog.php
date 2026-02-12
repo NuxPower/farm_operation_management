@@ -8,7 +8,7 @@ class WeatherLog extends Model
 {
 
     protected $fillable = [
-        'field_id',
+        'farm_id',
         'temperature',
         'humidity',
         'wind_speed',
@@ -38,11 +38,11 @@ class WeatherLog extends Model
     const CONDITION_FOGGY = 'foggy';
 
     /**
-     * Get the field that owns the weather log
+     * Get the farm that owns the weather log
      */
-    public function field(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function farm(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Field::class);
+        return $this->belongsTo(Farm::class);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Field;
+use App\Models\Farm;
 use App\Models\PestLibrary;
 use App\Models\PestAnalyticsRule;
 use Illuminate\Support\Facades\Log;
@@ -18,16 +18,17 @@ class PestPredictionService
     }
 
     /**
-     * Predict pest and disease risks for a field based on weather forecast
+     * Predict pest and disease risks for a farm based on weather forecast
      *
-     * @param Field $field
+     * @param Farm $farm
      * @return array
      */
-    public function predictRisks(Field $field, $resolvedIncidents = []): array
+    public function predictRisks(Farm $farm, $resolvedIncidents = []): array
     {
-        // Get field coordinates
-        $lat = $field->location['lat'] ?? $field->field_coordinates['lat'] ?? null;
-        $lon = $field->location['lon'] ?? $field->field_coordinates['lon'] ?? null;
+        // Get farm coordinates
+        $coords = $farm->weather_coordinates;
+        $lat = $coords['lat'] ?? null;
+        $lon = $coords['lon'] ?? null;
 
         if (!$lat || !$lon) {
             return [];

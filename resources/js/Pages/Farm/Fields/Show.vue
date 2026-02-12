@@ -193,26 +193,30 @@
           </div>
 
           <!-- Weather -->
-          <div class="bg-white rounded-lg shadow-md p-6">
+          <div v-if="currentWeather" class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-semibold mb-4">Current Weather</h3>
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="text-gray-600">Temperature:</span>
-                <span class="font-medium">72°F</span>
+                <span class="font-medium">{{ Math.round(currentWeather.temperature) }}°C</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Humidity:</span>
-                <span class="font-medium">65%</span>
+                <span class="font-medium">{{ Math.round(currentWeather.humidity) }}%</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Rainfall:</span>
-                <span class="font-medium">0.2 in</span>
+                <span class="font-medium">{{ Number(currentWeather.rainfall).toFixed(1) }} mm</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Wind:</span>
-                <span class="font-medium">5 mph</span>
+                <span class="font-medium">{{ Math.round(currentWeather.wind_speed) }} km/h</span>
               </div>
             </div>
+          </div>
+          <div v-else class="bg-white rounded-lg shadow-md p-6">
+             <h3 class="text-lg font-semibold mb-4">Current Weather</h3>
+             <p class="text-gray-500 text-sm">Weather data unavailable</p>
           </div>
 
           <!-- Quick Actions -->
@@ -273,6 +277,7 @@ const field = ref({
 })
 
 const currentPlanting = ref(null)
+const currentWeather = ref(null)
 
 const recentActivities = ref([])
 const plantingHistory = ref([])
@@ -355,7 +360,7 @@ const loadFieldData = async (id) => {
     
     // Load field data from API
     const response = await fieldsAPI.getById(id)
-    const data = response.data.data || response.data
+    const data = response.data.field || response.data.data || response.data
     
     // Map API response to component data
     field.value = {
@@ -368,6 +373,25 @@ const loadFieldData = async (id) => {
       status: 'active',
       location: data.location,
       area: data.area || data.size || 0,
+    }
+
+    // Set weather data from weatherLogs if available
+    if (data.weatherLogs && data.weatherLogs.length > 0) {
+      const latest = data.weatherLogs[0]
+      currentWeather.value = {
+        temperature: latest.temperature,
+        humidity: latest.humidity,
+        rainfall: latest.rainfall,
+        wind_speed: latest.wind_speed
+      }
+    } else if (data.latest_weather) {
+       const latest = data.latest_weather
+       currentWeather.value = {
+        temperature: latest.temperature,
+        humidity: latest.humidity,
+        rainfall: latest.rainfall,
+        wind_speed: latest.wind_speed
+      }
     }
     
     // Load plantings for this field

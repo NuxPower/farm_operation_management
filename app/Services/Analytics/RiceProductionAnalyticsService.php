@@ -87,8 +87,9 @@ class RiceProductionAnalyticsService
         $startDate = $planting->planting_date;
         $endDate = $planting->actual_harvest_date ?? now();
 
-        // fetch weather logs for the field
-        $logs = WeatherLog::where('field_id', $planting->field_id)
+        // fetch weather logs for the farm (weather is now farm-level)
+        $farmId = $planting->field->farm_id;
+        $logs = WeatherLog::where('farm_id', $farmId)
             ->whereBetween('recorded_at', [$startDate, $endDate])
             ->get();
 

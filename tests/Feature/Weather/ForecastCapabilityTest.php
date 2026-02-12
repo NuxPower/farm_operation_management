@@ -3,7 +3,7 @@
 namespace Tests\Feature\Weather;
 
 use App\Models\User;
-use App\Models\Field;
+use App\Models\Farm;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -14,16 +14,16 @@ class ForecastCapabilityTest extends TestCase
     use DatabaseTransactions;
 
     protected $farmer;
-    protected $field;
+    protected $farm;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->farmer = User::factory()->create(['role' => 'farmer']);
-        $this->field = Field::factory()->create([
+        $this->farm = Farm::factory()->create([
             'user_id' => $this->farmer->id,
-            'location' => ['lat' => 14.5995, 'lon' => 120.9842],
-            'name' => 'Forecast Test Field'
+            'farm_coordinates' => ['lat' => 14.5995, 'lon' => 120.9842],
+            'name' => 'Forecast Test Farm'
         ]);
 
         // precise time for test stability
@@ -58,7 +58,7 @@ class ForecastCapabilityTest extends TestCase
         $this->mock(\App\Services\WeatherService::class);
 
         $response = $this->actingAs($this->farmer)
-            ->getJson("/api/weather/fields/{$this->field->id}/forecast?days={$daysRequested}");
+            ->getJson("/api/weather/farms/{$this->farm->id}/forecast?days={$daysRequested}");
 
         if ($response->status() !== 200) {
             dump($response->json());

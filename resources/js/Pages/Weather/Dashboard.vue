@@ -204,32 +204,7 @@
 
         <!-- Sidebar -->
         <div class="lg:col-span-1 space-y-6">
-          <!-- Field Weather Summary -->
-          <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-semibold mb-4">Field Weather Summary</h3>
-            <div class="space-y-4">
-              <div
-                v-for="field in fieldWeather"
-                :key="field.id"
-                class="p-3 border border-gray-200 rounded-lg"
-              >
-                <div class="flex justify-between items-start mb-2">
-                  <h4 class="font-medium text-gray-900">{{ field.name }}</h4>
-                  <span class="text-sm text-gray-600">{{ Math.round(field.temperature) }}°C</span>
-                </div>
-                <div class="text-sm text-gray-600">
-                  <div>Humidity: {{ Math.round(field.humidity) }}%</div>
-                  <div>Rainfall: {{ Number(field.rainfall || 0) > 0 ? Number(field.rainfall).toFixed(1) : '0.0' }} mm</div>
-                </div>
-                <button
-                  @click="viewFieldWeather(field.id)"
-                  class="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  View Details →
-                </button>
-              </div>
-            </div>
-          </div>
+          <!-- Field Weather Summary REMOVED -->
 
           <!-- Growing Degree Days -->
           <div class="bg-white rounded-lg shadow-md p-6">
@@ -367,29 +342,16 @@ const fallbackWeather = ref({
   icon: '⛅'
 })
 
-// Current weather from store or computed from primary field
+// Current weather from store
 const currentWeather = computed(() => {
   if (weatherStore.currentWeather) {
     return {
       temperature: weatherStore.currentWeather.temperature || 22,
       humidity: weatherStore.currentWeather.humidity || 65,
-      rainfall: weatherStore.currentWeather.rainfall || weatherStore.currentWeather.precipitation || 0.2,
+      rainfall: weatherStore.currentWeather.rainfall || weatherStore.currentWeather.precipitation || 0,
       wind_speed: weatherStore.currentWeather.wind_speed || 10,
       condition: weatherStore.currentWeather.condition || 'Partly Cloudy',
       icon: getWeatherIcon(weatherStore.currentWeather.weather_code)
-    }
-  }
-  
-  // Fallback to first field's weather or fallback data
-  const firstFieldWeather = fieldWeather.value[0]
-  if (firstFieldWeather) {
-    return {
-      temperature: firstFieldWeather.temperature,
-      humidity: firstFieldWeather.humidity,
-      rainfall: firstFieldWeather.rainfall,
-      wind_speed: 5,
-      condition: 'Partly Cloudy',
-      icon: '⛅'
     }
   }
   
@@ -401,16 +363,10 @@ const currentWeather = computed(() => {
 const forecast = computed(() => {
   if (weatherStore.forecast && weatherStore.forecast.length > 0) {
     return weatherStore.forecast.map(day => {
-      // Backend returns: most_common_condition, temperature: {min, max, avg}, humidity_avg, wind_speed_avg
       const condition = day.most_common_condition || day.condition || day.weather || 'Clear'
-      
-      // Get icon from condition text (backend doesn't provide weather_code for forecasts)
       const icon = getWeatherIconFromCondition(condition)
-      
-      // Generate description from condition
       const description = getDescriptionFromCondition(condition)
       
-      // Handle temperature - backend has temperature.min/max or flat fields
       const tempMin = day.temperature?.min ?? day.low ?? day.temperature_min ?? day.min_temp ?? null
       const tempMax = day.temperature?.max ?? day.high ?? day.temperature_max ?? day.max_temp ?? null
       
@@ -426,8 +382,6 @@ const forecast = computed(() => {
       }
     })
   }
-  
-  // Return empty array if no forecast data
   return []
 })
 
@@ -435,7 +389,7 @@ const forecast = computed(() => {
 const weatherAlerts = computed(() => {
   const alerts = []
   
-  // 1. Add alerts from store (backend)
+  // 1. Add alerts from store
   if (weatherStore.alerts && weatherStore.alerts.length > 0) {
     weatherStore.alerts.forEach((alert, index) => {
       alerts.push({
@@ -449,24 +403,17 @@ const weatherAlerts = computed(() => {
     })
   }
   
-  // 2. Generate local alerts based on current weather and forecast
-  // This ensures UI consistency (if you see "Stormy", you get an alert)
+  // 2. Generate local alerts based on current weather
   try {
     const weather = weatherStore.currentWeather;
-    const forecastList = weatherStore.forecast || [];
-    
-    // Helper to check if an alert title already exists to avoid duplicates
     const hasAlert = (title) => alerts.some(a => a.title === title)
     
     if (weather) {
       const temp = weather.temperature || weather.temp;
-      const humidity = weather.humidity;
-      // Backend returns 'conditions' for current weather
       const description = (weather.conditions || weather.description || weather.weather || '').toLowerCase();
       const windSpeed = weather.wind_speed || weather.windSpeed || 0;
       
-      // Heavy rain warning (Current)
-      if ((description.includes('rain') || description.includes('storm') || description.includes('shower')) && !hasAlert('Rain Warning')) {
+      if ((description.includes('rain') || description.includes('storm')) && !hasAlert('Rain Warning')) {
         alerts.push({
           id: 'local-rain-current',
           type: 'warning',
@@ -478,7 +425,6 @@ const weatherAlerts = computed(() => {
         });
       }
       
-      // Extreme heat warning
       if (temp && temp > 35 && !hasAlert('Extreme Heat Alert')) {
         alerts.push({
           id: 'local-heat',
@@ -491,7 +437,6 @@ const weatherAlerts = computed(() => {
         });
       }
       
-      // High winds
       if (windSpeed > 20 && !hasAlert('High Wind Advisory')) {
         alerts.push({
           id: 'local-wind',
@@ -504,98 +449,38 @@ const weatherAlerts = computed(() => {
         });
       }
     }
-    
-    // Check forecast for upcoming rain/storm
-    const upcomingRain = Array.isArray(forecastList) && forecastList.slice(0, 3).find(f => {
-      const desc = (f.most_common_condition || f.condition || f.description || f.weather || '').toLowerCase();
-      return desc.includes('rain') || desc.includes('storm') || desc.includes('thunder');
-    });
-    
-    if (upcomingRain && !hasAlert('Rain Expected Soon') && !hasAlert('Rain Warning')) {
-      alerts.push({
-        id: 'local-rain-forecast',
-        type: 'info',
-        severity: 'low',
-        title: 'Rain Expected Soon',
-        description: 'Forecast indicates rain or storms within the next 3 days. Plan field activities accordingly.',
-        issued_at: new Date().toISOString(),
-        icon: '⚠️'
-      });
-    }
-    
   } catch (e) {
     console.error('Error generating local alerts:', e)
   }
   
   return alerts.sort((a, b) => {
-    // Sort by severity (high > medium > low > info)
     const severityScore = { high: 3, medium: 2, low: 1, info: 0, critical: 4 }
     return (severityScore[b.severity] || 0) - (severityScore[a.severity] || 0)
-  })
-})
-
-// Field weather computed from actual fields and weather data
-const fieldWeather = computed(() => {
-  return fieldsWithCoordinates.value.map(field => {
-    const weatherData = fieldWeatherData.value[field.id] || {}
-    const location = field.location || field.field_coordinates || {}
-    
-    // Handle different data formats from API
-    // Weather data might have temperature in Celsius or Fahrenheit
-    let temp = weatherData.temperature || weatherData.temp || 22
-    // If temperature seems like Fahrenheit (> 100), convert to Celsius
-    if (temp > 100) {
-      temp = (temp - 32) * 5/9
-    }
-    
-    // Handle rainfall/precipitation - could be in different units
-    let rainfall = weatherData.rainfall || weatherData.precipitation || weatherData.rain?.intensity || 0
-    // If rainfall seems like inches (> 1), convert to mm
-    if (rainfall > 1 && rainfall < 10) {
-      rainfall = rainfall * 25.4 // Convert inches to mm
-    }
-    
-    return {
-      id: field.id,
-      name: field.name,
-      temperature: temp,
-      humidity: weatherData.humidity || 65,
-      rainfall: rainfall,
-      location: location,
-      field_coordinates: field.field_coordinates
-    }
   })
 })
 
 // Growing Degree Days calculation (base temperature 10°C for rice)
 const GDD_BASE_TEMP = 10
 
-// Calculate GDD for a single day: ((high + low) / 2) - base, minimum 0
 const calculateDailyGDD = (high, low) => {
   if (high === null || low === null || isNaN(high) || isNaN(low)) return 0
   const avgTemp = (high + low) / 2
   return Math.max(0, avgTemp - GDD_BASE_TEMP)
 }
 
-// Growing Degree Days computed from forecast data
 const gdd = computed(() => {
   const forecastData = forecast.value || []
   
-  // Calculate today's GDD
   const todayGDD = forecastData.length > 0 
     ? Math.round(calculateDailyGDD(forecastData[0].high, forecastData[0].low))
     : 0
   
-  // Calculate this week's GDD (sum of available forecast days, up to 7)
   const weekDays = forecastData.slice(0, 7)
   const weekGDD = Math.round(weekDays.reduce((sum, day) => 
     sum + calculateDailyGDD(day.high, day.low), 0))
   
-  // Estimate month GDD (weekly average * 4.3 weeks)
   const avgWeeklyGDD = weekGDD / Math.max(1, weekDays.length) * 7
   const monthGDD = Math.round(avgWeeklyGDD * 4.3)
-  
-  // Estimate season GDD (roughly 4 months for rice growing season)
   const seasonGDD = Math.round(monthGDD * 4)
   
   return {
@@ -650,44 +535,28 @@ const getAlertIcon = (typeOrSeverity) => {
 const refreshWeather = async () => {
   loading.value = true
   try {
-    // Fetch fields if not loaded
-    if (fields.value.length === 0) {
-      await farmStore.fetchFields()
+    // 1. Ensure we have farm profile and fields loaded
+    if (!farmStore.farmProfile) {
+       await farmStore.fetchFarmProfile();
     }
     
-    // Fetch weather for all fields with coordinates
-    // Use parallel requests - store handles caching
-    const weatherPromises = fieldsWithCoordinates.value.map(async (field) => {
-      try {
-        const weather = await weatherStore.fetchCurrentWeather(field.id)
-        if (weather && weather.weather) {
-          fieldWeatherData.value[field.id] = weather.weather
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch weather for field ${field.id}:`, error)
-      }
-    })
-    
-    await Promise.all(weatherPromises)
-    
-    // Fetch forecast for primary field (7 days)
-    if (fieldsWithCoordinates.value.length > 0) {
-      const primaryField = fieldsWithCoordinates.value[0]
-      try {
-        await weatherStore.fetchForecast(primaryField.id, 7)
-        console.log('Forecast loaded:', weatherStore.forecast?.length || 0, 'days')
-      } catch (error) {
-        console.warn('Failed to fetch forecast:', error)
-      }
+    // 2. Fetch Farm Weather (Current and Forecast)
+    const farmId = farmStore.farmProfile?.id;
+    if (farmId) {
+       await Promise.all([
+          weatherStore.fetchCurrentWeather(farmId),
+          weatherStore.fetchForecast(farmId, 7),
+          weatherStore.fetchWeatherAlerts(farmId)
+       ]);
+    } else {
+       console.warn('No farm profile found, cannot fetch weather.');
     }
-    
-    // Refresh map markers
+
+    // 3. Refresh map markers (if map is active)
     if (map.value) {
       await updateFieldMarkers()
     }
     
-    // Update current weather display
-    await fetchCurrentWeather()
   } catch (error) {
     console.error('Error refreshing weather:', error)
   } finally {
@@ -696,15 +565,7 @@ const refreshWeather = async () => {
 }
 
 const viewForecast = () => {
-  const defaultField = fieldsWithCoordinates.value?.[0]?.id
-  if (defaultField) {
-    router.push({
-      path: '/reports/weather',
-      query: { field: defaultField }
-    })
-  } else {
-    router.push('/reports/weather')
-  }
+  router.push('/weather/analytics')
 }
 
 const viewFieldWeather = (fieldId) => {
@@ -713,44 +574,26 @@ const viewFieldWeather = (fieldId) => {
 
 const viewHistoricalData = () => {
   // Navigate to historical data page (Analytics)
-  router.push('/reports/weather')
+  router.push('/weather/analytics')
 }
 
-const exportWeatherData = () => {
-  // Convert field weather data to CSV
-  if (!fieldWeather.value || fieldWeather.value.length === 0) {
-    alert('No weather data available to export.')
-    return
+const exportWeatherData = async () => {
+  // Export farm weather data
+  try {
+     const farmId = farmStore.farmProfile?.id;
+     if (!farmId) return;
+     
+     // Trigger backend export
+     window.location.href = `/api/analytics/farm/${farmId}/export`;
+     
+  } catch (e) {
+     console.error('Export failed', e);
+     alert('Failed to export weather data');
   }
-
-  const headers = ['Field Name', 'Temperature (°C)', 'Humidity (%)', 'Rainfall (mm)', 'Location']
-  const rows = fieldWeather.value.map(field => [
-    `"${field.name || 'Unknown Field'}"`,
-    field.temperature || '',
-    field.humidity || '',
-    field.rainfall || '',
-    `"${field.location?.lat || ''}, ${field.location?.lon || ''}"`
-  ])
-
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n')
-
-  // Create download link
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', `weather_data_${new Date().toISOString().split('T')[0]}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 
 const viewWeatherReports = () => {
-  router.push('/reports/weather')
+  router.push('/weather/analytics')
 }
 
 // Weather map functions
@@ -974,7 +817,15 @@ const updateFieldMarkers = async () => {
   // Use actual fields from store
   const fieldsToProcess = fieldsWithCoordinates.value
 
-  // Use data from fieldWeatherData which is populated by store
+  // Use farm weather data for all fields
+  const farmWeather = weatherStore.currentWeather || {
+    temperature: 22,
+    humidity: 65,
+    wind_speed: 5,
+    conditions: 'Waiting for data...',
+    rainfall: 0,
+  }
+
   const fieldDataWithWeather = fieldsToProcess.map((field) => {
     // Get coordinates from field data
     let lat, lon
@@ -991,35 +842,26 @@ const updateFieldMarkers = async () => {
 
     if (!lat || !lon) return null
 
-    // Get weather from local state derived from store
-    let weatherData = fieldWeatherData.value[field.id]
-    
     return {
       field,
       lat,
       lon,
-      weatherData: weatherData || {
-        temperature: 22,
-        humidity: 65,
-        wind_speed: 5,
-        conditions: 'Waiting for data...',
-        rainfall: 0,
-      }
+      weatherData: farmWeather
     }
   }).filter(item => item !== null)
 
-  // Add markers for each field with real weather data
+  // Add markers for each field
   fieldDataWithWeather.forEach(({ field, lat, lon, weatherData }) => {
     if (!field || !lat || !lon || !map.value || !L) return
 
-    // Use real weather data or fallback
+    // Use farm weather data
     const temp = weatherData?.temperature || 22
     const humidity = weatherData?.humidity || 65
     const rainfall = weatherData?.rainfall || 0
     const windSpeed = weatherData?.wind_speed || 0
     const description = weatherData?.conditions || 'Unknown'
     
-    // Create custom icon based on temperature (Celsius thresholds)
+    // Create custom icon based on temperature
     const iconColor = temp < 15 ? '#3B82F6' : temp > 30 ? '#EF4444' : '#10B981'
     
     const customIcon = L.divIcon({
@@ -1051,6 +893,7 @@ const updateFieldMarkers = async () => {
       .bindPopup(`
         <div style="min-width: 200px;">
           <h3 style="margin: 0 0 8px 0; font-weight: bold;">${field.name}</h3>
+          <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Farm Weather Conditions</div>
           <div style="font-size: 14px; margin-bottom: 8px;">
             <div><strong>Temperature:</strong> ${Math.round(temp)}°C</div>
             <div><strong>Humidity:</strong> ${Math.round(humidity)}%</div>
@@ -1058,12 +901,6 @@ const updateFieldMarkers = async () => {
             <div><strong>Conditions:</strong> ${description}</div>
             ${rainfall > 0 ? `<div><strong>Precipitation:</strong> ${Number(rainfall).toFixed(2)} mm/h</div>` : ''}
           </div>
-          <button 
-            onclick="window.location.href='/weather/fields/${field.id}'"
-            style="margin-top: 8px; padding: 4px 12px; background: #3B82F6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;"
-          >
-            View Details
-          </button>
         </div>
       `)
 
@@ -1146,34 +983,7 @@ const updateStationMarkers = () => {
 
 // Removed toggleWeatherLayer - ColorfulClouds provides data via API, not map tiles
 
-// Watch for fieldWeather changes to update markers
-watch(fieldWeather, () => {
-  if (map.value) {
-    updateFieldMarkers()
-  }
-}, { deep: true })
 
-// Fetch current weather for dashboard overview
-const fetchCurrentWeather = async () => {
-  try {
-    // Try to fetch from weather store for primary field first
-    if (fieldsWithCoordinates.value.length > 0) {
-      const primaryField = fieldsWithCoordinates.value[0]
-      try {
-        await weatherStore.fetchCurrentWeather(primaryField.id)
-        // Weather store will be updated, computed property will react
-        return
-      } catch (error) {
-        console.warn('Failed to fetch weather from store')
-      }
-    }
-    
-    // Fallback if no fields: check default coordinates but use backend proxy if possible
-    // For now we just don't show general weather if no fields are present
-  } catch (error) {
-    console.error('Error fetching current weather:', error)
-  }
-}
 
 // Get weather icon based on weather code
 const getWeatherIcon = (code) => {

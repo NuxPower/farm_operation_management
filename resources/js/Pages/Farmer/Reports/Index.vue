@@ -526,6 +526,7 @@ const loadReportData = async () => {
 
   try {
     await Promise.all([
+      farmStore.fetchFarmProfile(),
       farmStore.fetchFields(),
       farmStore.fetchHarvests()
     ]);
@@ -538,12 +539,12 @@ const loadReportData = async () => {
       marketplaceStore.fetchFarmerOrders() // Fetch marketplace orders for revenue
     ]);
 
-    const primaryFieldId = fields.value[0]?.id;
+    const farmId = farmStore.farmProfile?.id;
 
-    if (primaryFieldId) {
-      await weatherStore.fetchWeatherHistory(primaryFieldId, weatherDays);
+    if (farmId) {
+      await weatherStore.fetchWeatherHistory(farmId, weatherDays);
     } else {
-      console.warn('No fields found for weather analytics');
+      console.warn('No farm profile found for weather analytics');
     }
   } catch (error) {
     console.error('Failed to load report data:', error);

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\Field;
+use App\Models\Farm;
 use App\Models\WeatherLog;
 use App\Services\WeatherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,20 +16,20 @@ class WeatherOptimizationTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
-    protected $field;
+    protected $farm;
     protected $weatherService;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
-        $this->field = Field::factory()->create([
+        // Create Farmer
+        $this->user = User::factory()->create(['role' => 'farmer']);
+
+        $this->farm = Farm::factory()->create([
             'user_id' => $this->user->id,
-            'location' => [
-                'lat' => 14.5995,
-                'lon' => 120.9842
-            ]
+            'name' => 'Optimization Test Farm',
+            'farm_coordinates' => ['lat' => 14.5995, 'lon' => 120.9842]
         ]);
 
         $this->weatherService = app(WeatherService::class);
@@ -71,7 +71,7 @@ class WeatherOptimizationTest extends TestCase
 
         // Create a recent weather log
         $log = WeatherLog::create([
-            'field_id' => $this->field->id,
+            'farm_id' => $this->farm->id,
             'temperature' => 28.5, // Distinct value
             'humidity' => 75,
             'wind_speed' => 5.5,
@@ -83,7 +83,7 @@ class WeatherOptimizationTest extends TestCase
         Http::fake();
 
         $response = $this->actingAs($this->user)
-            ->getJson("/api/weather/fields/{$this->field->id}/current");
+            ->getJson("/api/weather/farms/{$this->farm->id}/current");
 
         $response->assertStatus(200);
 

@@ -123,8 +123,7 @@ class DataAnalysisController extends Controller
         $weatherForecast = null;
 
         if ($farm) {
-            $fieldIds = $farm->fields->pluck('id');
-            $recentWeather = WeatherLog::whereIn('field_id', $fieldIds)
+            $recentWeather = WeatherLog::where('farm_id', $farm->id)
                 ->where('recorded_at', '>=', now()->subDays(7))
                 ->get();
 
@@ -137,16 +136,11 @@ class DataAnalysisController extends Controller
             }
 
             // Get Forecast for suggestions
-            $firstField = $farm->fields->first();
-            if ($firstField && isset($firstField->location['lat'], $firstField->location['lon'])) {
+            $coords = $farm->weather_coordinates;
+            if (isset($coords['lat'], $coords['lon'])) {
                 $weatherForecast = $this->weatherService->getForecast(
-                    (float) $firstField->location['lat'],
-                    (float) $firstField->location['lon']
-                );
-            } elseif ($firstField && isset($firstField->field_coordinates['lat'], $firstField->field_coordinates['lon'])) {
-                $weatherForecast = $this->weatherService->getForecast(
-                    (float) $firstField->field_coordinates['lat'],
-                    (float) $firstField->field_coordinates['lon']
+                    (float) $coords['lat'],
+                    (float) $coords['lon']
                 );
             }
         }
@@ -200,12 +194,22 @@ class DataAnalysisController extends Controller
 
             // Add pest forecasts from prediction service
             $forecasts = [];
+
+            // Get resolved incidents to suppress warnings
+            $resolvedIncidents = PestIncident::whereIn('planting_id', $plantingIds)
+                ->where('status', 'resolved')
+                ->get();
+
+            // Predict risks for the farm (weather is farm-wide)
+            $farmRisks = $this->pestPredictionService->predictRisks($farm, $resolvedIncidents);
+
             foreach ($farm->fields as $field) {
-                $fieldRisks = $this->pestPredictionService->predictRisks($field);
-                if (!empty($fieldRisks)) {
+                // In the future, we could filter risks by the crop planted in the specific field
+                // For now, we apply farm-wide risks to all fields
+                if (!empty($farmRisks)) {
                     $forecasts[] = [
                         'field_name' => $field->name,
-                        'predictions' => $fieldRisks,
+                        'predictions' => $farmRisks,
                     ];
                 }
             }
