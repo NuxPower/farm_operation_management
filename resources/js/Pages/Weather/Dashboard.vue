@@ -137,7 +137,7 @@
               <div
                 v-for="day in forecast"
                 :key="day.date"
-                class="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                class="flex flex-col md:flex-row md:items-center justify-between p-4 border border-gray-200 rounded-lg gap-4"
               >
                 <div class="flex items-center space-x-4">
                   <div class="text-sm font-medium text-gray-900 w-20">
@@ -149,8 +149,8 @@
                     <div class="text-sm text-gray-600">{{ day.description }}</div>
                   </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                  <div class="text-right">
+                <div class="flex items-center justify-between md:justify-end space-x-0 md:space-x-8 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-gray-100">
+                  <div class="text-left md:text-right">
                     <div class="font-medium text-gray-900">
                       {{ (day.high !== null && !isNaN(day.high)) ? Math.round(day.high) + '°C' : '--' }}
                     </div>
@@ -165,6 +165,13 @@
                     <div>
                       {{ (day.wind_speed !== null && !isNaN(day.wind_speed)) ? Math.round(day.wind_speed * 3.6) + ' km/h' : '--' }}
                     </div>
+                    <button 
+                      v-if="day.hourly && day.hourly.length"
+                      @click.stop="openHourlyModal(day)"
+                      class="text-xs text-blue-600 hover:text-blue-800 underline mt-1"
+                    >
+                      View Hourly
+                    </button>
                   </div>
                 </div>
               </div>
@@ -271,6 +278,46 @@
         </div>
       </div>
     </div>
+
+    
+    <!-- Hourly Forecast Modal -->
+    <Modal v-model="showHourlyModal" :title="selectedDay ? `Hourly Forecast - ${formatDate(selectedDay.date)}` : 'Hourly Forecast'">
+      <div v-if="selectedDay && selectedDay.hourly" class="overflow-x-auto max-h-[60vh]">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temp</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rain Chance</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="hour in selectedDay.hourly" :key="hour.time" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ hour.time }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <span class="text-xl mr-2">{{ hour.icon }}</span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ Math.round(hour.temp) }}°C</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" :class="hour.pop > 0.5 ? 'text-blue-600' : 'text-gray-500'">
+                {{ Math.round(hour.pop * 100) }}%
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="text-center py-8 text-gray-500">
+        No hourly data available for this day.
+      </div>
+      <template #footer>
+        <button
+          @click="showHourlyModal = false"
+          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+        >
+          Close
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -278,7 +325,9 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
+
 import { useWeatherStore } from '@/stores/weather'
+import Modal from '@/Components/UI/Modal.vue'
 
 const router = useRouter()
 const farmStore = useFarmStore()
@@ -291,7 +340,16 @@ const markers = ref([])
 const fieldWeatherData = ref({}) // Store fetched weather data for each field
 const selectedWeatherLayer = ref('windy') // Default to Windy.com embed
 const currentWeatherLayer = ref(null) // Current active weather overlay
+
 const windyIframe = ref(null)
+
+const showHourlyModal = ref(false)
+const selectedDay = ref(null)
+
+const openHourlyModal = (day) => {
+  selectedDay.value = day
+  showHourlyModal.value = true
+}
 
 // Get fields from store
 const fields = computed(() => farmStore.fields || [])
@@ -378,7 +436,8 @@ const forecast = computed(() => {
         low: tempMin,
         rain_chance: day.precipitation_probability ?? day.rain_chance ?? day.precipitation_chance ?? 0,
         wind_speed: day.wind_speed_avg ?? day.wind_speed ?? day.wind ?? 5,
-        icon: icon
+        icon: icon,
+        hourly: day.hourly || []
       }
     })
   }
@@ -449,6 +508,45 @@ const weatherAlerts = computed(() => {
         });
       }
     }
+    // 3. Scan forecast for upcoming conditions (Next 3-5 days)
+    if (weatherStore.forecast && weatherStore.forecast.length > 0) {
+      // iterate next 3 days
+      const upcomingDays = weatherStore.forecast.slice(0, 3);
+      
+      upcomingDays.forEach(day => {
+        const dateStr = new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' });
+        const condition = (day.most_common_condition || day.condition || day.weather || '').toLowerCase();
+        const rainChance = day.precipitation_probability ?? day.rain_chance ?? 0;
+        const maxTemp = day.temperature?.max ?? day.high ?? 0;
+        
+        // Rain Forecast
+        if ((condition.includes('rain') || condition.includes('storm') || rainChance > 50) && !hasAlert('Rain Expected')) {
+           alerts.push({
+             id: `forecast-rain-${day.date}`,
+             type: 'warning',
+             severity: 'medium',
+             title: 'Rain Expected',
+             description: `Rain forecast for ${dateStr}. Plan field activities accordingly.`,
+             issued_at: new Date().toISOString(),
+             icon: '🌧️'
+           });
+        }
+        
+        // Heat Forecast
+        if (maxTemp > 35 && !hasAlert('Extreme Heat Forecast')) {
+           alerts.push({
+             id: `forecast-heat-${day.date}`,
+             type: 'danger',
+             severity: 'medium',
+             title: 'Extreme Heat Forecast',
+             description: `High temperatures (>35°C) expected on ${dateStr}.`,
+             issued_at: new Date().toISOString(),
+             icon: '🌡️'
+           });
+        }
+      });
+    }
+
   } catch (e) {
     console.error('Error generating local alerts:', e)
   }
@@ -541,7 +639,9 @@ const refreshWeather = async () => {
     }
     
     // 2. Fetch Farm Weather (Current and Forecast)
-    const farmId = farmStore.farmProfile?.id;
+    // Handle both direct ID and nested farm object (backend returns { farmProfile: { farm: {...} } })
+    const farmId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id;
+    
     if (farmId) {
        await Promise.all([
           weatherStore.fetchCurrentWeather(farmId),
@@ -549,7 +649,7 @@ const refreshWeather = async () => {
           weatherStore.fetchWeatherAlerts(farmId)
        ]);
     } else {
-       console.warn('No farm profile found, cannot fetch weather.');
+       console.warn('No farm profile found, cannot fetch weather. Profile state:', farmStore.farmProfile);
     }
 
     // 3. Refresh map markers (if map is active)
@@ -580,8 +680,11 @@ const viewHistoricalData = () => {
 const exportWeatherData = async () => {
   // Export farm weather data
   try {
-     const farmId = farmStore.farmProfile?.id;
-     if (!farmId) return;
+     const farmId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id;
+     if (!farmId) {
+       console.warn('Cannot export: No farm ID found');
+       return;
+     }
      
      // Trigger backend export
      window.location.href = `/api/analytics/farm/${farmId}/export`;

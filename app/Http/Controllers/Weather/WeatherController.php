@@ -484,29 +484,60 @@ class WeatherController extends Controller
                     'code' => 0,
                     'humidity' => 0,
                     'icon' => '🌤️',
-                    'count' => 0 // Track number of forecasts for this day
+                    'count' => 0, // Track number of forecasts for this day
+                    'hourly' => []
                 ];
             }
 
             // Keep temperature in Celsius (API returns metric/Celsius)
             $tempC = $forecast['main']['temp'] ?? 0;
+            $tempMaxInput = $forecast['main']['temp_max'] ?? $tempC;
+            $tempMinInput = $forecast['main']['temp_min'] ?? $tempC;
 
-            $dailyForecasts[$forecastDate]['high'] = max($dailyForecasts[$forecastDate]['high'], $tempC);
-            $dailyForecasts[$forecastDate]['low'] = min($dailyForecasts[$forecastDate]['low'], $tempC);
-            $dailyForecasts[$forecastDate]['temperature_max'] = max($dailyForecasts[$forecastDate]['temperature_max'], $tempC);
-            $dailyForecasts[$forecastDate]['temperature_min'] = min($dailyForecasts[$forecastDate]['temperature_min'], $tempC);
-            $dailyForecasts[$forecastDate]['max_temp'] = max($dailyForecasts[$forecastDate]['max_temp'], $tempC);
-            $dailyForecasts[$forecastDate]['min_temp'] = min($dailyForecasts[$forecastDate]['min_temp'], $tempC);
+            $dailyForecasts[$forecastDate]['high'] = max($dailyForecasts[$forecastDate]['high'], $tempMaxInput);
+            $dailyForecasts[$forecastDate]['low'] = min($dailyForecasts[$forecastDate]['low'], $tempMinInput);
+            $dailyForecasts[$forecastDate]['temperature_max'] = max($dailyForecasts[$forecastDate]['temperature_max'], $tempMaxInput);
+            $dailyForecasts[$forecastDate]['temperature_min'] = min($dailyForecasts[$forecastDate]['temperature_min'], $tempMinInput);
+            $dailyForecasts[$forecastDate]['max_temp'] = max($dailyForecasts[$forecastDate]['max_temp'], $tempMaxInput);
+            $dailyForecasts[$forecastDate]['min_temp'] = min($dailyForecasts[$forecastDate]['min_temp'], $tempMinInput);
+
+            // Preserve hourly data if available (from Open-Meteo service)
+            if (isset($forecast['hourly'])) {
+                $dailyForecasts[$forecastDate]['hourly'] = $forecast['hourly'];
+            }
 
             // Calculate average temperature
             $dailyForecasts[$forecastDate]['temperature'] = ($dailyForecasts[$forecastDate]['high'] + $dailyForecasts[$forecastDate]['low']) / 2;
 
-            // Get most common condition (use the first one for now, could be improved)
-            if (empty($dailyForecasts[$forecastDate]['condition'])) {
-                $dailyForecasts[$forecastDate]['condition'] = $forecast['weather'][0]['main'] ?? 'Clear';
-                $dailyForecasts[$forecastDate]['weather'] = $forecast['weather'][0]['main'] ?? 'Clear';
-                $dailyForecasts[$forecastDate]['description'] = $forecast['weather'][0]['description'] ?? 'Clear skies';
-                $dailyForecasts[$forecastDate]['weather_description'] = $forecast['weather'][0]['description'] ?? 'Clear skies';
+            // Collect conditions for finding the most representative one later
+            if (!isset($dailyForecasts[$forecastDate]['conditions_list'])) {
+                $dailyForecasts[$forecastDate]['conditions_list'] = [];
+            }
+            $dailyForecasts[$forecastDate]['conditions_list'][] = [
+                'main' => $forecast['weather'][0]['main'] ?? 'Clear',
+                'description' => $forecast['weather'][0]['description'] ?? 'Clear skies',
+                'id' => $forecast['weather'][0]['id'] ?? 800
+            ];
+
+            // Weather code - prioritize worse weather
+            // IDs: 2xx Thunderstorm, 3xx Drizzle, 5xx Rain, 6xx Snow, 7xx Atmos, 800 Clear, 80x Clouds
+            $currentCode = $forecast['weather'][0]['id'] ?? 800;
+            $existingCode = $dailyForecasts[$forecastDate]['weather_code'] ?? 0;
+
+            // Logic to prioritize severe weather for the daily code/icon
+            // If we don't have a code yet, take the current one
+            if ($existingCode === 0) {
+                $dailyForecasts[$forecastDate]['weather_code'] = $currentCode;
+                $dailyForecasts[$forecastDate]['code'] = $currentCode;
+            } else {
+                // Priority: Thunderstorm (2xx) > Snow (6xx) > Rain (5xx) > Drizzle (3xx) > Atmosphere (7xx) > Clouds (80x) > Clear (800)
+                // Simplify by checking ranges
+                $isSevere = fn($c) => ($c >= 200 && $c < 700);
+
+                if ($isSevere($currentCode) && !$isSevere($existingCode)) {
+                    $dailyForecasts[$forecastDate]['weather_code'] = $currentCode;
+                    $dailyForecasts[$forecastDate]['code'] = $currentCode;
+                }
             }
 
             // Get max precipitation probability
@@ -520,10 +551,6 @@ class WeatherController extends Controller
             $dailyForecasts[$forecastDate]['wind_speed'] = max($dailyForecasts[$forecastDate]['wind_speed'], $windSpeed);
             $dailyForecasts[$forecastDate]['wind'] = max($dailyForecasts[$forecastDate]['wind'], $windSpeed);
 
-            // Weather code
-            $dailyForecasts[$forecastDate]['weather_code'] = $forecast['weather'][0]['id'] ?? 0;
-            $dailyForecasts[$forecastDate]['code'] = $forecast['weather'][0]['id'] ?? 0;
-
             // Average humidity
             $humidity = $forecast['main']['humidity'] ?? 0;
             if ($dailyForecasts[$forecastDate]['humidity'] === 0) {
@@ -534,6 +561,71 @@ class WeatherController extends Controller
 
             $dailyForecasts[$forecastDate]['count']++;
         }
+
+        // Post-process to set final daily condition based on accumulated data
+        foreach ($dailyForecasts as &$day) {
+            // If rain chance is high (>40%), force condition to Rain/Snow if not already
+            $isRainy = $day['rain_chance'] > 40;
+
+            // Find worst condition from list
+            $worstCondition = null;
+            $worstCode = 800;
+
+            foreach ($day['conditions_list'] as $cond) {
+                $code = $cond['id'];
+                // Simple priority check: lower ID is generally worse in OWM (2xx storm, 3xx drizzle, 5xx rain)
+                // Exception: 800 is clear, 80x is clouds. 7xx is fog etc.
+                // We want to prioritize 2xx, 5xx, 6xx, 3xx.
+
+                $score = 0;
+                if ($code >= 200 && $code < 300)
+                    $score = 10; // Thunderstorm
+                elseif ($code >= 600 && $code < 700)
+                    $score = 9; // Snow
+                elseif ($code >= 500 && $code < 600)
+                    $score = 8; // Rain
+                elseif ($code >= 300 && $code < 400)
+                    $score = 7; // Drizzle
+                elseif ($code >= 700 && $code < 800)
+                    $score = 6; // Fog/Mist
+                elseif ($code > 800)
+                    $score = 5; // Cloudy
+                elseif ($code == 800)
+                    $score = 1; // Clear
+
+                if (!$worstCondition || $score > $worstCondition['score']) {
+                    $worstCondition = $cond;
+                    $worstCondition['score'] = $score;
+                }
+            }
+
+            // If we have high rain chance but didn't pick up a rain condition (e.g. all intervals were cloudy but POP was high),
+            // force it to Rain if we didn't find something worse (like Storm).
+            if ($isRainy && ($worstCondition['score'] ?? 0) < 8) {
+                $day['condition'] = 'Rain';
+                $day['weather'] = 'Rain';
+                $day['description'] = 'Rain expected';
+                $day['weather_description'] = 'Rain expected';
+            } else {
+                $day['condition'] = $worstCondition['main'];
+                $day['weather'] = $worstCondition['main'];
+                $day['description'] = $worstCondition['description'];
+                $day['weather_description'] = $worstCondition['description'];
+            }
+
+            // Consistency check: If condition is Rain/Storm, ensure rain_chance is non-zero
+            // This handles cases where OWM returns condition 'Rain' but pop=0
+            $conditionLower = strtolower($day['condition']);
+            if ((str_contains($conditionLower, 'rain') || str_contains($conditionLower, 'storm')) && $day['rain_chance'] < 30) {
+                $day['rain_chance'] = 30; // Set a minimum baseline if it's actually raining
+                $day['precipitation_probability'] = 30;
+                $day['precipitation_chance'] = 30;
+            }
+
+            // Cleanup separate list
+            unset($day['conditions_list']);
+        }
+        unset($day); // break reference
 
         // Sort by date and get first N days (starting from today)
         ksort($dailyForecasts);

@@ -495,7 +495,7 @@ const routes = [
     name: 'weather-reports',
     component: WeatherReports,
     meta: { requiresAuth: true, roles: ['farmer'] }
-  },
+  }
 ];
 
 export default routes;

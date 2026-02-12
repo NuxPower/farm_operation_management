@@ -25,6 +25,7 @@ class InitialSystemSeeder extends Seeder
     public function run(): void
     {
         $this->seedMinimalUser();
+        $this->seedFarm();
         $this->seedRiceVarieties();
         $this->seedRiceGrowthStages();
         $this->seedPestLibrary();
@@ -46,11 +47,53 @@ class InitialSystemSeeder extends Seeder
                 'role' => 'farmer',
                 'phone' => '+1-555-0101',
                 'phone_verified_at' => now(),
-                'address' => [],
+                'address' => [
+                    'street' => '456 Farm Road',
+                    'city' => 'Rural Town',
+                    'state' => 'RT',
+                    'country' => 'USA',
+                    'postal_code' => '54321'
+                ],
             ]
         );
 
         echo "Seeded John Farmer credentials.\n";
+    }
+
+    /**
+     * Seed Farm for John Farmer
+     */
+    private function seedFarm(): void
+    {
+        $farmer = User::where('email', 'john@farmops.com')->first();
+
+        if (!$farmer) {
+            echo "Farmer not found. Skipping farm seeding.\n";
+            return;
+        }
+
+        $farm = Farm::updateOrCreate(
+            [
+                'user_id' => $farmer->id,
+                'name' => "John's Farm",
+            ],
+            [
+                'location' => 'Managok, City of Malaybalay, Bukidnon',
+                'farm_coordinates' => [
+                    'lat' => 8.0276,
+                    'lon' => 125.1885,
+                ],
+                'total_area' => 50.0,
+                'cultivated_area' => 40.0,
+                'soil_type' => 'loam',
+                'soil_ph' => 6.4,
+                'water_source' => 'well',
+                'irrigation_type' => 'sprinkler',
+                'is_setup_complete' => true,
+            ]
+        );
+
+        echo "Seeded John's Farm.\n";
     }
 
     /**
@@ -302,7 +345,7 @@ class InitialSystemSeeder extends Seeder
             $lat = $coordinates['lat'] ?? 8.0276;
             $lon = $coordinates['lon'] ?? $coordinates['lng'] ?? 125.1885;
 
-            echo "Fetching weather data for farm '{$farm->farm_name}' ({$lat}, {$lon})...\n";
+            echo "Fetching weather data for farm '{$farm->name}' ({$lat}, {$lon})...\n";
 
             try {
                 $response = Http::get("https://archive-api.open-meteo.com/v1/archive", [
@@ -341,9 +384,9 @@ class InitialSystemSeeder extends Seeder
                     );
                     $count++;
                 }
-                echo "Seeded {$count} weather logs for farm '{$farm->farm_name}'.\n";
+                echo "Seeded {$count} weather logs for farm '{$farm->name}'.\n";
             } catch (\Exception $e) {
-                echo "Error seeding weather for '{$farm->farm_name}': " . $e->getMessage() . "\n";
+                echo "Error seeding weather for '{$farm->name}': " . $e->getMessage() . "\n";
                 Log::error("WeatherSeeder Error: " . $e->getMessage());
             }
         }

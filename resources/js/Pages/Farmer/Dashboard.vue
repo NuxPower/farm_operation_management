@@ -39,30 +39,13 @@
 
     <!-- Weather Widget (Moved to Header) -->
     <div class="w-full md:w-auto min-w-[300px]">
-       <!-- Field Selector Dropdown (Compact) -->
-       <div v-if="fieldsWithCoordinates.length > 1" class="mb-2">
-         <select
-           v-model="selectedFieldId"
-           @change="onFieldChange"
-           class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-xs"
-         >
-           <option v-for="field in fieldsWithCoordinates" :key="field.id" :value="field.id">
-             {{ field.name }}
-           </option>
-         </select>
-       </div>
-       
        <!-- Weather Card -->
-       <div v-if="primaryField && primaryField.id && hasValidCoordinates(primaryField)">
-         <CurrentWeather :field-id="primaryField.id" :compact="true" />
-       </div>
-       <div v-else-if="primaryField && primaryField.id" class="p-4 bg-white rounded-lg shadow border border-gray-100 text-center">
-         <p class="text-xs text-gray-500">Update field location for weather data</p>
-         <button @click="navigateTo('/fields')" class="text-xs text-green-600 font-medium mt-1">Go to Fields</button>
+       <div v-if="currentFarmId">
+         <CurrentWeather :farm-id="currentFarmId" :compact="true" />
        </div>
        <div v-else class="p-4 bg-white rounded-lg shadow border border-gray-100 text-center">
-          <p class="text-xs text-gray-500">No fields available</p>
-          <button @click="navigateTo('/fields')" class="text-xs text-green-600 font-medium mt-1">Add Field</button>
+         <p class="text-xs text-gray-500">Weather data unavailable</p>
+         <button @click="navigateTo('/profile')" class="text-xs text-green-600 font-medium mt-1">Check Farm Profile</button>
        </div>
     </div>
   </div>
@@ -502,6 +485,7 @@
   import { useFarmStore } from '@/stores/farm';
   import { useInventoryStore } from '@/stores/inventory';
   import { useMarketplaceStore } from '@/stores/marketplace';
+  import { useWeatherStore } from '@/stores/weather';
   import { dashboardAPI } from '@/services/api';
   import CurrentWeather from '@/Components/Weather/CurrentWeather.vue';
   import { formatCurrency } from '@/utils/format';
@@ -511,6 +495,7 @@
   const farmStore = useFarmStore();
   const inventoryStore = useInventoryStore();
   const marketplaceStore = useMarketplaceStore();
+  const weatherStore = useWeatherStore();
   
   // Add loading state to prevent button spamming
   const isNavigating = ref(false);
@@ -745,6 +730,7 @@
   const weatherAlerts = computed(() => {
     try {
       const alerts = [];
+      // Weather store now manages current weather based on farm ID
       const weather = weatherStore.currentWeather;
       const forecast = weatherStore.forecast || [];
       
@@ -829,149 +815,25 @@
     }
   });
   
-  // Helper function to check if a field has valid coordinates
-  const hasValidCoordinates = (field) => {
-    if (!field) return false;
+  // Get current farm ID from auth store
+  // Get current farm ID from auth store
+  const currentFarmId = computed(() => {
+    // Check for farm_profile.id (direct) or farm_profile.farm.id (nested wrapper)
+    const authProfileId = authStore.user?.farm_profile?.id || authStore.user?.farm_profile?.farm?.id;
     
-    // Check location coordinates
-    if (field.location && 
-    typeof field.location === 'object' &&
-    typeof field.location.lat === 'number' &&
-    typeof field.location.lon === 'number' &&
-    !isNaN(field.location.lat) &&
-    !isNaN(field.location.lon)) {
-      return true;
-    }
+    // Check for farmProfile.id (direct) or farmProfile.farm.id (nested wrapper from API)
+    const storeProfileId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id;
     
-    // Check field_coordinates
-    if (field.field_coordinates &&
-    typeof field.field_coordinates === 'object' &&
-    typeof field.field_coordinates.lat === 'number' &&
-    typeof field.field_coordinates.lon === 'number' &&
-    !isNaN(field.field_coordinates.lat) &&
-    !isNaN(field.field_coordinates.lon)) {
-      return true;
-    }
-    
-    return false;
-  };
-  
-  // Get all fields with valid coordinates
-  const fieldsWithCoordinates = computed(() => {
-    try {
-      if (!farmStore || !farmStore.fields || !Array.isArray(farmStore.fields)) {
-        return [];
-      }
-      
-      return farmStore.fields.filter(field => hasValidCoordinates(field));
-    } catch (error) {
-      console.warn('Error getting fields with coordinates:', error);
-      return [];
-    }
+    console.log('Computing currentFarmId - Auth:', authProfileId, 'Store:', storeProfileId);
+    return authProfileId || storeProfileId;
   });
-  
-  // Selected field ID (stored in localStorage for persistence)
-  const selectedFieldId = ref(null);
-  
-  // Initialize selected field from localStorage or use first valid field
-  const initializeSelectedField = () => {
-    const savedFieldId = localStorage.getItem('selectedFieldId');
-    if (savedFieldId && fieldsWithCoordinates.value.some(f => f.id == savedFieldId)) {
-      selectedFieldId.value = savedFieldId;
-    } else if (fieldsWithCoordinates.value.length > 0) {
-      selectedFieldId.value = fieldsWithCoordinates.value[0].id;
-      localStorage.setItem('selectedFieldId', selectedFieldId.value);
+
+  // Watch for farm profile loading
+  watch(() => farmStore.farmProfile, (newProfile) => {
+    if (newProfile && newProfile.id) {
+      console.log('Farm profile loaded, ID:', newProfile.id);
     }
-  };
-  
-  // Handle field selection change
-  const onFieldChange = () => {
-    if (selectedFieldId.value) {
-      localStorage.setItem('selectedFieldId', selectedFieldId.value);
-    }
-  };
-  
-  // Watch for fields loading and initialize selection
-  watch(() => farmStore.fields, () => {
-    if (fieldsWithCoordinates.value.length > 0 && !selectedFieldId.value) {
-      initializeSelectedField();
-    }
-  }, { immediate: true, deep: true });
-  
-  const primaryField = computed(() => {
-    try {
-      if (!farmStore || !farmStore.fields || !Array.isArray(farmStore.fields)) {
-        return null;
-      }
-      
-      if (farmStore.fields.length === 0) {
-        return null;
-      }
-      
-      // If user has selected a field, use that
-      if (selectedFieldId.value) {
-        const selectedField = farmStore.fields.find(f => f.id == selectedFieldId.value);
-        if (selectedField && hasValidCoordinates(selectedField)) {
-          return selectedField;
-        }
-      }
-      
-      // Otherwise, find a field with valid location coordinates
-      // First, try to find a field with valid location.lat and location.lon
-      const fieldWithValidLocation = farmStore.fields.find(field => {
-        if (!field || !field.location) return false;
-        
-        // Check if location has lat and lon
-        const hasLocationCoords = 
-        typeof field.location === 'object' &&
-        field.location !== null &&
-        typeof field.location.lat === 'number' &&
-        typeof field.location.lon === 'number' &&
-        !isNaN(field.location.lat) &&
-        !isNaN(field.location.lon);
-        
-        return hasLocationCoords;
-      });
-      
-      // If we found a field with valid coordinates, use it
-      if (fieldWithValidLocation) {
-        // Save it as selected
-        selectedFieldId.value = fieldWithValidLocation.id;
-        localStorage.setItem('selectedFieldId', selectedFieldId.value);
-        return fieldWithValidLocation;
-      }
-      
-      // Fallback: try field_coordinates if location doesn't have coords
-      const fieldWithFieldCoordinates = farmStore.fields.find(field => {
-        if (!field || !field.field_coordinates) return false;
-        
-        const hasFieldCoords = 
-        typeof field.field_coordinates === 'object' &&
-        field.field_coordinates !== null &&
-        typeof field.field_coordinates.lat === 'number' &&
-        typeof field.field_coordinates.lon === 'number' &&
-        !isNaN(field.field_coordinates.lat) &&
-        !isNaN(field.field_coordinates.lon);
-        
-        return hasFieldCoords;
-      });
-      
-      // If we found a field with field_coordinates, use it
-      if (fieldWithFieldCoordinates) {
-        // Save it as selected
-        selectedFieldId.value = fieldWithFieldCoordinates.id;
-        localStorage.setItem('selectedFieldId', selectedFieldId.value);
-        return fieldWithFieldCoordinates;
-      }
-      
-      // Last resort: return first field (but it might not have valid coordinates)
-      // This allows us to show a message about needing coordinates
-      return farmStore.fields[0];
-    } catch (error) {
-      console.warn('Error getting primary field:', error);
-      return null;
-    }
-  });
+  }, { immediate: true });
   
   const getTaskPriorityColor = (priority) => {
     const colors = {
@@ -1044,7 +906,18 @@
   
   onMounted(async () => {
     // Initialize field selection
-    initializeSelectedField();
+    // Ensure farm profile is loaded for weather
+    if (!farmStore.farmProfile && authStore.isAuthenticated) {
+        console.log('Fetching farm profile in Dashboard mount...');
+        try {
+            await farmStore.fetchFarmProfile();
+            console.log('Farm profile fetched successfully');
+        } catch (e) {
+            console.error('Error fetching farm profile in Dashboard:', e);
+        }
+    } else {
+        console.log('Skipping farm profile fetch. Profile exists:', !!farmStore.farmProfile, 'Auth:', authStore.isAuthenticated);
+    }
     
     // Load data with improved error handling and retry logic
     const loadData = async () => {

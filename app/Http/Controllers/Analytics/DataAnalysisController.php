@@ -359,7 +359,7 @@ class DataAnalysisController extends Controller
                         'message' => 'Rain is in the forecast. Check drainage and delay sensitive activities.',
                         'priority' => 'high',
                         'action_label' => 'View Forecast',
-                        'action_url' => '/reports/weather',
+                        'action_url' => '/weather',
                     ];
                 }
             }
@@ -373,7 +373,7 @@ class DataAnalysisController extends Controller
                 'message' => sprintf('%d overdue tasks need immediate attention', $tasks['overdue_tasks']),
                 'priority' => 'high',
                 'action_label' => 'View Tasks',
-                'action_url' => '/rice-farming/tasks',
+                'action_url' => '/tasks',
             ];
         }
 
@@ -385,7 +385,7 @@ class DataAnalysisController extends Controller
                 'message' => sprintf('%d active pest incidents require treatment', $pests['active_incidents']),
                 'priority' => 'high',
                 'action_label' => 'Manage Pests',
-                'action_url' => '/rice-farming/pest-control',
+                'action_url' => '/pest-tracker',
             ];
         }
 
@@ -397,7 +397,7 @@ class DataAnalysisController extends Controller
                 'message' => sprintf('%d seedling batches are ready for transplanting', $nursery['ready_for_transplant']),
                 'priority' => 'medium',
                 'action_label' => 'View Nursery',
-                'action_url' => '/rice-farming/nursery',
+                'action_url' => '/seed-plantings',
             ];
         }
 
@@ -423,7 +423,7 @@ class DataAnalysisController extends Controller
                 'message' => sprintf('%d pending tasks. Consider prioritizing or delegating.', $tasks['pending_tasks']),
                 'priority' => 'low',
                 'action_label' => 'Plan Tasks',
-                'action_url' => '/rice-farming/tasks',
+                'action_url' => '/tasks',
             ];
         }
 
@@ -443,15 +443,15 @@ class DataAnalysisController extends Controller
                 'message' => 'Plan your next planting cycle for optimal yields.',
                 'priority' => 'low',
                 'action_label' => 'Start Planting',
-                'action_url' => '/rice-farming/lifecycle',
+                'action_url' => '/plantings',
             ];
             $suggestions[] = [
                 'icon' => '📈',
                 'category' => 'Marketplace',
-                'message' => 'Check marketplace trends and pricing for your products.',
+                'message' => 'Manage your product listings and check orders.',
                 'priority' => 'low',
-                'action_label' => 'Visit Marketplace',
-                'action_url' => '/marketplace',
+                'action_label' => 'My Products',
+                'action_url' => '/marketplace/my-products',
             ];
         }
 

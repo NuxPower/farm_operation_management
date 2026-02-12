@@ -13,6 +13,7 @@ class RiceProduct extends Model
         'farmer_id',
         'rice_variety_id',
         'harvest_id',
+        'inventory_item_id',
         'name',
         'description',
         'quantity_available',
@@ -154,6 +155,50 @@ class RiceProduct extends Model
     public function harvest()
     {
         return $this->belongsTo(Harvest::class);
+    }
+
+    /**
+     * Get the inventory item for this product
+     */
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    /**
+     * Attempt to find a matching inventory item for this product
+     */
+    public function findMatchingInventoryItem()
+    {
+        // 1. Return explicitly linked item if exists
+        if ($this->inventory_item_id) {
+            return $this->inventoryItem;
+        }
+
+        // 2. Try to find by exact name match for this farmer
+        $match = InventoryItem::where('user_id', $this->farmer_id)
+            ->where('category', InventoryItem::CATEGORY_PRODUCE)
+            ->where('name', $this->name)
+            ->first();
+
+        if ($match) {
+            return $match;
+        }
+
+        // 3. Try variety name with (Grade X) suffix (common pattern in HarvestController)
+        $varietyName = $this->riceVariety?->name;
+        if ($varietyName) {
+            $match = InventoryItem::where('user_id', $this->farmer_id)
+                ->where('category', InventoryItem::CATEGORY_PRODUCE)
+                ->where('name', 'ILIKE', $varietyName . '%')
+                ->first();
+
+            if ($match) {
+                return $match;
+            }
+        }
+
+        return null;
     }
 
     /**

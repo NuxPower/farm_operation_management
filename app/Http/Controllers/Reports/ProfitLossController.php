@@ -24,8 +24,8 @@ class ProfitLossController extends Controller
     public function summary(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $startDate = $request->start_date ? Carbon::parse($request->start_date) : now()->subYear();
-        $endDate = $request->end_date ? Carbon::parse($request->end_date) : now();
+        $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : now()->subYear()->startOfDay();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : now()->endOfDay();
 
         $farm = $user->farm;
 
@@ -86,13 +86,15 @@ class ProfitLossController extends Controller
         // If exact compatibility is needed, we would add 'getPlantingProfitability' to Service.
         // For now, let's stick to the Service call to remove raw queries.
 
-        $analysis = $this->financialService->getCropProfitabilityAnalysis($farm->id, 365); // Default 1 year
+        // Use FinancialService to get specific planting profitability if available
+        // logic moved to FinancialService to keep controller clean
+        $plantings = $this->financialService->getPlantingProfitability($farm->id, 365);
 
         return response()->json([
-            'plantings' => $analysis['crops'] ?? [], // Service usually groups by crop type, not individual planting ID
+            'plantings' => $plantings,
             'totals' => [
-                'total_revenue' => $analysis['total_revenue'] ?? 0,
-                'total_profit' => $analysis['total_profit'] ?? 0
+                'total_revenue' => collect($plantings)->sum('revenue'),
+                'total_profit' => collect($plantings)->sum('net_profit')
             ]
         ]);
     }

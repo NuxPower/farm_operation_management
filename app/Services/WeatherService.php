@@ -115,8 +115,10 @@ class WeatherService
                 $response = Http::get("https://api.open-meteo.com/v1/forecast", [
                     'latitude' => $lat,
                     'longitude' => $lon,
-                    'daily' => 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,relative_humidity_2m_max',
-                    'timezone' => 'Asia/Manila'
+                    'daily' => 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,relative_humidity_2m_max,precipitation_probability_max',
+                    'hourly' => 'temperature_2m,weather_code,precipitation_probability',
+                    'timezone' => 'Asia/Manila',
+                    'models' => 'gfs_seamless'
                 ]);
 
                 if ($response->successful()) {
@@ -140,7 +142,8 @@ class WeatherService
                                 ]
                             ],
                             'dt_txt' => $time . ' 12:00:00', // Mocking midday
-                            'pop' => $daily['precipitation_sum'][$index] > 0 ? 1 : 0,
+                            'pop' => isset($daily['precipitation_probability_max'][$index]) ? $daily['precipitation_probability_max'][$index] / 100 : ($daily['precipitation_sum'][$index] > 0 ? 1 : 0),
+                            'hourly' => $this->extractHourlyData($data['hourly'] ?? [], $index),
                         ];
                     }
 
@@ -163,6 +166,42 @@ class WeatherService
                 return null;
             }
         });
+    }
+
+    /**
+     * Extract 24 hours of data for a specific day index
+     */
+    private function extractHourlyData(array $hourly, int $dayIndex): array
+    {
+        $hours = [];
+        $startIndex = $dayIndex * 24;
+
+        if (!isset($hourly['time']))
+            return [];
+
+        for ($i = 0; $i < 24; $i++) {
+            $currentIndex = $startIndex + $i;
+            if (isset($hourly['time'][$currentIndex])) {
+                $pop = ($hourly['precipitation_probability'][$currentIndex] ?? 0) / 100;
+                $code = $hourly['weather_code'][$currentIndex] ?? 0;
+                $condition = $this->mapWmoCode($code);
+
+                // If rain chance is high (> 50%) and condition is not already severe, force it to rainy
+                if ($pop > 0.5 && !in_array($condition, ['rainy', 'stormy', 'snowy'])) {
+                    $condition = 'rainy';
+                }
+
+                $hours[] = [
+                    'time' => Carbon::parse($hourly['time'][$currentIndex])->format('H:i'),
+                    'temp' => $hourly['temperature_2m'][$currentIndex] ?? 0,
+                    'pop' => $pop,
+                    'code' => $code,
+                    'icon' => $condition,
+                ];
+            }
+        }
+
+        return $hours;
     }
 
     /**

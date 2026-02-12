@@ -129,6 +129,35 @@ class RiceOrderController extends Controller
             $unitPrice = $product->price_per_unit;
             $totalAmount = $unitPrice * $request->quantity;
 
+            // Deduct from Inventory Item - Fetch fresh product and match inside transaction
+            $inventoryItem = $product->findMatchingInventoryItem();
+
+            if ($inventoryItem) {
+                // Lock the inventory item for update to prevent race conditions
+                $inventoryItem = \App\Models\InventoryItem::where('id', $inventoryItem->id)->lockForUpdate()->first();
+
+                if ($inventoryItem && $inventoryItem->removeStock($request->quantity)) {
+                    // Log transaction
+                    \App\Models\InventoryTransaction::create([
+                        'inventory_item_id' => $inventoryItem->id,
+                        'user_id' => $product->farmer_id,
+                        'transaction_type' => 'out',
+                        'quantity' => $request->quantity,
+                        'unit_cost' => $inventoryItem->unit_price,
+                        'total_cost' => $request->quantity * ($inventoryItem->unit_price ?? 0),
+                        'reference_type' => 'RiceOrder',
+                        'reference_id' => null, // Will update after order creation
+                        'notes' => "Sold via Marketplace Product: {$product->name}",
+                        'transaction_date' => now(),
+                    ]);
+
+                    // Auto-link ID if missing for future performance
+                    if (!$product->inventory_item_id) {
+                        $product->update(['inventory_item_id' => $inventoryItem->id]);
+                    }
+                }
+            }
+
             $order = RiceOrder::create([
                 'buyer_id' => Auth::id(),
                 'rice_product_id' => $request->rice_product_id,
@@ -146,6 +175,18 @@ class RiceOrderController extends Controller
                 'is_pre_order' => $product->production_status === 'in_production',
                 'offer_price' => $request->input('offer_price'),
             ]);
+
+            // Update transaction reference if exists
+            $latestTransaction = \App\Models\InventoryTransaction::where('inventory_item_id', $inventoryItem->id ?? null)
+                ->where('reference_type', 'RiceOrder')
+                ->whereNull('reference_id')
+                ->where('user_id', $product->farmer_id)
+                ->latest()
+                ->first();
+
+            if ($latestTransaction) {
+                $latestTransaction->update(['reference_id' => $order->id]);
+            }
 
             // If offer price is present and less than unit price, set status to negotiating
             if ($request->filled('offer_price') && (float) $request->input('offer_price') < (float) $unitPrice) {

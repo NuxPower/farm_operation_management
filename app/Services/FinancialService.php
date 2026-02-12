@@ -323,6 +323,50 @@ class FinancialService
     }
 
     /**
+     * Get profitability by individual planting
+     */
+    public function getPlantingProfitability($farmId, $period = '365')
+    {
+        $startDate = now()->subDays($period);
+
+        $plantings = Planting::whereHas('field', function ($q) use ($farmId) {
+            $q->where('farm_id', $farmId);
+        })
+            ->where('planting_date', '>=', $startDate)
+            ->with(['expenses', 'harvests.sales', 'field', 'riceVariety'])
+            ->get();
+
+        return $plantings->map(function ($planting) {
+            $expenses = $planting->expenses->sum('amount');
+
+            // Calculate labor costs for this planting
+            $laborCosts = LaborWage::whereHas('task', function ($q) use ($planting) {
+                $q->where('planting_id', $planting->id);
+            })->sum('wage_amount');
+
+            $totalExpenses = $expenses + $laborCosts;
+
+            $revenue = $planting->harvests->sum(function ($harvest) {
+                return $harvest->sales->sum('total_amount');
+            });
+
+            $netProfit = $revenue - $totalExpenses;
+
+            return [
+                'id' => $planting->id,
+                'field_name' => $planting->field->name ?? 'Unknown Field',
+                'variety' => $planting->riceVariety->name ?? $planting->crop_type,
+                'status' => $planting->status,
+                'revenue' => $revenue,
+                'expenses' => $totalExpenses,
+                'net_profit' => $netProfit,
+                'roi' => $totalExpenses > 0 ? round(($netProfit / $totalExpenses) * 100, 2) : 0,
+                'planting_date' => $planting->planting_date,
+            ];
+        });
+    }
+
+    /**
      * Get budget vs actual analysis
      */
     public function getBudgetAnalysis($farmId, $budgetData, $period = '30')
@@ -557,18 +601,37 @@ class FinancialService
                 'total_revenue' => $sales->sum('total_amount'),
                 'total_expenses' => $expenses->sum('amount'),
                 'total_labor_costs' => $laborCosts->sum('wage_amount'),
-                'net_profit' => $sales->sum('total_amount') - $expenses->sum('amount') - $laborCosts->sum('wage_amount'),
+                'net_profit' => $sales->sum('total_amount') - ($expenses->sum('amount') + $laborCosts->sum('wage_amount')),
+                'profit_margin' => $sales->sum('total_amount') > 0 ? round((($sales->sum('total_amount') - ($expenses->sum('amount') + $laborCosts->sum('wage_amount'))) / $sales->sum('total_amount')) * 100, 2) : 0,
             ],
+            'expenses_by_category' => $this->getExpenseBreakdown($expenses),
+            'monthly_trends' => $this->getMonthlyTrends($farmId, 12),
         ];
 
+        // Flatten summary for controller compatibility if needed, or controller adapts.
+        // Controller expects top-level keys for summary in its mapping:
+        // 'total_revenue' => $report['total_revenue'] ?? 0, 
+        // ... wait, controller uses $report['total_revenue']. 
+        // WRONG assumption in controller? 
+        // Controller: $report = $this->financialService->generateFinancialReport(...)
+        // $report['total_revenue']
+        // BUT here we return ['summary' => ['total_revenue' ...]]
+        // So we should flatten it or update controller. 
+        // Let's flatten for safety towards what seems to be the intention, OR match controller.
+
+        // Let's return a flat structure merged with the structured one to be safe
+        // OR better: Update the Service to return the top level keys expected by the controller.
+
+        $flatReport = array_merge($report, $report['summary']); // active summary keys at top level
+
         if ($reportType === 'detailed') {
-            $report['details'] = [
+            $flatReport['details'] = [
                 'expenses' => $expenses->toArray(),
                 'sales' => $sales->toArray(),
                 'labor_costs' => $laborCosts->toArray(),
             ];
         }
 
-        return $report;
+        return $flatReport;
     }
 }

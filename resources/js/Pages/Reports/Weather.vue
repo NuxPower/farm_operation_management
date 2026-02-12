@@ -35,7 +35,7 @@
       <!-- Filters -->
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-lg font-semibold mb-4">Report Filters</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
             <select
@@ -46,18 +46,6 @@
               <option value="last30days">Last 30 Days</option>
               <option value="last3months">Last 3 Months</option>
               <option value="lastyear">Last Year</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Field</label>
-            <select
-              v-model="selectedField"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Fields</option>
-              <option v-for="field in fields" :key="field.id" :value="field.id">
-                {{ field.name }}
-              </option>
             </select>
           </div>
           <div class="flex items-end">
@@ -330,14 +318,11 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { reportsAPI, fieldsAPI } from '@/services/api'
+import { reportsAPI } from '@/services/api'
 import LineChart from '@/Components/Charts/LineChart.vue'
 import BarChart from '@/Components/Charts/BarChart.vue'
 
-const fields = ref([])
-
 const dateRange = ref('last30days')
-const selectedField = ref('')
 const weatherData = ref([])
 const loading = ref(true)
 
@@ -503,7 +488,7 @@ const loadWeatherData = async () => {
     const period = periodMap[dateRange.value] || 30
     
     // Pass field ID if selected, otherwise null for all fields
-    const fieldId = selectedField.value ? selectedField.value : null
+    const fieldId = null
     const response = await reportsAPI.getWeatherReport(period, fieldId)
     const data = response.data.data || response.data
     
@@ -561,18 +546,6 @@ const router = useRouter()
 const route = useRoute()
 
 onMounted(async () => {
-  if (route.query.field) {
-    selectedField.value = parseInt(route.query.field) || route.query.field
-  }
-  
-  // Load fields for dropdown
-  try {
-    const response = await fieldsAPI.getAll()
-    fields.value = response.data.fields || response.data.data || []
-  } catch (error) {
-    console.error('Failed to load fields:', error)
-  }
-  
   loadWeatherData()
 })
 </script>

@@ -38,6 +38,7 @@ class PlantingController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'field_id' => 'required|exists:fields,id',
+            'inventory_item_id' => 'nullable|exists:inventory_items,id',
             'seed_planting_id' => 'nullable|exists:seed_plantings,id',
             'rice_variety_id' => 'nullable|exists:rice_varieties,id',
             'crop_name' => 'nullable|string|max:255',
@@ -97,6 +98,20 @@ class PlantingController extends Controller
         }
 
         $seedRate = $request->input('seed_rate') ?? $request->input('seed_quantity');
+
+        // Validate inventory stock if item is selected
+        $inventoryItem = null;
+        if ($request->filled('inventory_item_id')) {
+            $inventoryItem = \App\Models\InventoryItem::find($request->inventory_item_id);
+            if ($inventoryItem && $seedRate > 0) {
+                if ($inventoryItem->current_stock < $seedRate) {
+                    return response()->json([
+                        'message' => "Insufficient stock. Available: {$inventoryItem->current_stock} {$inventoryItem->unit}"
+                    ], 422);
+                }
+            }
+        }
+
         $seedPlantingId = $request->input('seed_planting_id');
 
         $season = $request->input('season') ?? $this->determineSeasonFromDate($plantingDate);
@@ -127,6 +142,24 @@ class PlantingController extends Controller
             if ($seedPlanting) {
                 $seedPlanting->update(['status' => \App\Models\SeedPlanting::STATUS_TRANSPLANTED]);
             }
+        }
+
+        // Deduct from inventory and log transaction
+        if ($inventoryItem && $seedRate > 0) {
+            $inventoryItem->removeStock($seedRate);
+
+            \App\Models\InventoryTransaction::create([
+                'inventory_item_id' => $inventoryItem->id,
+                'user_id' => $user->id,
+                'transaction_type' => 'out',
+                'quantity' => $seedRate,
+                'unit_cost' => $inventoryItem->unit_price,
+                'total_cost' => $seedRate * ($inventoryItem->unit_price ?? 0),
+                'reference_type' => 'Planting',
+                'reference_id' => $planting->id,
+                'notes' => 'Used for direct planting: ' . ($request->notes ?? ''),
+                'transaction_date' => now(),
+            ]);
         }
 
         // Initialize planting stages for lifecycle tracking

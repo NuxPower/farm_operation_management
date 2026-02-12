@@ -112,14 +112,19 @@ class Field extends Model
     {
         if ($this->relationLoaded('plantings')) {
             return $this->plantings
-                ->where('crop_type', 'rice')
+                ->filter(function ($p) {
+                    return $p->crop_type === 'rice' || $p->rice_variety_id !== null;
+                })
                 ->whereIn('status', ['planted', 'growing'])
                 ->sortByDesc('planting_date')
                 ->first();
         }
 
         return $this->plantings()
-            ->where('crop_type', 'rice')
+            ->where(function ($q) {
+                $q->where('crop_type', 'rice')
+                    ->orWhereNotNull('rice_variety_id');
+            })
             ->whereIn('status', ['planted', 'growing'])
             ->with('riceVariety')
             ->latest('planting_date')

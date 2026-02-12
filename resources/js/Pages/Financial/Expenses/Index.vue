@@ -245,7 +245,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
-import { formatCurrency, formatDate } from '@/utils/format'
+import { formatCurrency, formatDate, formatNumber } from '@/utils/format'
 import axios from 'axios'
 
 const router = useRouter()

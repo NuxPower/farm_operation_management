@@ -678,6 +678,15 @@ The Level 0 DFD explodes the system into four major functional processes:
   - Growing Degree Days (GDD) calculation (Base: 10°C, Max: 30°C)
   - Agronomic threshold alerts (Heat Stress, Cold Stress, Drought, etc.)
   - Yield prediction using multi-factor analysis
+  - **Data Accuracy & Configuration:**
+    - **Primary Provider:** ColorfulClouds (Caiyun) for hyper-local, minute-by-minute precipitation forecasts.
+    - **Backup Provider:** Open-Meteo, specifically configured to use the **NOAA GFS (Global Forecast System)** model for superior accuracy in the Bukidnon region (replacing the default model which overestimated temperatures).
+    - **Smart Aggregation:** Daily summaries prioritize severe weather conditions (Storm > Rain > Cloudy) to ensure users don't miss critical alerts even if the day is mostly cloudy.
+    - **Hourly Forecast:**
+      - **Data Source:** Open-Meteo (GFS Model)
+      - **Metrics:** Temperature, Weather Condition, and Rain Probability (%) for every hour of the 7-day forecast.
+      - **Smart Logic:** If the precipitation probability exceeds 50%, the condition is explicitly forced to **"Rainy"** (overriding "Cloudy") to clearly communicate risk to the farmer.
+      - **UI:** Accessible via a "View Hourly" modal for each day; fully responsive layout that adapts to mobile screens.
 
 ### 3. Intelligent Data Analytics
 - **Controllers:** `DataAnalysisController`, `RiceFarmingAnalyticsController`

@@ -235,6 +235,7 @@ class RiceMarketplaceController extends Controller
         $validator = Validator::make($request->all(), [
             'rice_variety_id' => 'required|exists:rice_varieties,id',
             'harvest_id' => 'nullable|exists:harvests,id',
+            'inventory_item_id' => 'nullable|exists:inventory_items,id',
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:2000',
             'quantity_available' => 'required|numeric|min:0',
@@ -281,8 +282,16 @@ class RiceMarketplaceController extends Controller
             $product = RiceProduct::create(array_merge($validated, [
                 'farmer_id' => $user->id,
                 'is_available' => true,
-                'production_status' => $validated['production_status'] ?? RiceProduct::STATUS_AVAILABLE, // Ensure production_status is set
+                'production_status' => $validated['production_status'] ?? RiceProduct::STATUS_AVAILABLE,
             ]));
+
+            // Auto-link inventory if not provided
+            if (!$product->inventory_item_id) {
+                $inventoryItem = $product->findMatchingInventoryItem();
+                if ($inventoryItem) {
+                    $product->update(['inventory_item_id' => $inventoryItem->id]);
+                }
+            }
 
             // Log product creation
             \App\Models\ActivityLog::log('product.created', $product, null, $product->toArray(), "New product listing published");
@@ -324,6 +333,7 @@ class RiceMarketplaceController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'name' => 'string|max:255',
+                'inventory_item_id' => 'nullable|exists:inventory_items,id',
                 'description' => 'string|max:2000',
                 'quantity_available' => 'numeric|min:0',
                 'unit' => 'string|in:kg,tons,sacks,bushels,pounds,grams',
@@ -354,6 +364,14 @@ class RiceMarketplaceController extends Controller
             }
 
             $product->update($validator->validated());
+
+            // Auto-link inventory if not provided
+            if (!$product->inventory_item_id) {
+                $inventoryItem = $product->findMatchingInventoryItem();
+                if ($inventoryItem) {
+                    $product->update(['inventory_item_id' => $inventoryItem->id]);
+                }
+            }
 
             // Invalidate caches
             Cache::forget('marketplace_stats');
