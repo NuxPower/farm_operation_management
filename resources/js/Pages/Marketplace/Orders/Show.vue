@@ -58,17 +58,40 @@
             </div>
 
             <!-- Negotiation Status -->
-             <div v-if="order.status === 'negotiating'" class="mb-4 bg-orange-50 p-4 rounded-md border border-orange-200">
+             <!-- Negotiation Status -->
+             <div v-if="activeNegotiation" class="mb-4 bg-orange-50 p-4 rounded-md border border-orange-200">
                <h3 class="text-orange-900 font-medium flex items-center">
                  <span class="text-xl mr-2">🤝</span> Price Negotiation
                </h3>
                <p class="text-orange-800 mt-1">
-                 Buyer offered <span class="font-bold">{{ formatCurrency(order.offer_price) }}</span> per unit.
+                 <span v-if="activeNegotiation.proposer_id === currentUserId">You offered </span>
+                 <span v-else>Offered </span>
+                 <span class="font-bold">{{ formatCurrency(activeNegotiation.proposed_price) }}</span> per unit.
                  (Original: {{ formatCurrency(order.rice_product.price_per_unit) }})
                </p>
-               <p v-if="!isFarmer" class="text-sm text-orange-700 mt-2">
-                 Waiting for farmer's response...
+               <p v-if="activeNegotiation.proposer_id === currentUserId" class="text-sm text-orange-700 mt-2">
+                 Waiting for response...
                </p>
+               <div v-else class="mt-3 flex gap-2">
+                 <button 
+                   @click="acceptNegotiationProposal(activeNegotiation)"
+                   class="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700"
+                 >
+                   Accept
+                 </button>
+                 <button 
+                   @click="openCounterModal(activeNegotiation)"
+                   class="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-700"
+                 >
+                   Counter
+                 </button>
+                 <button 
+                   @click="rejectNegotiationProposal(activeNegotiation)"
+                   class="bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-700"
+                 >
+                   Reject
+                 </button>
+               </div>
              </div>
             
             <!-- Progress Steps -->
@@ -417,17 +440,17 @@
                 >
                   💵 Mark as Paid
                 </button>
-                <!--- Negotiation Actions -->
-                <div v-if="order.status === 'negotiating'" class="grid grid-cols-2 gap-2">
+                <!--- Negotiation Actions (Farmer) -->
+                <div v-if="order.status === 'negotiating' && activeNegotiation && activeNegotiation.proposer_id !== currentUserId" class="grid grid-cols-2 gap-2">
                    <button
-                    @click="acceptNegotiation"
+                    @click="acceptNegotiationProposal(activeNegotiation)"
                     :disabled="processing"
                     class="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
                   >
                     ✓ Accept Offer
                   </button>
                   <button
-                    @click="rejectNegotiation"
+                    @click="rejectNegotiationProposal(activeNegotiation)"
                     :disabled="processing"
                     class="bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
                   >
@@ -685,6 +708,13 @@ const proposedPrice = ref('')
 const counterPrice = ref('')
 const selectedNegotiation = ref(null)
 const negotiationProcessing = ref(false)
+
+// Computed: Active Negotiation
+const activeNegotiation = computed(() => {
+  return negotiations.value
+    .filter(n => n.status === 'pending')
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+})
 
 // Computed: Can user negotiate on this order?
 const canNegotiate = computed(() => {
@@ -1019,37 +1049,7 @@ const markAsPaid = async () => {
 
 
 
-const acceptNegotiation = async () => {
-  if (!confirm('Accept this price offer? The order will become Pending.')) return
-  processing.value = true
-  try {
-    await axios.post(`/api/rice-marketplace/orders/${order.value.id}/negotiate`, {
-      action: 'accept'
-    })
-    await loadOrderData(order.value.id)
-    alert('Negotiation accepted!')
-  } catch (err) {
-    alert(err.response?.data?.message || 'Failed to accept negotiation')
-  } finally {
-    processing.value = false
-  }
-}
 
-const rejectNegotiation = async () => {
-  if (!confirm('Reject this offer? The order will be cancelled.')) return
-  processing.value = true
-  try {
-    await axios.post(`/api/rice-marketplace/orders/${order.value.id}/negotiate`, {
-      action: 'reject'
-    })
-    await loadOrderData(order.value.id)
-    alert('Negotiation rejected.')
-  } catch (err) {
-    alert(err.response?.data?.message || 'Failed to reject negotiation')
-  } finally {
-    processing.value = false
-  }
-}
 
 const cancelOrder = async () => {
   if (!cancelReason.value.trim()) {
