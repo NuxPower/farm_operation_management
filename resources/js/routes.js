@@ -89,6 +89,18 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/Pages/Auth/ForgotPassword.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/password/reset/:token',
+    name: 'password-reset',
+    component: () => import('@/Pages/Auth/ResetPassword.vue'),
+    meta: { requiresGuest: true }
+  },
+  {
     path: '/register',
     name: 'register',
     component: Register,
