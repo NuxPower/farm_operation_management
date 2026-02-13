@@ -78,16 +78,16 @@
             <div class="stat-card">
                 <div class="stat-label">Total Revenue</div>
                 <div class="stat-value" style="color: #22c55e;">
-                    {{ Illuminate\Support\Number::currency($data['total_revenue'] ?? 0, in: 'PHP') }}</div>
+                    PHP {{ number_format($data['total_revenue'] ?? 0, 2) }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total Expenses</div>
                 <div class="stat-value" style="color: #ef4444;">
-                    {{ Illuminate\Support\Number::currency($data['total_expenses'] ?? 0, in: 'PHP') }}</div>
+                    PHP {{ number_format($data['total_expenses'] ?? 0, 2) }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Net Profit</div>
-                <div class="stat-value">{{ Illuminate\Support\Number::currency($data['net_profit'] ?? 0, in: 'PHP') }}</div>
+                <div class="stat-value">PHP {{ number_format($data['net_profit'] ?? 0, 2) }}</div>
             </div>
         @elseif($report->report_type === 'crop_yield')
             <div class="stat-card">
