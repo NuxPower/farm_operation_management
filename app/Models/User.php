@@ -27,6 +27,7 @@ class User extends Authenticatable
         'phone',
         'phone_verified_at',
         'verification_code',
+        'verification_code_expires_at',
         'address',
         'bio',
         'profile_picture',
@@ -51,6 +52,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'address' => 'array',
+        'verification_code_expires_at' => 'datetime',
     ];
 
     /**

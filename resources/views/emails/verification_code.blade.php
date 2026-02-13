@@ -9,6 +9,7 @@
     <h1>Welcome to ANIBUKID!</h1>
     <p>Your verification code is: <strong>{{ $code }}</strong></p>
     <p>Please enter this code to verify your account.</p>
+    <p>This code will expire in 30 minutes.</p>
     <p>Thank you!</p>
 </body>
 
