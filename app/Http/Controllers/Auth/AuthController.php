@@ -57,6 +57,7 @@ class AuthController extends Controller
             'phone' => $request->phone,
             'address' => $request->address,
             'verification_code' => $verificationCode,
+            'verification_code_expires_at' => now()->addMinutes(30),
         ]);
 
         // Send Verification Code

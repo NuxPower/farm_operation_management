@@ -32,6 +32,10 @@ class VerificationController extends Controller
             return response()->json(['message' => 'Invalid verification code'], 400);
         }
 
+        if ($user->verification_code_expires_at && now()->gt($user->verification_code_expires_at)) {
+            return response()->json(['message' => 'Verification code expired'], 400);
+        }
+
         // Mark as verified based on method
         if ($request->phone) {
             $user->phone_verified_at = now();
@@ -65,6 +69,7 @@ class VerificationController extends Controller
 
         $verificationCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         $user->verification_code = $verificationCode;
+        $user->verification_code_expires_at = now()->addMinutes(30);
         $user->save();
 
         try {

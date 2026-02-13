@@ -199,6 +199,22 @@ const handleLogin = async () => {
     router.push('/dashboard');
   } catch (error) {
     console.error('Login error:', error);
+    
+    // Handle unverified account error
+    if (error.response?.status === 403 && error.response?.data?.message?.includes('verified')) {
+      const isEmail = form.value.login_id.includes('@');
+      router.push({
+        path: '/verify-phone',
+        query: {
+          email: isEmail ? form.value.login_id : undefined,
+          phone: !isEmail ? form.value.login_id : undefined,
+          method: isEmail ? 'email' : 'sms'
+        }
+      });
+      return;
+    }
+
+    authStore.error = error.response?.data?.message || 'Login failed. Please try again.';
   }
 };
 </script>
