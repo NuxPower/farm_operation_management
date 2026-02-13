@@ -136,7 +136,7 @@ class SendScheduledReports extends Command
             ->sum('total_amount');
 
         $expenses = $user->expenses()
-            ->where('expense_date', '>=', $startDate)
+            ->where('date', '>=', $startDate)
             ->sum('amount');
 
         return [

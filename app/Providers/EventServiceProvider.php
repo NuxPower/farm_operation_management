@@ -25,7 +25,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \App\Models\RiceOrder::observe(\App\Observers\RiceOrderObserver::class);
     }
 
     /**

@@ -217,32 +217,49 @@ class TestEmailNotifications extends Command
 
     private function getOrCreateTestOrder(?User $user): ?RiceOrder
     {
-        // Try to find an existing order first
-        if ($user) {
-            // First try to find orders where user is a farmer
-            $order = RiceOrder::whereHas('riceProduct', function ($q) use ($user) {
-                $q->where('farmer_id', $user->id);
-            })->with(['buyer', 'riceProduct'])->first();
+        try {
+            // Try to find an existing order first
+            if ($user) {
+                // First try to find orders where user is a farmer
+                $order = RiceOrder::whereHas('riceProduct', function ($q) use ($user) {
+                    $q->where('farmer_id', $user->id);
+                })->with(['buyer', 'riceProduct'])->first();
 
-            if ($order) {
-                return $order;
+                if ($order) {
+                    return $order;
+                }
+
+                // Then try orders where user is a buyer
+                $order = RiceOrder::where('buyer_id', $user->id)
+                    ->with(['buyer', 'riceProduct'])
+                    ->first();
+
+                if ($order) {
+                    return $order;
+                }
             }
 
-            // Then try orders where user is a buyer
-            $order = RiceOrder::where('buyer_id', $user->id)
-                ->with(['buyer', 'riceProduct'])
+            // Get any order that has proper relationships
+            // Use latest to get more recent data which might be more valid
+            $order = RiceOrder::with(['buyer', 'riceProduct'])
+                ->whereHas('riceProduct')
+                ->latest()
                 ->first();
 
             if ($order) {
                 return $order;
             }
+
+            // Fallback: just get any order
+            $order = RiceOrder::with(['buyer', 'riceProduct'])->latest()->first();
+
+            return $order;
+
+        } catch (\Exception $e) {
+            $this->error("Error fetching test order: " . $e->getMessage());
+            // Try one last desperate attempt without relationships loaded, 
+            // relying on lazy loading if needed, or just return null
+            return RiceOrder::first();
         }
-
-        // Get any order that has proper relationships
-        $order = RiceOrder::whereHas('riceProduct')
-            ->with(['buyer', 'riceProduct'])
-            ->first();
-
-        return $order;
     }
 }

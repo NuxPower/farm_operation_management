@@ -8,7 +8,7 @@ Hello {{ $order->riceProduct->farmer->name ?? 'Farmer' }},
 ## Order Details
 - **Product:** {{ $order->riceProduct->name ?? 'Rice Product' }}
 - **Quantity:** {{ number_format($order->quantity, 2) }} kg
-- **Total:** {{ Illuminate\Support\Number::currency($order->total_amount, in: 'PHP') }}
+- **Total:** PHP {{ number_format($order->total_amount, 2) }}
 - **Buyer:** {{ $order->buyer->name ?? 'N/A' }}
 
 ## ⚠️ Deadline Warning

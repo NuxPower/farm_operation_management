@@ -142,4 +142,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(ActivityLog::class);
     }
+
+    /**
+     * Get the expenses for this user
+     */
+    public function expenses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
 }
