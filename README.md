@@ -142,7 +142,7 @@ All five core project objectives have been **fully achieved** with comprehensive
 ### 🛒 For Buyers
 - **Product Discovery:** Browse available rice products by variety, grade, and location.
 - **Order Management:** Place orders with price negotiation capability.
-- **Order Tracking:** Real-time status updates (Pending → Confirmed → Ready → Picked Up).
+- **Order Tracking:** Real-time status updates (Pending → Confirmed → Ready → Picked Up) with **automated email notifications** for every status change.
 
 ---
 
@@ -259,6 +259,14 @@ All five core project objectives have been **fully achieved** with comprehensive
 1.  **Input:** User data (from Farmers and Buyers) and External APIs (Weather, Maps) feed into the system.
 2.  **Process:** Data is securely authenticated and processed by the Core Business Logic. The Analytics Engine computes specialized insights (e.g., GDD, Pest Risks). All state is persisted in the Database.
 3.  **Output:** The system generates visual Dashboards, real-time Alerts, formal Reports, and Actionable Suggestions to guide decision-making.
+
+### 4. Scheduler & Background Jobs
+To ensure reliability, the system uses a robust **Task Scheduler** driven by `supervisord`.
+- **Heartbeat Mechanism:** The scheduler runs `php artisan schedule:run` **every minute** to check for pending tasks.
+- **Automated Tasks:**
+  - **Hourly:** Weather monitoring, Order expiration checks, Scheduled reports.
+  - **Daily:** Inventory expiry checks (8:00 AM), Pre-order notifications (9:00 AM).
+- **Redundancy:** If a task is missed due to a brief server hiccup, the scheduler retries in the next minute slot where applicable.
 
 ---
 
@@ -476,6 +484,10 @@ This comprehensive User Flow Diagram illustrates the complete start-to-finish jo
 **Authentication & Onboarding:**
 - Users begin at the landing page and can login, register, or browse as guests.
 - Registration requires role selection (Farmer/Buyer) and email OTP verification.
+- **Secure Verification Flow:**
+  - Verification codes expire after **30 minutes** to prevent brute-force or stale code usage.
+  - Unverified users attempting to login are **automatically redirected** to the verification page with credentials pre-filled.
+  - Public `verify` and `resend` endpoints ensure users are never locked out of their accounts.
 - First-time farmers complete onboarding to create farm profiles and register fields with GPS coordinates.
 
 **Farmer Journey:**
@@ -1381,12 +1393,128 @@ php artisan migrate --seed
 composer run dev
 # This runs: php artisan serve & npm run dev (concurrently)
 ```
+## 🧪 Testing
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test suite
+php artisan test --filter=InventoryTest
+php artisan test --filter=OrderNegotiationTest
+php artisan test --filter=HarvestTest
+```
+
+### Test Coverage Areas
+- **AuthTest:** Registration, login, 2FA verification
+- **InventoryTest:** WAC calculation, stock management
+- **HarvestTest:** Yield recording, share calculation
+- **OrderNegotiationTest:** Price negotiation flow
+- **SystemSimulationTest:** End-to-end farmer/buyer lifecycle
+
+---
+
+
+---
+
+## 🧪 Testing Methodology
+
+### Unit Testing
+Unit testing verified the smallest units of code in isolation. Laravel's built-in **PHPUnit** support was used to write automated unit tests for services and helper methods, ensuring that each component met its specification. Best practices included writing clear, focused tests to catch bugs early.
+
+*   **Tools Used:** `phpunit/phpunit`, `mockery/mockery`
+*   **Scope:** Tests one small piece of code (usually a function or class method) in isolation.
+*   **Automation:** Integrated into the development workflow to ensure stability before deployment.
+
+### Feature Testing
+Feature (or integration) testing evaluates how features and components work together. In Laravel, "feature tests" simulate HTTP requests or user actions across the stack (e.g., controller logic, middleware, database) to validate end-to-end behavior.
+
+*   **Tools Used:** **Laravel Testing Framework**, **PHPUnit**
+*   **Scope:** Verifies that multiple modules/features work together correctly.
+*   **Coverage:**
+
+    *   **User Flows:** `AuthTest`, `SystemSimulationTest`
+    *   **Core Operations:** `HarvestTest`, `SeedPlantingTest`, `OrderNegotiationTest`
+    *   **Analytics:** `DataAnalysisTest`, `WeatherReportTest`
+    *   **Security:** `SecurityMiddlewareTest` (RBAC verification)
+
+### Static Analysis
+To ensure type safety and code quality beyond standard linting, static analysis was employed.
+
+*   **Tool Used:** **Larastan** (`larastan/larastan`)
+*   **Purpose:** Catches distinct classes of bugs (like type errors) before code is even run, enhancing maintainability.
+
+---
+
+## 🛠️ Technical Architecture & Stack
+
+This system is built using a modern, scalable tech stack designed for reliability and ease of deployment.
+
+### 1. Conceptual Architecture
+The application follows a **Monolithic Architecture** with a clear separation of concerns:
+- **Presentation Layer:** Vue.js (SPA) managing user interactions.
+- **Application Layer:** Laravel handling business logic, API routes, and job scheduling.
+- **Data Layer:** PostgreSQL for persistent storage.
+- **Service Layer:** Dedicated services for Weather, Recommendations, and Market logic.
+
+### 2. Technology Stack
+
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **IDE** | **Visual Studio Code** | Primary development environment with extensions for Laravel and Vue. |
+| **Backend** | **Laravel 12 (PHP 8.2)** | Handles API, Authentication (Sanctum), and Business Logic. |
+| **Frontend** | **Vue.js 3** | Reactive UI framework for a dynamic Single Page Application (SPA). |
+| **Styling** | **Tailwind CSS 4.0** | Utility-first CSS framework for responsive design. |
+| **State Mgmt** | **Pinia** | Store library for managing application state (User, Cart, Farm). |
+| **Database** | **PostgreSQL 15** | Primary relational database for data integrity. Hosted on **Railway**. |
+| **Visualization** | **Chart.js** | Renders interactive analytics graphs for farmers. |
+| **DevOps** | **Docker** | Containerization for consistent local development and deployment. |
+| **Deployment** | **Railway** | Cloud platform hosting both the Web Service and Database. |
+| **Caching** | **Laravel Cache** | Integrated caching (File/Database) for Weather API responses. |
+| **Testing** | **PHPUnit / Larastan** | Automated creation testing and Static Analysis. |
+
+### 3. Hybrid Weather Architecture
+To ensure agricultural accuracy and system resilience, the system employs a **Multi-Provider Strategy**:
+- **Primary Provider:** **Colorful Clouds API**
+    - Used for hyper-local, 14-day forecasts.
+    - specialized in Asian/Pacific weather patterns.
+- **Fallback Provider:** **Open-Meteo** & **OpenWeather**
+    - Automatically engaged if the primary provider fails.
+    - Provides standard meteorological data and current condition checks.
+- **Result:** High availability and data accuracy for critical farming decisions.
+
+### 4. Security & Infrastructure
+- **Authentication:** **Laravel Sanctum** provides secure token-based authentication for the SPA and mobile access.
+- **Tunneling:** **Ngrok** is used for exposing local development environments for mobile testing.
+- **Version Control:** **GitHub** manages source code, issue tracking, and collaboration.
 
 ---
 
 ---
 
-## 🔌 API Endpoints
+### � Production Deployment (Docker)
+The application is containerized using **Docker** for consistent deployment across environments (e.g., Railway).
+
+#### 1. Dockerfile
+- **Multi-Stage Build:** Uses a lightweight `php:8.2-fpm` base image.
+- **Nginx Integration:** Bundles Nginx to serve the Vue.js frontend and proxy API requests.
+- **Optimization:** Installs only necessary extensions (`pdo_pgsql`, `bcmath`, `gd`, `intl`, `zip`) to keep the image size small.
+
+#### 2. Process Management (`supervisord`)
+Instead of running a single process, the container uses **Supervisord** to manage multiple critical services simultaneously:
+- **Nginx:** Serves the web application.
+- **PHP-FPM:** Handles backend requests.
+- **Laravel Scheduler:** Runs `php artisan schedule:work` every minute to execute background tasks (Weather updates, Alerts).
+
+#### 3. Entrypoint Script (`docker/run.sh`)
+When the container starts, `run.sh` executes the following automation:
+1.  **Cache Clearing:** Runs `optimize:clear` to remove old configs.
+2.  **Database Migration:** Automatically executing `php artisan migrate --force` ensures the database schema is always up-to-date.
+3.  **Storage Linking:** Creates the `public/storage` symbolic link.
+4.  **Caching:** Runs `config:cache`, `event:cache`, `route:cache`, and `view:cache` for maximum performance.
+5.  **Start Supervisord:** Launches the main process manager.
+
+This setup ensures a **"Zero-Touch" deployment**: just push the code, and the system auto-updates, migrates, and optimizes itself.
 
 ### Core Resources & Metadata
 | Method | Endpoint | Description |
