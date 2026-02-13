@@ -139,14 +139,28 @@
                 class="w-full px-3 py-2 border rounded-lg" placeholder="e.g., Rice Stem Borer" />
             </div>
 
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Planting</label>
-              <select v-model="form.planting_id" required class="w-full px-3 py-2 border rounded-lg">
-                <option value="">Select planting</option>
-                <option v-for="p in sortedPlantings" :key="p.id" :value="p.id">
-                  {{ p.field?.name }} - {{ p.rice_variety?.name }} ({{ p.status }} - {{ formatDate(p.planting_date) }})
+  <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Field</label>
+              <select v-model="selectedFieldId" required class="w-full px-3 py-2 border rounded-lg">
+                <option value="">Select field</option>
+                <option v-for="field in fields" :key="field.id" :value="field.id">
+                  {{ field.name }}
                 </option>
               </select>
+              
+              <div v-if="selectedPlanting" class="mt-2 p-3 bg-gray-50 rounded-lg text-sm border border-gray-100">
+                <p class="font-medium text-gray-700">Linked Crop:</p>
+                <div class="flex items-center gap-2 mt-1">
+                   <span class="text-green-700 font-medium">{{ selectedPlanting.rice_variety?.name || selectedPlanting.crop_type }}</span>
+                   <span class="text-gray-400">•</span>
+                   <span class="capitalize text-gray-600">{{ selectedPlanting.status }}</span>
+                   <span class="text-gray-400">•</span>
+                   <span class="text-gray-500">Planted: {{ formatDate(selectedPlanting.planting_date) }}</span>
+                </div>
+              </div>
+              <div v-else-if="selectedFieldId" class="mt-2 text-sm text-yellow-600">
+                ⚠️ No active planting found for this field.
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -156,7 +170,10 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Affected Area (ha)</label>
-                <input v-model="form.affected_area" type="number" step="0.01" class="w-full px-3 py-2 border rounded-lg" />
+                <input v-model="form.affected_area" type="number" step="0.01" class="w-full px-3 py-2 border rounded-lg"
+                  :placeholder="selectedPlanting ? `Max: ${selectedPlanting.area_planted} ha` : ''"
+                  :max="selectedPlanting?.area_planted"
+                 />
               </div>
             </div>
 
@@ -182,21 +199,50 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
 
 const loading = ref(true)
 const incidents = ref([])
 const stats = ref({ total: 0, active: 0, treated: 0, resolved: 0 })
 const plantings = ref([])
+const selectedFieldId = ref('')
 
-const sortedPlantings = computed(() => {
+const selectedPlanting = computed(() => {
+   if (!form.value.planting_id) return null
+   return plantings.value.find(p => p.id === form.value.planting_id)
+})
+
+watch(selectedFieldId, (newFieldId) => {
+  if (!newFieldId) {
+    form.value.planting_id = ''
+    return
+  }
+  
+  // Find active planting for this field
+  // Priority: Growing > Planted > Ready > Planned > Harvested
+  const fieldPlantings = plantings.value.filter(p => p.field_id === newFieldId)
+  
+  if (fieldPlantings.length === 0) {
+    form.value.planting_id = ''
+    return
+  }
+
   const priority = { growing: 1, planted: 2, ready: 3, planned: 4, harvested: 5, failed: 6 }
-  return [...plantings.value].sort((a, b) => {
+  
+  const bestPlanting = fieldPlantings.sort((a, b) => {
     const pA = priority[a.status] || 99
     const pB = priority[b.status] || 99
+    // If status is same, prefer newer
+    if (pA === pB) {
+        return new Date(b.planting_date) - new Date(a.planting_date)
+    }
     return pA - pB
-  })
+  })[0]
+
+  if (bestPlanting) {
+    form.value.planting_id = bestPlanting.id
+  }
 })
 
 const showCreateModal = ref(false)
@@ -236,6 +282,16 @@ const loadPlantings = async () => {
     plantings.value = response.data.plantings || response.data || []
   } catch (error) {
     console.error('Failed to load plantings:', error)
+  }
+}
+
+const fields = ref([])
+const loadFields = async () => {
+  try {
+    const response = await axios.get('/api/fields')
+    fields.value = response.data.fields || response.data || []
+  } catch (error) {
+    console.error('Failed to load fields:', error)
   }
 }
 
@@ -321,5 +377,6 @@ const getStatusClass = (status) => {
 onMounted(() => {
   loadData()
   loadPlantings()
+  loadFields()
 })
 </script>
