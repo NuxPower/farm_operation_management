@@ -129,12 +129,14 @@ All five core project objectives have been **fully achieved** with comprehensive
 
 ### 👨‍🌾 For Farmers
 - **Field Management:** Register and manage multiple fields with GPS coordinates.
-- **Planting Lifecycle:** Track growth stages (Seedling → Tillering → Flowering → Grain Filling → Maturity).
+- **Nursery Operations:** Manage seedling batches with auto-inventory deduction for seeds.
+- **Planting Lifecycle:** Track growth stages (Seedling → Tillering → Flowering → Grain Filling → Maturity) with automated transition logic and overdue alerts.
 - **Weather Alerts:** Receive actionable advice based on temperature, humidity, and rainfall thresholds.
 - **Harvest Recording:** Log yields, quality grades, and harvester shares.
 - **Inventory Management:** Track seeds, fertilizers, pesticides with Weighted Average Cost (WAC).
-- **Labor Management:** Assign tasks with Daily Rate, Piece Rate, or Pakyao (contract) payments.
+- **Labor Management:** Assign tasks with Daily Rate, Piece Rate, Revenue Share, or Pakyao (contract) payments.
 - **Sales Dashboard:** Track revenue, analyze trends, and record direct sales.
+- **Profitability Analysis:** Granular Profit & Loss reports per specific planting cycle.
 - **Product Listing:** List rice products for sale in the marketplace.
 
 ### 🛒 For Buyers
@@ -687,6 +689,7 @@ The Level 0 DFD explodes the system into four major functional processes:
       - **Metrics:** Temperature, Weather Condition, and Rain Probability (%) for every hour of the 7-day forecast.
       - **Smart Logic:** If the precipitation probability exceeds 50%, the condition is explicitly forced to **"Rainy"** (overriding "Cloudy") to clearly communicate risk to the farmer.
       - **UI:** Accessible via a "View Hourly" modal for each day; fully responsive layout that adapts to mobile screens.
+    - **Rice Dashboard:** A specialized view providing specific agronomic insights such as accumulating GDD, stress days, and stage-specific weather suitability.
 
 ### 3. Intelligent Data Analytics
 - **Controllers:** `DataAnalysisController`, `RiceFarmingAnalyticsController`
@@ -1381,7 +1384,16 @@ composer run dev
 
 ---
 
+---
+
 ## 🔌 API Endpoints
+
+### Core Resources & Metadata
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/rice-varieties` | List supported rice varieties |
+| GET | `/api/rice-growth-stages` | List standard growth stages |
+| GET | `/api/notifications` | Get user notifications |
 
 ### Authentication
 | Method | Endpoint | Description |
@@ -1405,6 +1417,9 @@ composer run dev
 | GET | `/api/tasks` | List tasks |
 | POST | `/api/tasks` | Create task |
 | POST | `/api/tasks/{id}/complete` | Mark task complete |
+| POST | `/api/seed-plantings` | Create nursery batch (Auto-deducts seed stock) |
+| GET | `/api/rice-farming/lifecycle-overview` | Get overview of all active plantings |
+| POST | `/api/rice-farming/plantings/{id}/advance-stage` | Advance planting to next stage |
 
 ### Marketplace Routes
 
@@ -1426,6 +1441,15 @@ composer run dev
 | GET | `/api/rice-marketplace/orders` | List orders (Buyer/Farmer) |
 | POST | `/api/rice-marketplace/orders/{id}/accept` | Accept order (Farmer) |
 | POST | `/api/rice-marketplace/orders/{id}/ready-for-pickup` | Mark ready (Farmer) |
+
+### Specialized Analytics & Reports
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/weather/rice-dashboard` | Get specialized rice weather analytics |
+| GET | `/api/reports/profit-loss` | Get overall Profit & Loss summary |
+| GET | `/api/reports/profit-loss/by-planting` | Get P&L breakdown by planting cycle |
+| GET | `/api/pest-incidents` | List recorded pest incidents |
+| POST | `/api/pest-incidents` | Report a new pest incident |
 
 ---
 
