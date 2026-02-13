@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\ForgotPassword;
+use App\Http\Controllers\Auth\ResetPassword;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Weather\WeatherController;
 use App\Http\Controllers\Farmer\RiceFarmProfileController;
@@ -24,6 +26,8 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/verify-phone', [\App\Http\Controllers\Auth\VerificationController::class, 'verify']);
 Route::post('/resend-verification', [\App\Http\Controllers\Auth\VerificationController::class, 'resend']);
+Route::post('/forgot-password', [\App\Http\Controllers\Auth\ForgotPassword::class, 'sendResetLinkEmail']);
+Route::post('/reset-password', [\App\Http\Controllers\Auth\ResetPassword::class, 'reset']);
 
 // Public marketplace routes (guest browsing)
 Route::prefix('rice-marketplace')->group(function () {
