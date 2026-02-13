@@ -1,30 +1,30 @@
 <template>
   <div class="min-h-screen bg-gray-50/50">
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
-      <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <div class="flex items-center gap-4">
-            <button
-              @click="router.push('/marketplace/my-products')"
-              class="p-2 -ml-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-            <div>
-              <h1 class="text-xl font-bold text-gray-900">Edit Product</h1>
-              <p class="text-xs text-gray-500 mt-0.5">Update your product details and pricing</p>
-            </div>
-          </div>
-          
 
-        </div>
-      </div>
-    </header>
 
     <main class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Standard Header -->
+      <div class="mb-8">
+        <div class="mb-4">
+          <button
+            @click="router.push('/marketplace/my-products')"
+            class="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to My Products
+          </button>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800">Edit Product</h1>
+            <p class="text-gray-500 mt-1">Update your product details and pricing.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loadingProduct" class="flex flex-col items-center justify-center py-20">
         <LoadingSpinner>Loading product details...</LoadingSpinner>
