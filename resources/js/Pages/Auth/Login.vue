@@ -105,9 +105,9 @@
                 <label for="password" class="block text-sm font-semibold text-gray-700">
                   Password
                 </label>
-                <a href="#" class="text-sm font-medium text-emerald-600 hover:text-emerald-500">
+                <router-link to="/forgot-password" class="text-sm font-medium text-emerald-600 hover:text-emerald-500">
                   Forgot password?
-                </a>
+                </router-link>
               </div>
               <input
                 id="password"
