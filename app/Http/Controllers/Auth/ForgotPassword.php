@@ -28,25 +28,18 @@ class ForgotPassword extends Controller
             ], 422);
         }
 
-        try {
-            $status = Password::sendResetLink(
-                $request->only('email')
-            );
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
 
-            if ($status === Password::RESET_LINK_SENT) {
-                return response()->json([
-                    'message' => 'Password reset link sent to your email',
-                ]);
-            }
-
-            throw ValidationException::withMessages([
-                'email' => [trans($status)],
-            ]);
-        } catch (\Exception $e) {
+        if ($status === Password::RESET_LINK_SENT) {
             return response()->json([
-                'message' => 'Error sending email: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], 500);
+                'message' => 'Password reset link sent to your email',
+            ]);
         }
+
+        throw ValidationException::withMessages([
+            'email' => [trans($status)],
+        ]);
     }
 }
