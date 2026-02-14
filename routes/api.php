@@ -27,7 +27,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/verify-phone', [\App\Http\Controllers\Auth\VerificationController::class, 'verify']);
 Route::post('/resend-verification', [\App\Http\Controllers\Auth\VerificationController::class, 'resend']);
 Route::post('/forgot-password', [\App\Http\Controllers\Auth\ForgotPassword::class, 'sendResetLinkEmail']);
-Route::post('/reset-password', [\App\Http\Controllers\Auth\ResetPassword::class, 'reset']);
+Route::post('/reset-password', [\App\Http\Controllers\Auth\ResetPassword::class, 'reset'])->name('password.reset');
 
 // Public marketplace routes (guest browsing)
 Route::prefix('rice-marketplace')->group(function () {
