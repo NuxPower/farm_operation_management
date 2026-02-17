@@ -494,4 +494,49 @@ class RiceProduct extends Model
         return $earthRadius * $c;
     }
 
+    /**
+     * Deduct quantity from linked inventory item
+     * 
+     * @param float $quantity Quantity to deduct
+     * @param int|null $orderId Order ID for transaction reference
+     * @return bool True if deduction was successful
+     */
+    public function deductFromInventory($quantity, $orderId = null)
+    {
+        // Find matching inventory item
+        $inventoryItem = $this->findMatchingInventoryItem();
+
+        if (!$inventoryItem) {
+            return false;
+        }
+
+        // Lock the inventory item for update to prevent race conditions
+        // We use a fresh query to get the lock
+        $inventoryItem = \App\Models\InventoryItem::where('id', $inventoryItem->id)->lockForUpdate()->first();
+
+        if ($inventoryItem && $inventoryItem->removeStock($quantity)) {
+            // Log transaction
+            \App\Models\InventoryTransaction::create([
+                'inventory_item_id' => $inventoryItem->id,
+                'user_id' => $this->farmer_id,
+                'transaction_type' => 'out',
+                'quantity' => $quantity,
+                'unit_cost' => $inventoryItem->unit_price,
+                'total_cost' => $quantity * ($inventoryItem->unit_price ?? 0),
+                'reference_type' => 'RiceOrder',
+                'reference_id' => $orderId,
+                'notes' => "Sold via Marketplace Product: {$this->name}",
+                'transaction_date' => now(),
+            ]);
+
+            // Auto-link ID if missing for future performance
+            if (!$this->inventory_item_id) {
+                $this->update(['inventory_item_id' => $inventoryItem->id]);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 }

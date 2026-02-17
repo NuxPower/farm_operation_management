@@ -198,6 +198,9 @@ class CartController extends Controller
                     'checkout_group_id' => $checkoutGroupId,
                 ]);
 
+                // Deduct from Inventory Item (Fix for missing inventory deduction)
+                $product->deductFromInventory($item->quantity, $order->id);
+
                 // Notify farmer
                 $notificationMessage = $isNegotiating
                     ? "You have a new price negotiation for {$item->quantity} kg of {$product->name}. Offered: ₱{$offerPrice}/kg"
