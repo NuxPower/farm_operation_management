@@ -295,12 +295,24 @@ const fetchTask = async () => {
 
 const updateStatus = async (nextStatus) => {
   if (!task.value) return
+
+  // Warn if completing without a laborer
+  if (nextStatus === 'completed' && !task.value.assigned_to && !task.value.laborer_group_id) {
+    const proceed = confirm(
+      'This task has no assigned laborer. No labor expense will be recorded.\n\nDo you want to continue?'
+    )
+    if (!proceed) return
+  }
+
   actionLoading.value = true
   error.value = null
 
   try {
     const response = await farmStore.updateTask(task.value.id, { status: nextStatus })
     task.value = response?.task || { ...task.value, status: nextStatus }
+    if (response?.warning) {
+      alert(response.warning)
+    }
   } catch (err) {
     error.value = err.userMessage || err.response?.data?.message || 'Failed to update task.'
   } finally {

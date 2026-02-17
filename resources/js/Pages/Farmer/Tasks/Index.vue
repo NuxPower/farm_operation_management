@@ -382,8 +382,19 @@ const completeTask = async (task) => {
     return;
   }
 
+  // Warn if no laborer is assigned
+  if (!task.assigned_to && !task.laborer_group_id) {
+    const proceed = confirm(
+      'This task has no assigned laborer. No labor expense will be recorded.\n\nDo you want to continue?'
+    );
+    if (!proceed) return;
+  }
+
   try {
-    await farmStore.updateTask(task.id, { status: 'completed' });
+    const result = await farmStore.updateTask(task.id, { status: 'completed' });
+    if (result?.warning) {
+      alert(result.warning);
+    }
   } catch (error) {
     console.error('Failed to complete task:', error);
   }
