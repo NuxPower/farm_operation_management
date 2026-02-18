@@ -129,15 +129,6 @@ class RiceOrderController extends Controller
             $unitPrice = $product->price_per_unit;
             $totalAmount = $unitPrice * $request->quantity;
 
-            // Deduct from Inventory Item
-            $product->deductFromInventory($request->quantity);
-
-            // Fetch the inventory transaction if created (to link order later)
-            // Note: We can't link order ID yet as it is not created. 
-            // The deductFromInventory method handles null orderId.
-            // We will update it after order creation if needed.
-
-
             $order = RiceOrder::create([
                 'buyer_id' => Auth::id(),
                 'rice_product_id' => $request->rice_product_id,
@@ -156,22 +147,13 @@ class RiceOrderController extends Controller
                 'offer_price' => $request->input('offer_price'),
             ]);
 
-            // Update transaction reference if exists
-            // Since we don't return the transaction from deductFromInventory, we search for the latest one
-            // for this product's inventory item without a reference.
-            $linkedInventoryItem = $product->fresh()->inventory_item_id ?? $product->findMatchingInventoryItem()?->id;
-
-            if ($linkedInventoryItem) {
-                $latestTransaction = \App\Models\InventoryTransaction::where('inventory_item_id', $linkedInventoryItem)
-                    ->where('reference_type', 'RiceOrder')
-                    ->whereNull('reference_id')
-                    ->where('user_id', $product->farmer_id)
-                    ->latest()
-                    ->first();
-
-                if ($latestTransaction) {
-                    $latestTransaction->update(['reference_id' => $order->id]);
-                }
+            // Deduct from Inventory Item (now with order ID available)
+            if (!$product->deductFromInventory($request->quantity, $order->id)) {
+                \Log::warning('Direct order: inventory deduction failed', [
+                    'product_id' => $product->id,
+                    'order_id' => $order->id,
+                    'quantity' => $request->quantity,
+                ]);
             }
 
             // If offer price is present and less than unit price, set status to negotiating

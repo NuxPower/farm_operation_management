@@ -175,24 +175,39 @@ class RiceProduct extends Model
             return $this->inventoryItem;
         }
 
-        // 2. Try to find by exact name match for this farmer
-        $match = InventoryItem::where('user_id', $this->farmer_id)
-            ->where('category', InventoryItem::CATEGORY_PRODUCE)
-            ->where('name', $this->name)
-            ->first();
+        $baseQuery = InventoryItem::where('user_id', $this->farmer_id)
+            ->where('category', InventoryItem::CATEGORY_PRODUCE);
 
+        // 2. Try to find by exact name match for this farmer
+        $match = (clone $baseQuery)->where('name', $this->name)->first();
         if ($match) {
             return $match;
         }
 
-        // 3. Try variety name with (Grade X) suffix (common pattern in HarvestController)
+        // 3. Try case-insensitive exact name match
+        $match = (clone $baseQuery)->where('name', 'ILIKE', $this->name)->first();
+        if ($match) {
+            return $match;
+        }
+
+        // 4. Try partial match — product name contained in inventory item name
+        //    e.g., product "IR64" matches inventory "IR64 (Premium)"
+        $match = (clone $baseQuery)->where('name', 'ILIKE', $this->name . '%')->first();
+        if ($match) {
+            return $match;
+        }
+
+        // 5. Try partial match — inventory item name contained in product name
+        //    e.g., inventory "IR64" matches product "IR64 Premium Rice"
+        $match = (clone $baseQuery)->whereRaw('? ILIKE name || \'%\'', [$this->name])->first();
+        if ($match) {
+            return $match;
+        }
+
+        // 6. Try variety name with (Grade X) suffix (common pattern in HarvestController)
         $varietyName = $this->riceVariety?->name;
         if ($varietyName) {
-            $match = InventoryItem::where('user_id', $this->farmer_id)
-                ->where('category', InventoryItem::CATEGORY_PRODUCE)
-                ->where('name', 'ILIKE', $varietyName . '%')
-                ->first();
-
+            $match = (clone $baseQuery)->where('name', 'ILIKE', $varietyName . '%')->first();
             if ($match) {
                 return $match;
             }
@@ -507,6 +522,14 @@ class RiceProduct extends Model
         $inventoryItem = $this->findMatchingInventoryItem();
 
         if (!$inventoryItem) {
+            \Log::warning('Inventory deduction failed: no matching inventory item found', [
+                'product_id' => $this->id,
+                'product_name' => $this->name,
+                'farmer_id' => $this->farmer_id,
+                'inventory_item_id' => $this->inventory_item_id,
+                'order_id' => $orderId,
+                'quantity' => $quantity,
+            ]);
             return false;
         }
 
