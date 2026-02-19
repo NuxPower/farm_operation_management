@@ -185,7 +185,7 @@ class FinancialService
     public function getCostPerHectare($farmId, $period = '30')
     {
         $farm = Farm::findOrFail($farmId);
-        $totalArea = $farm->fields->sum('size_hectares');
+        $totalArea = $farm->fields->sum('size');
 
         if ($totalArea == 0) {
             return 0;
@@ -201,7 +201,7 @@ class FinancialService
     public function getRevenuePerHectare($farmId, $period = '30')
     {
         $farm = Farm::findOrFail($farmId);
-        $totalArea = $farm->fields->sum('size_hectares');
+        $totalArea = $farm->fields->sum('size');
 
         if ($totalArea == 0) {
             return 0;
@@ -293,7 +293,7 @@ class FinancialService
                 $q->where('planting_id', $planting->id);
             })->sum('total_amount');
 
-            $cropAnalysis[$cropType]['total_area'] += $planting->field->size_hectares;
+            $cropAnalysis[$cropType]['total_area'] += $planting->field->size;
             $cropAnalysis[$cropType]['total_expenses'] += $plantingExpenses;
             $cropAnalysis[$cropType]['total_revenue'] += $plantingRevenue;
             $cropAnalysis[$cropType]['total_labor_costs'] += $laborCosts;
@@ -517,7 +517,7 @@ class FinancialService
     {
         $summary = $this->getFarmFinancialSummary($farmId, $period);
         $farm = Farm::findOrFail($farmId);
-        $totalArea = $farm->fields->sum('size_hectares');
+        $totalArea = $farm->fields->sum('size');
 
         return [
             'gross_profit_margin' => $summary['total_revenue'] > 0 ?
@@ -590,7 +590,7 @@ class FinancialService
             'farm' => [
                 'id' => $farm->id,
                 'name' => $farm->name,
-                'total_area' => $farm->fields->sum('size_hectares'),
+                'total_area' => $farm->fields->sum('size'),
             ],
             'period' => [
                 'start_date' => $startDate->format('Y-m-d'),

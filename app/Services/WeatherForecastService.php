@@ -12,8 +12,8 @@ use Carbon\Carbon;
 
 class WeatherForecastService
 {
-    private string $apiKey;
-    private string $baseUrl;
+    private ?string $apiKey;
+    private ?string $baseUrl;
     protected $weatherService;
 
     public function __construct(WeatherService $weatherService)

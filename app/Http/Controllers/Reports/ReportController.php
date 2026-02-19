@@ -333,12 +333,12 @@ class ReportController extends Controller
                 'total_plantings' => $plantings->count(),
                 'total_harvests' => $harvests->count(),
                 'total_area_planted' => $plantings->sum(function ($planting) {
-                    return $planting->field->size_hectares;
+                    return $planting->field->size;
                 }),
                 'total_yield' => $harvests->sum('yield_kg'),
                 'average_yield_per_hectare' => $plantings->count() > 0 ?
                     $harvests->sum('yield_kg') / $plantings->sum(function ($p) {
-                        return $p->field->size_hectares;
+                        return $p->field->size;
                     }) : 0,
             ],
             'crop_breakdown' => $plantings->groupBy('crop_type')->map(function ($cropPlantings) {
@@ -346,14 +346,14 @@ class ReportController extends Controller
                 return [
                     'plantings_count' => $cropPlantings->count(),
                     'total_area' => $cropPlantings->sum(function ($p) {
-                        return $p->field->size_hectares;
+                        return $p->field->size;
                     }),
                     'total_yield' => $cropHarvests->sum('yield_kg'),
                     'average_yield_per_hectare' => $cropPlantings->sum(function ($p) {
-                        return $p->field->size_hectares;
+                        return $p->field->size;
                     }) > 0 ?
                         $cropHarvests->sum('yield_kg') / $cropPlantings->sum(function ($p) {
-                            return $p->field->size_hectares;
+                            return $p->field->size;
                         }) : 0,
                 ];
             }),
@@ -883,7 +883,7 @@ class ReportController extends Controller
             $fieldsQuery->where('id', $fieldFilter);
         }
         $fields = $fieldsQuery->get();
-        $totalArea = $fields->sum('size_hectares') ?: $fields->sum('size');
+        $totalArea = $fields->sum('size');
         $avgYieldPerHectare = $totalArea > 0 ? $totalYield / $totalArea : 0;
 
         // Calculate yield increase (compare with previous period)
@@ -900,7 +900,7 @@ class ReportController extends Controller
         $fieldPerformance = $harvests->groupBy('planting.field_id')->map(function ($fieldHarvests, $fieldId) {
             $field = $fieldHarvests->first()->planting->field;
             $totalYield = $fieldHarvests->sum('yield');
-            $area = $field->size_hectares ?: $field->size;
+            $area = $field->size;
             return [
                 'field_id' => $fieldId,
                 'field_name' => $field->name,
@@ -917,7 +917,7 @@ class ReportController extends Controller
         })->map(function ($cropHarvests, $cropName) {
             $plantings = $cropHarvests->pluck('planting')->unique('id');
             $totalArea = $plantings->sum(function ($planting) {
-                return $planting->field->size_hectares ?: $planting->field->size;
+                return $planting->field->size;
             });
             $totalYield = $cropHarvests->sum('yield');
             $yieldPerHectare = $totalArea > 0 ? $totalYield / $totalArea : 0;
@@ -1321,7 +1321,8 @@ class ReportController extends Controller
             $dailyRainfall = $dayRecords->sum('rainfall') ?: 0;
 
             // Determine dominant condition
-            $conditionCounts = $dayRecords->groupBy('conditions')->map->count();
+            $conditionCounts = $dayRecords->groupBy('conditions')->map(function ($group) {
+                return $group->count(); });
             $dominantCondition = $conditionCounts->sortByDesc(fn($count) => $count)->keys()->first() ?: 'Unknown';
 
             return [

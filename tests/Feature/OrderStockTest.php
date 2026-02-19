@@ -38,6 +38,7 @@ class OrderStockTest extends TestCase
             'delivery_address' => ['address' => '123 Test St'],
             'delivery_method' => 'pickup',
             'payment_method' => 'cash',
+            'preferred_pickup_date' => now()->addDays(3)->toDateString(),
         ]);
 
         // 3. Assert: Check Response
@@ -78,6 +79,7 @@ class OrderStockTest extends TestCase
             'delivery_address' => ['address' => '123 Test St'],
             'delivery_method' => 'pickup',
             'payment_method' => 'cash',
+            'preferred_pickup_date' => now()->addDays(3)->toDateString(),
         ]);
 
         $response->assertStatus(422); // Unprocessable Entity

@@ -223,17 +223,22 @@ class WeatherAnalyticsService
         $currentWeather = $farm->latestWeather;
         $forecast = $this->getWeatherForecast($farm, 7); // 7-day forecast
         $planting = null;
+        $activeField = null;
         foreach ($farm->fields as $field) {
             $planting = $field->getCurrentRicePlanting();
-            if ($planting)
+            if ($planting) {
+                $activeField = $field;
                 break;
+            }
         }
+        // Fall back to first field if no active planting found
+        $activeField = $activeField ?? $farm->fields->first();
 
         $recommendations = [
             'immediate_action' => $this->getImmediateIrrigationAction($currentWeather, $soilMoistureLevel, $cropStage),
             'weekly_schedule' => $this->generateWeeklyIrrigationSchedule($forecast, $soilMoistureLevel, $cropStage),
-            'water_requirements' => $this->calculateWaterRequirements($farm, $planting, $cropStage),
-            'efficiency_tips' => $this->getIrrigationEfficiencyTips($farm, $currentWeather),
+            'water_requirements' => $activeField ? $this->calculateWaterRequirements($activeField, $planting, $cropStage) : [],
+            'efficiency_tips' => $activeField ? $this->getIrrigationEfficiencyTips($activeField, $currentWeather) : ['tips' => []],
             'risk_warnings' => $this->getIrrigationRiskWarnings($forecast, $soilMoistureLevel),
         ];
 
@@ -981,11 +986,11 @@ class WeatherAnalyticsService
             return null;
         }
 
-        $historicalHarvests = Harvest::whereHas('planting', function ($q) use ($field) {
+        $historicalHarvests = Harvest::whereHas('planting', function ($q) use ($field, $planting) {
             $q->where('field_id', $field->id)
-                ->where('crop_type', $planting->crop_type ?? 'rice');
+                ->where('crop_type', $planting->crop_type ?? 'rice')
+                ->where('id', '!=', $planting->id);
         })
-            ->where('id', '!=', $planting->id)
             ->get();
 
         if ($historicalHarvests->isEmpty()) {
@@ -1805,12 +1810,127 @@ class WeatherAnalyticsService
         return $this->getWeatherDataForPeriod($field, now()->subDays($days), now());
     }
 
-    private function assessSpecificRisk($riskType, $weatherData, $field)
+    private function assessSpecificRisk($riskType, $weatherData, $farm)
     {
+        if ($weatherData->isEmpty()) {
+            return [
+                'risk_level' => 'low',
+                'probability' => 0.1,
+                'impact' => 'unknown',
+                'message' => 'Insufficient weather data for risk assessment',
+            ];
+        }
+
+        $riskScore = 0;
+        $factors = [];
+        $avgTemp = $weatherData->avg('temperature') ?? 0;
+        $avgHumidity = $weatherData->avg('humidity') ?? 0;
+        $totalRainfall = $weatherData->sum('rainfall') ?? 0;
+        $totalDays = $weatherData->count();
+
+        switch ($riskType) {
+            case 'drought':
+                if ($totalRainfall < 20 && $totalDays > 7) {
+                    $riskScore += 50;
+                    $factors[] = 'Very low rainfall';
+                }
+                if ($avgHumidity < 50) {
+                    $riskScore += 30;
+                    $factors[] = 'Low humidity';
+                }
+                if ($avgTemp > 32) {
+                    $riskScore += 20;
+                    $factors[] = 'High temperature increases evaporation';
+                }
+                break;
+
+            case 'flooding':
+                $heavyRainDays = $weatherData->where('rainfall', '>', 30)->count();
+                if ($heavyRainDays > 0) {
+                    $riskScore += 40;
+                    $factors[] = "Heavy rainfall on {$heavyRainDays} day(s)";
+                }
+                if ($totalRainfall > 200) {
+                    $riskScore += 30;
+                    $factors[] = 'High cumulative rainfall';
+                }
+                if ($avgHumidity > 85) {
+                    $riskScore += 20;
+                    $factors[] = 'Saturated conditions';
+                }
+                break;
+
+            case 'heat_stress':
+            case 'extreme_temperature':
+                $hotDays = $weatherData->where('temperature', '>', 35)->count();
+                if ($hotDays > 0) {
+                    $riskScore += 40;
+                    $factors[] = "Extreme heat on {$hotDays} day(s)";
+                }
+                if ($avgTemp > 32) {
+                    $riskScore += 30;
+                    $factors[] = 'High average temperature';
+                }
+                if ($avgHumidity < 50) {
+                    $riskScore += 20;
+                    $factors[] = 'Low humidity compounds heat stress';
+                }
+                break;
+
+            case 'cold_stress':
+                $coldDays = $weatherData->where('temperature', '<', 15)->count();
+                if ($coldDays > 0) {
+                    $riskScore += 40;
+                    $factors[] = "Cold stress on {$coldDays} day(s)";
+                }
+                if ($avgTemp < 18) {
+                    $riskScore += 30;
+                    $factors[] = 'Low average temperature';
+                }
+                break;
+
+            case 'pest_outbreak':
+                if ($avgTemp >= 25 && $avgTemp <= 30 && $avgHumidity >= 70) {
+                    $riskScore += 50;
+                    $factors[] = 'Warm and humid conditions favor pests';
+                }
+                if ($avgHumidity > 80) {
+                    $riskScore += 20;
+                    $factors[] = 'High humidity increases pest activity';
+                }
+                break;
+
+            case 'disease_outbreak':
+                if ($avgHumidity > 85) {
+                    $riskScore += 40;
+                    $factors[] = 'Very high humidity promotes disease';
+                }
+                if ($avgTemp >= 20 && $avgTemp <= 28 && $avgHumidity >= 80) {
+                    $riskScore += 30;
+                    $factors[] = 'Optimal conditions for fungal diseases';
+                }
+                if ($totalRainfall > 100) {
+                    $riskScore += 20;
+                    $factors[] = 'Wet conditions increase disease pressure';
+                }
+                break;
+
+            default:
+                $riskScore = 30;
+                $factors[] = 'Unknown risk type - default assessment';
+        }
+
+        $riskScore = min(100, $riskScore);
+        $riskLevel = $riskScore >= 70 ? 'high' : ($riskScore >= 40 ? 'medium' : 'low');
+        $probability = round($riskScore / 100, 2);
+        $impact = $riskScore >= 70 ? 'severe' : ($riskScore >= 40 ? 'moderate' : 'minor');
+
         return [
-            'risk_level' => 'medium',
-            'probability' => 0.3,
-            'impact' => 'moderate',
+            'risk_level' => $riskLevel,
+            'probability' => $probability,
+            'impact' => $impact,
+            'risk_score' => $riskScore,
+            'factors' => $factors,
         ];
     }
 
@@ -2213,7 +2333,7 @@ class WeatherAnalyticsService
         $baseRequirement = $this->getBaseWaterRequirement($cropStage);
 
         // Adjust for field area
-        $fieldArea = $field->area ?? 1; // hectares
+        $fieldArea = $field->size ?? 1; // hectares
         $dailyVolume = $baseRequirement * 10 * $fieldArea; // mm * 10 = m³ per hectare
 
         // Adjust for soil type
@@ -2744,9 +2864,12 @@ class WeatherAnalyticsService
 
         // Apply scenario multipliers
         $scenarioMultipliers = [
-            'conservative' => ['temp' => 1.01, 'rainfall' => 0.98], // +1% temp, -2% rain
-            'moderate' => ['temp' => 1.02, 'rainfall' => 0.95],     // +2% temp, -5% rain
-            'severe' => ['temp' => 1.05, 'rainfall' => 0.90],        // +5% temp, -10% rain
+            'current' => ['temp' => 1.00, 'rainfall' => 1.00],           // No change
+            'conservative' => ['temp' => 1.01, 'rainfall' => 0.98],      // +1% temp, -2% rain
+            'moderate' => ['temp' => 1.02, 'rainfall' => 0.95],          // +2% temp, -5% rain
+            'moderate_warming' => ['temp' => 1.02, 'rainfall' => 0.95],  // Alias for moderate
+            'severe' => ['temp' => 1.05, 'rainfall' => 0.90],           // +5% temp, -10% rain
+            'high_warming' => ['temp' => 1.05, 'rainfall' => 0.90],     // Alias for severe
         ];
 
         $multiplier = $scenarioMultipliers[$scenario] ?? $scenarioMultipliers['moderate'];

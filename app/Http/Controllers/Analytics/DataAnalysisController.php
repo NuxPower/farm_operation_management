@@ -152,7 +152,7 @@ class DataAnalysisController extends Controller
         ];
 
         if ($farm) {
-            $totalArea = $farm->fields->sum('size_hectares');
+            $totalArea = $farm->fields->sum('size');
             $plantedArea = Planting::whereHas('field', function ($q) use ($farm) {
                 $q->where('farm_id', $farm->id);
             })->whereIn('status', ['planted', 'growing', 'active'])->sum('area_planted');

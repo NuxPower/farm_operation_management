@@ -75,7 +75,7 @@ class ReportService
     private function getOverviewMetrics($userId, $farms)
     {
         $totalArea = $farms->sum(function ($farm) {
-            return $farm->fields->sum('size_hectares');
+            return $farm->fields->sum('size');
         });
 
         $activePlantings = Planting::whereHas('field', function ($q) use ($farms) {
@@ -335,7 +335,7 @@ class ReportService
 
         $totalYield = $harvests->sum('yield_kg');
         $totalArea = $harvests->sum(function ($harvest) {
-            return $harvest->planting->field->size_hectares;
+            return $harvest->planting->field->size;
         });
 
         return $totalArea > 0 ? $totalYield / $totalArea : 0;
@@ -347,7 +347,7 @@ class ReportService
     private function calculateLaborEfficiency($farmId, $period)
     {
         $laborSummary = $this->laborService->getLaborCostSummary($farmId, $period);
-        $totalArea = Farm::findOrFail($farmId)->fields->sum('size_hectares');
+        $totalArea = Farm::findOrFail($farmId)->fields->sum('size');
 
         if ($totalArea == 0 || $laborSummary['total_hours'] == 0) {
             return 0;

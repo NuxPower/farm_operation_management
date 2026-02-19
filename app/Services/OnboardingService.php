@@ -267,7 +267,7 @@ class OnboardingService
             $field = Field::create([
                 'farm_id' => $fieldData['farm_id'],
                 'name' => $fieldData['name'],
-                'size_hectares' => $fieldData['size_hectares'],
+                'size' => $fieldData['size_hectares'] ?? $fieldData['size'],
                 'soil_type' => $fieldData['soil_type'],
                 'irrigation_type' => $fieldData['irrigation_type'],
                 'location' => $fieldData['location'] ?? null,
@@ -474,7 +474,7 @@ class OnboardingService
             $field = $this->createField([
                 'farm_id' => $farm->id,
                 'name' => 'Main Field',
-                'size_hectares' => $setupData['total_area'],
+                'size' => $setupData['total_area'],
                 'soil_type' => 'loam',
                 'irrigation_type' => 'irrigated',
             ]);
