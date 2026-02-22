@@ -221,9 +221,28 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
               </div>
             </div>
+            <!-- Alert badges -->
+            <div class="flex flex-wrap gap-2 mb-3" v-if="(analyticsData.inventory?.low_stock_count ?? 0) > 0 || (analyticsData.inventory?.expiring_soon_count ?? 0) > 0">
+              <span v-if="analyticsData.inventory?.low_stock_count > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                📦 {{ analyticsData.inventory.low_stock_count }} low stock
+              </span>
+              <span v-if="analyticsData.inventory?.expiring_soon_count > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                ⏰ {{ analyticsData.inventory.expiring_soon_count }} expiring
+              </span>
+            </div>
+            <!-- Category breakdown bars -->
+            <div v-if="analyticsData.inventory?.by_category && Object.keys(analyticsData.inventory.by_category).length > 0" class="space-y-1.5 mb-3">
+              <div v-for="(cat, key) in analyticsData.inventory.by_category" :key="key" class="flex items-center gap-2 text-xs">
+                <span class="w-16 text-gray-500 capitalize truncate">{{ key }}</span>
+                <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-full rounded-full bg-violet-400" :style="{ width: Math.min(100, ((cat.total_value / Math.max(analyticsData.inventory.total_value, 1)) * 100)) + '%' }"></div>
+                </div>
+                <span class="text-gray-600 w-8 text-right">{{ cat.count }}</span>
+              </div>
+            </div>
             <div class="space-y-2 pt-2 border-t border-gray-50">
                <div class="flex justify-between text-sm">
-                <span class="text-gray-500">Usage</span>
+                <span class="text-gray-500">Usage (90d)</span>
                 <span class="font-medium text-gray-900">{{ formatNumber(analyticsData.inventory?.historical_usage?.total_consumed ?? 0) }} units</span>
               </div>
               <div v-if="analyticsData.inventory?.historical_usage?.most_consumed_item" class="flex justify-between items-center text-sm">
@@ -259,16 +278,27 @@
               </div>
            </div>
 
-           <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex items-center justify-between">
-              <div>
+           <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+              <div class="flex items-center justify-between mb-3">
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Pest Incidents</p>
-                <p class="text-lg font-bold text-gray-900">{{ analyticsData.pests?.total_incidents ?? 0 }}</p>
-              </div>
-              <div class="text-right">
-                <p :class="['text-xs font-medium', (analyticsData.pests?.active_incidents ?? 0) > 0 ? 'text-rose-600' : 'text-emerald-600']">
-                  {{ analyticsData.pests?.active_incidents ?? 0 }}
+                <p :class="['text-xs font-medium px-2 py-0.5 rounded-full', (analyticsData.pests?.active_incidents ?? 0) > 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700']">
+                  {{ analyticsData.pests?.active_incidents ?? 0 }} active
                 </p>
-                <p class="text-[10px] text-gray-400">Active</p>
+              </div>
+              <p class="text-lg font-bold text-gray-900 mb-2">{{ analyticsData.pests?.total_incidents ?? 0 }} <span class="text-sm font-normal text-gray-500">total</span></p>
+              <!-- Type mini-bars -->
+              <div v-if="Object.keys(analyticsData.pests?.by_type ?? {}).length" class="space-y-1.5 mb-2">
+                <div v-for="(count, type) in analyticsData.pests.by_type" :key="type" class="flex items-center gap-2">
+                  <span class="text-[10px] text-gray-500 capitalize w-12 truncate">{{ type }}</span>
+                  <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                    <div class="h-1.5 rounded-full bg-rose-400" :style="{ width: `${(count / Math.max(...Object.values(analyticsData.pests.by_type))) * 100}%` }"></div>
+                  </div>
+                  <span class="text-[10px] font-medium text-gray-600 w-4 text-right">{{ count }}</span>
+                </div>
+              </div>
+              <div class="flex justify-between text-[11px] text-gray-500 pt-1 border-t border-gray-50">
+                <span>Treatment: {{ formatCurrency(analyticsData.pests?.total_treatment_cost ?? 0) }}</span>
+                <span>Avg {{ analyticsData.pests?.avg_resolution_days ?? 0 }}d resolve</span>
               </div>
            </div>
 
@@ -430,12 +460,20 @@
            </div>
            <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div v-for="(field, index) in analyticsData.pests.forecasts" :key="index" class="space-y-3">
-                 <div class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                    {{ field.field_name }}
+                 <div>
+                   <div class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                      {{ field.field_name }}
+                   </div>
+                   <div v-if="field.crop_info" class="mt-1 ml-3.5 flex items-center gap-2 text-xs text-gray-500">
+                     <span class="font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{{ field.crop_info.variety }}</span>
+                     <span>•</span>
+                     <span>{{ field.crop_info.growth_stage }}</span>
+                     <span class="text-gray-400">(Day {{ field.crop_info.days_planted }})</span>
+                   </div>
                  </div>
                  <div class="space-y-2">
-                    <div v-for="(pred, pIndex) in field.predictions.slice(0, 2)" :key="pIndex"
+                    <div v-for="(pred, pIndex) in field.predictions.slice(0, 3)" :key="pIndex"
                          class="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50/50 hover:border-gray-300 transition-colors">
                         <div class="mt-1">
                            <span v-if="pred.risks[0].risk_level === 'High'" class="block w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-200"></span>
@@ -449,6 +487,7 @@
                            </div>
                            <p class="text-sm font-medium text-gray-900 mt-0.5">{{ pred.risks[0].pest_name }}</p>
                            <p class="text-xs text-gray-500 mt-1 leading-snug">{{ pred.risks[0].description }}</p>
+                           <p v-if="pred.risks[0].stage_note" class="text-[11px] text-amber-600 mt-1 italic">🌱 {{ pred.risks[0].stage_note }}</p>
                         </div>
                     </div>
                  </div>

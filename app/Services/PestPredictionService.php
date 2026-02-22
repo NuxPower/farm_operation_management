@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\Farm;
+use App\Models\Planting;
 use App\Models\PestLibrary;
 use App\Models\PestAnalyticsRule;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class PestPredictionService
 {
@@ -23,7 +25,7 @@ class PestPredictionService
      * @param Farm $farm
      * @return array
      */
-    public function predictRisks(Farm $farm, $resolvedIncidents = []): array
+    public function predictRisks(Farm $farm, $resolvedIncidents = [], ?Planting $planting = null): array
     {
         // Get farm coordinates
         $coords = $farm->weather_coordinates;
@@ -47,10 +49,17 @@ class PestPredictionService
             return PestLibrary::with('rules')->get();
         });
 
+        // Calculate growth stage from planting if available
+        $growthStage = null;
+        if ($planting && $planting->planting_date) {
+            $daysPlanted = Carbon::parse($planting->planting_date)->diffInDays(now());
+            $growthStage = $this->getGrowthStage($daysPlanted);
+        }
+
         $predictions = [];
 
         foreach ($forecast['list'] as $day) {
-            $risks = $this->analyzeDailyRisk($day, $pests);
+            $risks = $this->analyzeDailyRisk($day, $pests, $growthStage);
 
             // Filter out resolved risks
             $risks = array_filter($risks, function ($risk) use ($resolvedIncidents) {
@@ -86,7 +95,7 @@ class PestPredictionService
     /**
      * Analyze weather conditions for a single day against database rules
      */
-    private function analyzeDailyRisk(array $day, $pests): array
+    private function analyzeDailyRisk(array $day, $pests, ?string $growthStage = null): array
     {
         $risks = [];
         $temp = $day['main']['temp'];
@@ -101,6 +110,13 @@ class PestPredictionService
         $lunarPhase = $this->getLunarPhase($day['dt']);
 
         foreach ($pests as $pest) {
+            // Growth stage filtering: skip pests not relevant to current stage
+            if ($growthStage && !empty($pest->vulnerable_stages)) {
+                if (!in_array($growthStage, $pest->vulnerable_stages)) {
+                    continue;
+                }
+            }
+
             // Check each rule for this pest
             foreach ($pest->rules as $rule) {
                 $triggered = false;
@@ -129,11 +145,20 @@ class PestPredictionService
                 }
 
                 if ($triggered) {
+                    // Build description with stage context
+                    $description = $rule->risk_message;
+                    $stageNote = null;
+                    if ($growthStage && $rule->stage_note) {
+                        $stageNote = $rule->stage_note;
+                        $description .= ' ⚠️ ' . $rule->stage_note;
+                    }
+
                     $risks[] = [
                         'pest_name' => $pest->name,
                         'type' => ucfirst($pest->type),
                         'risk_level' => ucfirst($rule->risk_level),
-                        'description' => $rule->risk_message,
+                        'description' => $description,
+                        'stage_note' => $stageNote,
                         'recommendation' => $pest->treatment_guidance ?? 'Monitor field closely.',
                         'image' => $pest->images[0] ?? null
                     ];
@@ -210,5 +235,17 @@ class PestPredictionService
         }
 
         return 'Intermediate';
+    }
+
+    /**
+     * Determine growth stage from days since planting
+     */
+    public function getGrowthStage(int $days): string
+    {
+        if ($days <= 45)
+            return 'vegetative';
+        if ($days <= 75)
+            return 'reproductive';
+        return 'ripening';
     }
 }

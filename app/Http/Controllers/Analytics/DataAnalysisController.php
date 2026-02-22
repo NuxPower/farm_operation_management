@@ -14,6 +14,8 @@ use App\Models\Field;
 use App\Models\Planting;
 use App\Models\SeedPlanting;
 use App\Models\PestIncident;
+use App\Models\InventoryItem;
+use App\Models\InventoryTransaction;
 use App\Models\WeatherLog;
 use App\Models\Laborer;
 use App\Models\LaborWage;
@@ -177,10 +179,14 @@ class DataAnalysisController extends Controller
             ->where('status', 'ready')
             ->count();
 
-        // 8. Pest Incidents Data
+        // 8. Pest Incidents Data (Enriched)
         $pestsData = [
             'total_incidents' => 0,
             'active_incidents' => 0,
+            'by_type' => [],
+            'by_severity' => [],
+            'total_treatment_cost' => 0,
+            'avg_resolution_days' => 0,
             'forecasts' => [],
         ];
 
@@ -189,28 +195,66 @@ class DataAnalysisController extends Controller
                 $q->where('farm_id', $farm->id);
             })->pluck('id');
 
-            $pestsData['total_incidents'] = PestIncident::whereIn('planting_id', $plantingIds)->count();
-            $pestsData['active_incidents'] = PestIncident::whereIn('planting_id', $plantingIds)->active()->count();
+            $farmIncidents = PestIncident::whereIn('planting_id', $plantingIds);
 
-            // Add pest forecasts from prediction service
+            $pestsData['total_incidents'] = (clone $farmIncidents)->count();
+            $pestsData['active_incidents'] = (clone $farmIncidents)->active()->count();
+
+            // Type breakdown
+            $pestsData['by_type'] = (clone $farmIncidents)
+                ->selectRaw('pest_type, count(*) as count')
+                ->groupBy('pest_type')
+                ->pluck('count', 'pest_type');
+
+            // Severity breakdown
+            $pestsData['by_severity'] = (clone $farmIncidents)
+                ->selectRaw('severity, count(*) as count')
+                ->groupBy('severity')
+                ->pluck('count', 'severity');
+
+            // Treatment cost
+            $pestsData['total_treatment_cost'] = round((float) ((clone $farmIncidents)->sum('treatment_cost') ?? 0), 2);
+
+            // Avg resolution days
+            $resolved = (clone $farmIncidents)->where('status', 'resolved')->get()->filter(fn($i) => $i->detected_date);
+            if ($resolved->count() > 0) {
+                $totalDays = $resolved->sum(fn($i) => Carbon::parse($i->detected_date)->diffInDays($i->updated_at));
+                $pestsData['avg_resolution_days'] = round($totalDays / $resolved->count(), 1);
+            }
+
+            // Pest forecasts — per field with active planting info
             $forecasts = [];
-
-            // Get resolved incidents to suppress warnings
-            $resolvedIncidents = PestIncident::whereIn('planting_id', $plantingIds)
-                ->where('status', 'resolved')
-                ->get();
-
-            // Predict risks for the farm (weather is farm-wide)
-            $farmRisks = $this->pestPredictionService->predictRisks($farm, $resolvedIncidents);
+            $resolvedIncidents = (clone $farmIncidents)->where('status', 'resolved')->get();
 
             foreach ($farm->fields as $field) {
-                // In the future, we could filter risks by the crop planted in the specific field
-                // For now, we apply farm-wide risks to all fields
-                if (!empty($farmRisks)) {
-                    $forecasts[] = [
+                // Find active planting for this field
+                $activePlanting = $field->plantings()
+                    ->whereIn('status', ['planted', 'growing'])
+                    ->with('riceVariety')
+                    ->first();
+
+                // Get per-field risks (passing planting for growth-stage filtering)
+                $fieldRisks = $this->pestPredictionService->predictRisks($farm, $resolvedIncidents, $activePlanting);
+
+                if (!empty($fieldRisks)) {
+                    $fieldForecast = [
                         'field_name' => $field->name,
-                        'predictions' => $farmRisks,
+                        'predictions' => $fieldRisks,
                     ];
+
+                    // Add crop context if there's an active planting
+                    if ($activePlanting) {
+                        $daysPlanted = Carbon::parse($activePlanting->planting_date)->diffInDays(now());
+                        $growthStage = $daysPlanted <= 45 ? 'Vegetative' : ($daysPlanted <= 75 ? 'Reproductive' : 'Ripening');
+
+                        $fieldForecast['crop_info'] = [
+                            'variety' => $activePlanting->riceVariety->name ?? $activePlanting->crop_type ?? 'Unknown',
+                            'days_planted' => $daysPlanted,
+                            'growth_stage' => $growthStage,
+                        ];
+                    }
+
+                    $forecasts[] = $fieldForecast;
                 }
             }
             $pestsData['forecasts'] = $forecasts;
@@ -249,18 +293,62 @@ class DataAnalysisController extends Controller
             }
         }
 
-        // 11. Inventory Data
+        // 11. Inventory Data (Enriched)
+        $userItems = InventoryItem::where('user_id', $user->id);
+        $allItems = (clone $userItems)->get();
+
+        $lowStockItems = $allItems->filter(fn($i) => $i->isLowStock());
+        $expiringSoon = (clone $userItems)
+            ->whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', now()->addDays(30))
+            ->where('expiry_date', '>=', now())
+            ->get();
+
+        // Category breakdown
+        $byCategory = $allItems->groupBy('category')->map(function ($items, $cat) {
+            return [
+                'count' => $items->count(),
+                'total_value' => round($items->sum(fn($i) => $i->current_stock * $i->unit_price), 2),
+            ];
+        });
+
+        // Historical usage from transactions (last 90 days)
+        $usageTransactions = InventoryTransaction::whereHas('inventoryItem', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+            ->where('transaction_type', 'removal')
+            ->where('transaction_date', '>=', now()->subDays(90))
+            ->get();
+
+        $totalConsumed = $usageTransactions->sum('quantity');
+        $topConsumedId = $usageTransactions->groupBy('inventory_item_id')
+            ->map(fn($txns) => $txns->sum('quantity'))
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        $mostConsumedItem = $topConsumedId
+            ? $allItems->firstWhere('id', $topConsumedId)
+            : null;
+
         $inventoryData = [
-            'total_value' => $dashboardData['overview']['total_inventory_value'] ?? 0,
+            'total_items' => $allItems->count(),
+            'total_value' => $dashboardData['overview']['total_inventory_value'] ?? round($allItems->sum(fn($i) => $i->current_stock * $i->unit_price), 2),
+            'low_stock_count' => $lowStockItems->count(),
+            'expiring_soon_count' => $expiringSoon->count(),
+            'by_category' => $byCategory,
             'historical_usage' => [
-                'total_consumed' => 0,
-                'most_consumed_item' => null,
+                'total_consumed' => round($totalConsumed, 2),
+                'most_consumed_item' => $mostConsumedItem ? [
+                    'name' => $mostConsumedItem->name,
+                    'category' => $mostConsumedItem->category,
+                ] : null,
             ],
         ];
 
         // 12. Executive Summary & Action Suggestions (Generated)
         $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData);
-        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast);
+        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData);
 
         return response()->json([
             'executive_summary' => $executiveSummary,
@@ -337,7 +425,7 @@ class DataAnalysisController extends Controller
     /**
      * Generate action suggestions based on analytics data
      */
-    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null): array
+    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null, $inventory = null): array
     {
         $suggestions = [];
 
@@ -412,6 +500,30 @@ class DataAnalysisController extends Controller
                 'priority' => 'medium',
                 'action_label' => 'View Finances',
                 'action_url' => '/reports/profit-loss',
+            ];
+        }
+
+        // Low stock suggestion
+        if ($inventory && ($inventory['low_stock_count'] ?? 0) > 0) {
+            $suggestions[] = [
+                'icon' => '📦',
+                'category' => 'Inventory',
+                'message' => sprintf('%d item(s) below minimum stock level — restock needed', $inventory['low_stock_count']),
+                'priority' => 'high',
+                'action_label' => 'View Inventory',
+                'action_url' => '/inventory',
+            ];
+        }
+
+        // Expiring items suggestion
+        if ($inventory && ($inventory['expiring_soon_count'] ?? 0) > 0) {
+            $suggestions[] = [
+                'icon' => '⏰',
+                'category' => 'Inventory',
+                'message' => sprintf('%d item(s) expiring within 30 days — use or dispose', $inventory['expiring_soon_count']),
+                'priority' => 'high',
+                'action_label' => 'Check Expiry',
+                'action_url' => '/inventory',
             ];
         }
 

@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('farmer')->prefix('pest-incidents')->group(function () {
         Route::get('/', [\App\Http\Controllers\Farm\PestIncidentController::class, 'index']);
         Route::get('/options', [\App\Http\Controllers\Farm\PestIncidentController::class, 'options']);
+        Route::get('/analytics', [\App\Http\Controllers\Farm\PestIncidentController::class, 'analytics']);
         Route::post('/', [\App\Http\Controllers\Farm\PestIncidentController::class, 'store']);
         Route::get('/{pestIncident}', [\App\Http\Controllers\Farm\PestIncidentController::class, 'show']);
         Route::put('/{pestIncident}', [\App\Http\Controllers\Farm\PestIncidentController::class, 'update']);

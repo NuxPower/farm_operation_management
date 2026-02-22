@@ -19,6 +19,7 @@ class PestAnalyticsRule extends Model
         'duration_hours',
         'risk_level',
         'risk_message',
+        'stage_note',
     ];
 
     public function pestLibrary(): BelongsTo

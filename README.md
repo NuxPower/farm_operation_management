@@ -745,15 +745,23 @@ The system automatically generates prioritized suggestions based on specific tri
     *   *Suggestion:* "Apply treatment for [Pest] in [Field] - severity: [Severity]"
     *   *Priority logic:* High if severity is Critical/High
 
-4.  **Pending Sales Orders (`High Priority`)**
+4.  **Low Inventory Alert (`High Priority`)**
+    *   *Trigger:* Item current stock ≤ minimum threshold OR low stock count > 0 from DataAnalysisController
+    *   *Suggestion:* "[Count] item(s) below minimum stock level — restock needed"
+
+5.  **Expiring Inventory Alert (`High Priority`)**
+    *   *Trigger:* Item expiry date is within 30 days
+    *   *Suggestion:* "[Count] item(s) expiring within 30 days — use or dispose"
+
+6.  **Pending Sales Orders (`High Priority`)**
     *   *Trigger:* Marketplace order with status 'pending'
     *   *Suggestion:* "Fulfill [Count] pending marketplace orders"
 
-5.  **Harvest Readiness (`High Priority`)**
+7.  **Harvest Readiness (`High Priority`)**
     *   *Trigger:* Planting stage is Maturity, Ripening, or Ready for Harvest
     *   *Suggestion:* "Schedule harvesting for [Field] - crop at [Stage] stage"
 
-6.  **Weather Alerts (`Medium Priority`)**
+8.  **Weather Alerts (`Medium Priority`)**
     *   *Trigger (Rain):* Condition contains "rain" or "storm" -> "Delay pesticide/fertilizer application..."
     *   *Trigger (Heat):* Temperature > 35°C -> "High temperature alert - irrigate crops early morning or evening"
 
@@ -780,6 +788,18 @@ The system automatically generates prioritized suggestions based on specific tri
   - *Rice Blast* (High Humidity + Rain)
   - *Stem Borer* (High Temp)
   - *Brown Plant Hopper* (Warm + Humid)
+  - **Growth-Stage Filtering:** Predictions are filtered per-field based on the current crop growth stage (Vegetative 0-45d / Reproductive 46-75d / Ripening 76+d). Pests not relevant to the current stage are automatically suppressed. Stage-specific context notes (e.g., "Causes deadheart at vegetative stage") are appended to risk descriptions.
+- **Pest Tracker Analytics:** Dedicated analytics panel on the Pest Tracker page with:
+  - Pest type distribution bars (insect, disease, weed, rodent)
+  - Severity breakdown donut chart (low, medium, high, critical)
+  - 12-month incident trend bar chart
+  - Treatment cost summary (total, average per incident, most expensive pest)
+  - Top 5 recurring pests ranked list
+  - Average incident resolution time
+  - All charts built with pure CSS/SVG (no additional dependencies)
+- **Enriched Dashboard Panels:** 
+  - **Pest Panel:** Displays a richer pest card with type breakdown bars, treatment cost, active incident count, and average resolution days.
+  - **Inventory Panel:** Shows real-time total stock value, low-stock/expiry warning badges, dynamic category breakdown mini-bars (seeds, fertilizer, etc.), and 90-day historical usage trends. Forecasts show crop variety and growth stage per field.
 - **Resource & Cost Efficiency:** Benchmarks water/fertilizer usage against yield ($/kg, $/ha) to score farm performance.
 - **Financial Forecasting:** Projects cash flow for the next 6 months by analyzing active plantings (expected yield × market price) and historical expense patterns.
 
@@ -791,7 +811,7 @@ The system automatically generates prioritized suggestions based on specific tri
   - **Weighted Average Cost (WAC):** Auto-recalculates unit price on restock
   - Low stock alerts and expiry tracking
   - Automatic expense creation on stock purchase
-  - **Historical Usage Tracking:** Monitors consumption and restock patterns over time
+  - **Historical Usage Tracking:** Monitors consumption and restock patterns over time (integrated into Analytics Dashboard)
 
 ### 5. Labor & Tasks
 - **Models:** `Task`, `Laborer`, `LaborerGroup`, `LaborWage`
@@ -824,6 +844,7 @@ The system automatically generates prioritized suggestions based on specific tri
 - **Services:** `FinancialService`
 - **Features:** 
   - Income/expense tracking, profit/loss reports, crop profitability analysis.
+  - **Automated Expense Sync:** Completing tasks with piece-rates or logging pest incidents with treatment costs automatically generates connected Expense records.
   - **PDF/CSV Export:** Generate professional reports for records and analysis.
   - **Scheduled Reports:** Automated email summaries (Financial, Crop Yield).
 
@@ -1026,22 +1047,43 @@ Where:
 
 ### 3. Pest and Disease Risk Prediction
 
-**Methodology:** Rule-Based Expert System derived from epidemiological research on rice pests and diseases.
+**Methodology:** Rule-Based Expert System derived from epidemiological research on rice pests and diseases, enhanced with **crop growth-stage awareness** for context-specific predictions.
 
 **Risk Prediction Rules:**
 
-| Pest/Disease | Trigger Conditions | Risk Level |
-|--------------|-------------------|------------|
-| **Rice Blast** | Humidity ≥85%, Temp 20-30°C, Rain probability >50% | High |
-| **Stem Borer** | Temperature >28°C | Moderate |
-| **Brown Plant Hopper** | Humidity >80%, Temp >25°C | Moderate-High |
-| **Bacterial Leaf Blight** | Stormy/Rainy + Temp >25°C | Moderate |
+| Pest/Disease | Trigger Conditions | Risk Level | Vulnerable Stages |
+|--------------|-------------------|------------|-------------------|
+| **Rice Blast** | Humidity >90%, Temp 25-28°C, Rainfall | High | All stages |
+| **Brown Plant Hopper** | Temp 28-30°C, Humidity >80% | High | Vegetative, Reproductive |
+| **Yellow Stem Borer** | Temp 28-32°C, Humidity >90% | High | Vegetative, Reproductive |
+| **Green Leafhopper** | Temp 32-34°C, Humidity >90% | High | Vegetative |
+| **Rice Tungro Virus** | Temp 24-32°C, Humidity >85% | High | Vegetative |
+| **Rice Black Bug** | Full Moon phase, Humidity >85% | High | Reproductive, Ripening |
 
-**Implementation:** [`PestPredictionService.php`](app/Services/PestPredictionService.php#L63-L124)
+**Growth-Stage-Aware Filtering:**
 
-**Scientific Basis:** Rice blast (*Magnaporthe oryzae*) development correlates strongly with relative humidity ≥95% and temperatures of 26-27°C.
+Predictions are filtered per-field based on the crop's current growth stage, derived from the planting date:
 
-**Scientific Alignment:** Logic thresholds for Rice Black Bug and Stemborer risk are calibrated based on the percentile-based outbreak models established by Balleras et al. (2025).
+| Growth Stage | Days from Planting | Description |
+|--------------|-------------------|-------------|
+| **Vegetative** | 0–45 days | Seedling establishment, tillering |
+| **Reproductive** | 46–75 days | Panicle initiation, booting, heading |
+| **Ripening** | 76+ days | Grain filling, maturation |
+
+Each pest in the library has a `vulnerable_stages` JSON field (e.g., `["vegetative", "reproductive"]`). When a planting is active, the service:
+1. Calculates the growth stage from `planting_date`
+2. Filters out pests whose `vulnerable_stages` don't include the current stage
+3. Appends `stage_note` context to risk descriptions (e.g., "Causes deadheart at vegetative stage" vs "Causes whitehead at reproductive stage")
+
+**Implementation:** [`PestPredictionService.php`](app/Services/PestPredictionService.php)
+
+**Database Schema:**
+- `pest_libraries.vulnerable_stages` — JSON array of growth stages when the pest is most threatening
+- `pest_analytics_rules.stage_note` — Stage-specific context note appended to risk descriptions
+
+**Scientific Basis:** Rice blast (*Magnaporthe oryzae*) development correlates strongly with relative humidity ≥95% and temperatures of 26-27°C. Yellow Stem Borer causes "deadheart" during vegetative stage and "whitehead" during reproductive stage, requiring different management approaches.
+
+**Scientific Alignment:** Logic thresholds for Rice Black Bug and Stemborer risk are calibrated based on the percentile-based outbreak models established by Balleras et al. (2025). Growth stage vulnerability data is derived from IRRI and PhilRice field guides.
 
 **Citations:**
 - Balleras, G. D., Abdula, S. E., Flores, C. G., & Deleña, R. D. (2025). Percentile-based outbreak thresholding for machine learning-driven pest forecasting in rice (*Oryza sativa* L.) farming: A case study on rice black bug and white stemborer. *Sustainability*, 18(1), 182.
@@ -1578,6 +1620,7 @@ This setup ensures a **"Zero-Touch" deployment**: just push the code, and the sy
 | GET | `/api/reports/profit-loss/by-planting` | Get P&L breakdown by planting cycle |
 | GET | `/api/pest-incidents` | List recorded pest incidents |
 | POST | `/api/pest-incidents` | Report a new pest incident |
+| GET | `/api/pest-incidents/analytics` | Get comprehensive pest analytics (type/severity breakdown, monthly trends, treatment costs, top pests, avg resolution time) |
 
 ---
 
