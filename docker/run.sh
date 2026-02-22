@@ -36,15 +36,9 @@ php artisan route:cache || echo "Warning: route:cache failed"
 php artisan view:cache || echo "Warning: view:cache failed"
 php artisan event:cache || echo "Warning: event:cache failed"
 
-# Wipe database first, then migrate and seed
-echo "==> Wiping Database..."
-php artisan db:wipe --force --drop-views || true
+# Run migrations (skip errors for existing tables)
+php artisan migrate --force 2>/dev/null || echo "Warning: migrate skipped (tables may already exist)"
 
-# Run migrations (this will load schema/pgsql-schema.sql if DB is empty)
-php artisan migrate --force 2>/dev/null || echo "Warning: migrate skipped"
-
-echo "==> Running Seeder..."
-php artisan db:seed --class=ReseedSeeder --force || echo "Warning: Seeder failed"
 
 
 # Configure Nginx PORT - Railway sets PORT env var
