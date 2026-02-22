@@ -290,7 +290,7 @@
       </button>
       
       <button 
-      @click="navigateTo('/harvests/create')"
+      @click="navigateTo('/harvests?action=create')"
       :disabled="isNavigating"
       class="bg-white rounded-lg shadow p-4 flex items-center hover:shadow-md transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
       >

@@ -248,13 +248,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import HarvestFormModal from './HarvestFormModal.vue'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
 import { formatCurrency } from '@/utils/format'
 
 const router = useRouter()
+const route = useRoute()
 const farmStore = useFarmStore()
 
 const loading = ref(true)
@@ -351,6 +352,13 @@ onMounted(() => {
   // as they are needed for the create/edit modal dropdown
   if (farmStore.plantings.length === 0) {
     farmStore.fetchPlantings().catch(err => console.warn('BG fetch plantings failed', err))
+  }
+  
+  // Auto-open modal if action query parameter is set to create
+  if (route.query.action === 'create') {
+    openCreateModal()
+    // Remove query string from tracking history
+    router.replace({ path: route.path })
   }
 })
 </script>
