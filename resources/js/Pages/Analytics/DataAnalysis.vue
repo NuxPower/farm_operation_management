@@ -10,27 +10,27 @@
           <p class="text-gray-500 mt-1">Comprehensive insights from your farm data</p>
         </div>
 
-        <div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200 w-full md:w-auto">
           <div class="flex items-center gap-2">
-            <label class="text-sm font-medium text-gray-600">From</label>
+            <label class="text-sm font-medium text-gray-600 w-10 sm:w-auto">From</label>
             <input
               v-model="startDate"
               type="date"
-              class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              class="flex-1 sm:flex-none w-full sm:w-auto px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
             />
           </div>
           <div class="flex items-center gap-2">
-            <label class="text-sm font-medium text-gray-600">To</label>
+            <label class="text-sm font-medium text-gray-600 w-10 sm:w-auto">To</label>
             <input
               v-model="endDate"
               type="date"
-              class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              class="flex-1 sm:flex-none w-full sm:w-auto px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
             />
           </div>
           <button
             @click="fetchAnalytics"
             :disabled="isLoading"
-            class="px-5 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            class="w-full sm:w-auto mt-1 sm:mt-0 px-5 py-2 sm:py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex justify-center items-center"
           >
             <span v-if="isLoading" class="flex items-center gap-2">
               <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
