@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Farm;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreFieldRequest extends FormRequest
 {
@@ -25,8 +26,8 @@ class StoreFieldRequest extends FormRequest
             'location' => 'required|array',
             'location.lat' => 'required|numeric|between:-90,90',
             'location.lon' => 'required|numeric|between:-180,180',
-            'location.address' => 'required|string|max:255',
-            'soil_type' => 'required|string|max:255',
+            'location.address' => ['required', 'string', 'max:500', new NoEmoji],
+            'soil_type' => ['required', 'string', 'max:255', new NoEmoji],
             'size' => 'required|numeric|min:0',
         ];
     }

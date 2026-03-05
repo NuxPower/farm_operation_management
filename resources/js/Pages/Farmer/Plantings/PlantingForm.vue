@@ -445,6 +445,7 @@ import { useMarketplaceStore } from '@/stores/marketplace'
 import { useInventoryStore } from '@/stores/inventory'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
 import axios from 'axios';
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const formatNumber = (num) => {
   return Number(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -467,6 +468,7 @@ const farmStore = useFarmStore()
 
 const marketplaceStore = useMarketplaceStore()
 const inventoryStore = useInventoryStore()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const isEditMode = computed(() => !!props.planting)
 const riceVarieties = computed(() => marketplaceStore.riceVarieties || [])
@@ -844,6 +846,24 @@ onMounted(async () => {
 const submitForm = async () => {
   form.value.processing = true
   form.value.errors = {}
+  
+  clearErrors()
+  sanitizeForm(form.value.data)
+  
+  const isValid = validateForm(form.value.data, {
+    notes: [rules.maxLength(2000), rules.noEmoji],
+    seed_rate: [rules.numeric, rules.minValue(0)],
+    area_planted: [rules.numeric, rules.minValue(0)]
+  })
+  
+  if (!isValid) {
+    for (const [key, msg] of Object.entries(clientErrors.value)) {
+       form.value.errors[key] = msg;
+    }
+    form.value.errors.general = 'Please fix the highlighted errors before submitting.';
+    form.value.processing = false;
+    return;
+  }
 
   // Validate area planted doesn't exceed available area
   if (form.value.data.area_planted && selectedField.value) {

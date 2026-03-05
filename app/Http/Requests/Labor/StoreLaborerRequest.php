@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Labor;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreLaborerRequest extends FormRequest
 {
@@ -22,17 +23,17 @@ class StoreLaborerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'name' => ['required', 'string', 'max:255', new NoEmoji],
+            'phone' => ['required', 'string', 'max:20', 'regex:/^(09|\+639)\d{9}$/', new NoEmoji],
             'email' => 'nullable|email|max:255',
-            'address' => 'nullable|string',
+            'address' => ['nullable', 'string', 'max:500', new NoEmoji],
             'skill_level' => 'required|string|in:beginner,intermediate,advanced,expert',
-            'specialization' => 'nullable|string|max:255',
+            'specialization' => ['nullable', 'string', 'max:255', new NoEmoji],
             'hourly_rate' => 'required|numeric|min:0',
             'status' => 'required|string|in:active,inactive,on_leave',
             'hire_date' => 'required|date',
-            'emergency_contact' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
+            'emergency_contact' => ['nullable', 'string', 'max:255', new NoEmoji],
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 

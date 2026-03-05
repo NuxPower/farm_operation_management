@@ -21,18 +21,20 @@
                     <input
                       v-model="profile.first_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      :class="['w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500', errors.first_name ? 'border-red-300' : 'border-gray-300']"
                       required
                     />
+                    <p v-if="errors.first_name" class="mt-1 text-xs text-red-600">{{ errors.first_name }}</p>
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
                     <input
                       v-model="profile.last_name"
                       type="text"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      :class="['w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500', errors.last_name ? 'border-red-300' : 'border-gray-300']"
                       required
                     />
+                    <p v-if="errors.last_name" class="mt-1 text-xs text-red-600">{{ errors.last_name }}</p>
                   </div>
                 </div>
 
@@ -41,9 +43,10 @@
                   <input
                     v-model="profile.email"
                     type="email"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    :class="['w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500', errors.email ? 'border-red-300' : 'border-gray-300']"
                     required
                   />
+                  <p v-if="errors.email" class="mt-1 text-xs text-red-600">{{ errors.email }}</p>
                 </div>
 
                 <div>
@@ -51,8 +54,9 @@
                   <input
                     v-model="profile.phone"
                     type="tel"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    :class="['w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500', errors.phone ? 'border-red-300' : 'border-gray-300']"
                   />
+                  <p v-if="errors.phone" class="mt-1 text-xs text-red-600">{{ errors.phone }}</p>
                 </div>
 
                 <div>
@@ -60,9 +64,10 @@
                   <textarea
                     v-model="profile.bio"
                     rows="4"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    :class="['w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none', errors.bio ? 'border-red-300' : 'border-gray-300']"
                     placeholder="Tell us about yourself..."
                   ></textarea>
+                  <p v-if="errors.bio" class="mt-1 text-xs text-red-600">{{ errors.bio }}</p>
                 </div>
 
                 <div class="flex justify-end">
@@ -226,8 +231,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const authStore = useAuthStore()
+const { errors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 const loading = ref(false)
 const passwordLoading = ref(false)
 const uploadingPicture = ref(false)
@@ -343,6 +350,19 @@ const deletePicture = async () => {
 }
 
 const updateProfile = async () => {
+  clearErrors();
+  sanitizeForm(profile.value);
+  
+  const isValid = validateForm(profile.value, {
+    first_name: [rules.required, rules.maxLength(255), rules.alphaSpaces, rules.noEmoji],
+    last_name: [rules.required, rules.maxLength(255), rules.alphaSpaces, rules.noEmoji],
+    email: [rules.required, rules.email, rules.maxLength(255)],
+    phone: [rules.phone, rules.maxLength(20)],
+    bio: [rules.maxLength(1000), rules.noEmoji]
+  });
+
+  if (!isValid) return;
+
   loading.value = true
   try {
     await authStore.updateProfile(profile.value)

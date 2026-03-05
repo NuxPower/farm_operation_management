@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Marketplace;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreSaleRequest extends FormRequest
 {
@@ -31,8 +32,8 @@ class StoreSaleRequest extends FormRequest
             'payment_method' => 'required|string|in:cash,bank_transfer,check,credit',
             'payment_status' => 'required|string|in:pending,paid,partial,overdue',
             'delivery_date' => 'nullable|date|after_or_equal:sale_date',
-            'delivery_address' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'delivery_address' => ['nullable', 'string', 'max:500', new NoEmoji],
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 

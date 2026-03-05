@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Financial;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreExpenseRequest extends FormRequest
 {
@@ -22,13 +23,13 @@ class StoreExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'description' => 'required|string|max:255',
+            'description' => ['required', 'string', 'max:255', new NoEmoji],
             'amount' => 'required|numeric|min:0',
             'category' => 'required|string|in:seeds,fertilizers,pesticides,labor,equipment,utilities,transportation,other',
             'date' => 'required|date',
             'payment_method' => 'nullable|string|in:cash,bank_transfer,check,credit_card',
-            'receipt_number' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
+            'receipt_number' => ['nullable', 'string', 'max:255', new NoEmoji],
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
             'related_entity_type' => 'nullable|string|in:field,planting,harvest,task',
             'related_entity_id' => 'nullable|integer',
         ];

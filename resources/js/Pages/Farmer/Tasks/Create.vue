@@ -320,9 +320,11 @@ import { useFarmStore } from '@/stores/farm'
 import { buildTaskTypeOptions } from '@/utils/taskTypes'
 import { laborAPI } from '@/services/api'
 import { formatCurrency } from '@/utils/format'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const router = useRouter()
 const farmStore = useFarmStore()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const submitting = ref(false)
 const errors = ref({})
@@ -401,6 +403,24 @@ function formatDateForInput(date) {
 const submitTask = async () => {
   submitting.value = true
   errors.value = {}
+
+  clearErrors()
+  sanitizeForm(form)
+  
+  const isValid = validateForm(form, {
+    description: [rules.maxLength(2000), rules.noEmoji],
+    wage_amount: [rules.numeric, rules.minValue(0)],
+    quantity: [rules.numeric, rules.minValue(0)],
+    unit_price: [rules.numeric, rules.minValue(0)]
+  })
+
+  if (!isValid) {
+    for (const [key, msg] of Object.entries(clientErrors.value)) {
+       errors.value[key] = [msg];
+    }
+    submitting.value = false;
+    return;
+  }
 
   try {
     // Validate required fields before submitting

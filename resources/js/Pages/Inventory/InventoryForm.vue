@@ -234,6 +234,7 @@
 
 <script setup>
 import { reactive, ref, onMounted, watch, computed } from 'vue'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const props = defineProps({
   item: {
@@ -263,6 +264,7 @@ const emit = defineEmits(['submit', 'cancel'])
 // Local error state to handle prop updates
 const formError = ref('')
 const formFieldErrors = ref({})
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 // Watch for error props
 watch(() => props.errorMessage, (newVal) => formError.value = newVal)
@@ -304,6 +306,27 @@ const submitForm = () => {
   // Clear local errors
   formError.value = ''
   formFieldErrors.value = {}
+  clearErrors()
+  
+  sanitizeForm(form)
+  
+  const isValid = validateForm(form, {
+    name: [rules.required, rules.maxLength(255), rules.noEmoji],
+    category: [rules.required],
+    unit: [rules.required],
+    current_stock: [rules.required, rules.numeric, rules.minValue(0)],
+    minimum_stock: [rules.required, rules.numeric, rules.minValue(0)],
+    unit_price: [rules.numeric, rules.minValue(0)],
+    supplier: [rules.maxLength(255), rules.noEmoji],
+    location: [rules.maxLength(255), rules.noEmoji],
+    description: [rules.maxLength(2000), rules.noEmoji]
+  })
+  
+  if (!isValid) {
+    formFieldErrors.value = clientErrors.value
+    formError.value = 'Please review the highlighted fields.'
+    return
+  }
   
   // Clean payload
   const payload = { ...form }

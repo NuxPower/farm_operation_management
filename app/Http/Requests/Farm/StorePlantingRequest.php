@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Farm;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StorePlantingRequest extends FormRequest
 {
@@ -23,8 +24,8 @@ class StorePlantingRequest extends FormRequest
     {
         return [
             'field_id' => 'required|exists:fields,id',
-            'crop_name' => 'required|string|max:255',
-            'variety' => 'nullable|string|max:255',
+            'crop_name' => ['required', 'string', 'max:255', new NoEmoji],
+            'variety' => ['nullable', 'string', 'max:255', new NoEmoji],
             'planting_date' => 'required|date',
             'expected_harvest_date' => 'nullable|date|after:planting_date',
             'seed_quantity' => 'required|numeric|min:0',
@@ -32,7 +33,7 @@ class StorePlantingRequest extends FormRequest
             'spacing' => 'nullable|array',
             'spacing.row' => 'nullable|numeric|min:0',
             'spacing.plant' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 

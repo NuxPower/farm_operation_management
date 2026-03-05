@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Marketplace;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreBuyerRequest extends FormRequest
 {
@@ -22,16 +23,16 @@ class StoreBuyerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'contact_person' => 'nullable|string|max:255',
+            'name' => ['required', 'string', 'max:255', new NoEmoji],
+            'contact_person' => ['nullable', 'string', 'max:255', new NoEmoji],
             'email' => 'nullable|email|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string',
+            'phone' => ['required', 'string', 'max:20', 'regex:/^(09|\+639)\d{9}$/', new NoEmoji],
+            'address' => ['nullable', 'string', 'max:500', new NoEmoji],
             'type' => 'required|string|in:individual,business,wholesaler,retailer',
             'status' => 'required|string|in:active,inactive',
-            'payment_terms' => 'nullable|string|max:255',
+            'payment_terms' => ['nullable', 'string', 'max:255', new NoEmoji],
             'credit_limit' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 
