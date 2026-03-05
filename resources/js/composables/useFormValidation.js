@@ -13,6 +13,8 @@ export function useFormValidation() {
         email: (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Please enter a valid email address.',
         phone: (value) => !value || /^(09|\+639)\d{9}$/.test(value) || 'Please enter a valid Philippine mobile number (e.g. 09123456789).',
         numeric: (value) => !value || !isNaN(Number(value)) || 'Please enter a valid number.',
+        minValue: (min) => (value) => !value || Number(value) >= min || `Value must be at least ${min}.`,
+        maxValue: (max) => (value) => !value || Number(value) <= max || `Value must be at most ${max}.`,
         noEmoji: (value) => !value || !emojiRegex.test(value) || 'Emojis are not allowed in this field.',
         alphaSpaces: (value) => !value || /^[a-zA-Z\s\.\-]+$/.test(value) || 'Only letters, spaces, hyphens, and periods are allowed.',
     };
