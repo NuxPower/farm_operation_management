@@ -321,12 +321,14 @@ import { useMarketplaceStore } from '@/stores/marketplace'
 import InputField from '@/Components/Forms/InputField.vue'
 import SelectDropdown from '@/Components/Forms/SelectDropdown.vue'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 import { riceMarketplaceAPI } from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const submitting = ref(false)
 const loadingProduct = ref(true)
@@ -411,6 +413,32 @@ const loadProduct = async () => {
 const submit = async () => {
   submitting.value = true
   errors.value = {}
+  clearErrors()
+  
+  sanitizeForm(form)
+  
+  const isValid = validateForm(form, {
+    name: [rules.required, rules.maxLength(255), rules.noEmoji],
+    description: [rules.required, rules.maxLength(2000), rules.noEmoji],
+    quantity_available: [rules.required, rules.numeric],
+    price_per_unit: [rules.required, rules.numeric],
+    rice_variety_id: [rules.required],
+    quality_grade: [rules.required],
+    storage_conditions: [rules.maxLength(500), rules.noEmoji],
+    certification: [rules.maxLength(255), rules.noEmoji],
+    notes: [rules.maxLength(1000), rules.noEmoji]
+  })
+  
+  if (!isValid) {
+    const mappedErrors = {}
+    for (const [key, msg] of Object.entries(clientErrors.value)) {
+       mappedErrors[key] = [msg]
+    }
+    errors.value = mappedErrors
+    submitting.value = false
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
 
   try {
     const payload = {

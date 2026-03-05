@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Farm;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreHarvestRequest extends FormRequest
 {
@@ -29,7 +30,7 @@ class StoreHarvestRequest extends FormRequest
             'quality_grade' => 'nullable|string|in:A,B,C,D',
             'price_per_unit' => 'nullable|numeric|min:0',
             'total_value' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 

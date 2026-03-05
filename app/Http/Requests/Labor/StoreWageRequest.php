@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Labor;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreWageRequest extends FormRequest
 {
@@ -29,7 +30,7 @@ class StoreWageRequest extends FormRequest
             'hours_worked' => 'required|numeric|min:0',
             'hourly_rate' => 'required|numeric|min:0',
             'status' => 'required|string|in:pending,paid,overdue',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
             'related_task_id' => 'nullable|exists:tasks,id',
         ];
     }

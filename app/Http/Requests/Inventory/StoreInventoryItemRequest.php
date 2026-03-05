@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Inventory;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreInventoryItemRequest extends FormRequest
 {
@@ -22,17 +23,17 @@ class StoreInventoryItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => ['required', 'string', 'max:255', new NoEmoji],
+            'description' => ['nullable', 'string', 'max:2000', new NoEmoji],
             'category' => 'required|string|in:seeds,fertilizers,pesticides,equipment,tools,other',
             'unit' => 'required|string|in:kg,grams,pounds,liters,gallons,pieces,packets',
             'current_stock' => 'required|numeric|min:0',
             'minimum_stock' => 'required|numeric|min:0',
             'unit_price' => 'nullable|numeric|min:0',
-            'supplier' => 'nullable|string|max:255',
-            'location' => 'nullable|string|max:255',
+            'supplier' => ['nullable', 'string', 'max:255', new NoEmoji],
+            'location' => ['nullable', 'string', 'max:255', new NoEmoji],
             'expiry_date' => 'nullable|date',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 

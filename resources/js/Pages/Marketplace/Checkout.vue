@@ -192,10 +192,12 @@ import { useMarketplaceStore } from '@/stores/marketplace';
 import { useAuthStore } from '@/stores/auth';
 import { formatCurrency } from '@/utils/format';
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue';
+import { useFormValidation } from '@/composables/useFormValidation';
 
 const router = useRouter();
 const marketplaceStore = useMarketplaceStore();
 const authStore = useAuthStore();
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation();
 
 const loading = ref(false);
 const error = ref(null);
@@ -252,8 +254,16 @@ const confirmOrder = () => {
     return;
   }
   
-  error.value = null;
-
+  clearErrors();
+  sanitizeForm(form.value);
+  const isValid = validateForm(form.value, {
+    notes: [rules.maxLength(2000), rules.noEmoji]
+  });
+  
+  if (!isValid) {
+    error.value = Object.values(clientErrors.value).join(' ');
+    return;
+  }
 
   error.value = null;
   confirmTitle.value = 'Confirm Purchase';

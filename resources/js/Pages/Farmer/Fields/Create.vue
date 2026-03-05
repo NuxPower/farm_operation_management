@@ -487,10 +487,12 @@ import axios from 'axios'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
 import { useFarmStore } from '@/stores/farm'
 import { useMarketplaceStore } from '@/stores/marketplace'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const router = useRouter()
 const farmStore = useFarmStore()
 const marketplaceStore = useMarketplaceStore()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const loading = ref(false)
 const error = ref('')
@@ -789,6 +791,23 @@ const submitField = async () => {
 
   if (!form.name || !form.size || !form.soil_type || !locationValid || form.location.lat === '' || form.location.lon === '') {
     error.value = 'Please complete all required fields before saving.'
+    return
+  }
+
+  clearErrors()
+  sanitizeForm(form)
+  
+  const isValid = validateForm(form, {
+    name: [rules.maxLength(255), rules.noEmoji],
+    nickname: [rules.maxLength(255), rules.noEmoji],
+    description: [rules.maxLength(2000), rules.noEmoji],
+    infrastructure_notes: [rules.maxLength(2000), rules.noEmoji],
+    notes: [rules.maxLength(2000), rules.noEmoji],
+    size: [rules.numeric, rules.minValue(0)]
+  })
+  
+  if (!isValid) {
+    error.value = 'Please fix errors: ' + Object.values(clientErrors.value).join(' | ')
     return
   }
 

@@ -20,12 +20,12 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:5',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users', // Email required again
+            'first_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\.\-]+$/', new \App\Rules\NoEmoji],
+            'middle_initial' => ['nullable', 'string', 'max:5', 'regex:/^[a-zA-Z\s\.\-]+$/', new \App\Rules\NoEmoji],
+            'last_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\.\-]+$/', new \App\Rules\NoEmoji],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'required|string|max:20|unique:users',
+            'phone' => ['required', 'string', 'max:20', 'regex:/^(09|\+639)\d{9}$/', 'unique:users', new \App\Rules\NoEmoji],
             'address' => 'nullable|array',
             'verification_method' => ['required', 'string', Rule::in(['sms', 'email'])],
             'role' => ['required', 'string', Rule::in(['farmer', 'buyer'])],

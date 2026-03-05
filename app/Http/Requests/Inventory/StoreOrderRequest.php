@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Inventory;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreOrderRequest extends FormRequest
 {
@@ -22,12 +23,12 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'supplier_name' => 'required|string|max:255',
-            'supplier_contact' => 'nullable|string|max:255',
+            'supplier_name' => ['required', 'string', 'max:255', new NoEmoji],
+            'supplier_contact' => ['nullable', 'string', 'max:255', 'regex:/^(09|\+639)\d{9}$/', new NoEmoji],
             'order_date' => 'required|date',
             'expected_delivery_date' => 'nullable|date|after:order_date',
             'status' => 'required|string|in:pending,confirmed,shipped,delivered,cancelled',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
             'items' => 'required|array|min:1',
             'items.*.inventory_item_id' => 'required|exists:inventory_items,id',
             'items.*.quantity' => 'required|numeric|min:1',

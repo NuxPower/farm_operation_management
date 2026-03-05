@@ -364,6 +364,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { useFarmStore } from '@/stores/farm'
 import Modal from '@/Components/UI/Modal.vue'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const props = defineProps({
   show: {
@@ -387,6 +388,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const farmStore = useFarmStore()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const isEditMode = computed(() => !!props.harvest)
 
@@ -487,6 +489,26 @@ watch(() => [form.value.data.quantity, form.value.data.harvester_share_percentag
 const submitForm = async () => {
   form.value.processing = true
   form.value.errors = {}
+  
+  clearErrors()
+  sanitizeForm(form.value.data)
+  
+  const isValid = validateForm(form.value.data, {
+    notes: [rules.maxLength(2000), rules.noEmoji],
+    quantity: [rules.required, rules.numeric, rules.minValue(0)],
+    price_per_unit: [rules.numeric, rules.minValue(0)],
+    harvester_share: [rules.numeric, rules.minValue(0)],
+    harvester_share_percentage: [rules.numeric, rules.minValue(0)]
+  })
+  
+  if (!isValid) {
+    for (const [key, msg] of Object.entries(clientErrors.value)) {
+       form.value.errors[key] = msg;
+    }
+    form.value.errors.general = 'Please fix the highlighted errors before submitting.';
+    form.value.processing = false;
+    return;
+  }
 
   // Clean the form data - convert empty strings to null and ensure proper types
   const payload = { ...form.value.data }

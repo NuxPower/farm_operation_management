@@ -26,9 +26,10 @@
                 name="first_name"
                 type="text"
                 required
-                class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                :class="['mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm', errors.first_name ? 'border-red-300' : 'border-gray-300']"
                 placeholder="First Name"
               />
+              <p v-if="errors.first_name" class="mt-1 text-xs text-red-600">{{ errors.first_name }}</p>
             </div>
             <div class="col-span-12 sm:col-span-2">
               <label for="middle_initial" class="block text-sm font-medium text-gray-700">M.I.</label>
@@ -37,10 +38,11 @@
                 v-model="form.middle_initial"
                 name="middle_initial"
                 type="text"
-                maxlength="3"
-                class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                maxlength="5"
+                :class="['mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm', errors.middle_initial ? 'border-red-300' : 'border-gray-300']"
                 placeholder="M.I."
               />
+              <p v-if="errors.middle_initial" class="mt-1 text-xs text-red-600">{{ errors.middle_initial }}</p>
             </div>
             <div class="col-span-12 sm:col-span-5">
               <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
@@ -50,9 +52,10 @@
                 name="last_name"
                 type="text"
                 required
-                class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                :class="['mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm', errors.last_name ? 'border-red-300' : 'border-gray-300']"
                 placeholder="Last Name"
               />
+              <p v-if="errors.last_name" class="mt-1 text-xs text-red-600">{{ errors.last_name }}</p>
             </div>
           </div>
           
@@ -65,9 +68,10 @@
               type="email"
               autocomplete="email"
               required
-              class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              :class="['mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm', errors.email ? 'border-red-300' : 'border-gray-300']"
               placeholder="Enter your email address"
             />
+            <p v-if="errors.email" class="mt-1 text-xs text-red-600">{{ errors.email }}</p>
           </div>
 
           <div>
@@ -78,9 +82,10 @@
               name="phone"
               type="tel"
               required
-              class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="Enter your phone number"
+              :class="['mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm', errors.phone ? 'border-red-300' : 'border-gray-300']"
+              placeholder="e.g. 09123456789"
             />
+            <p v-if="errors.phone" class="mt-1 text-xs text-red-600">{{ errors.phone }}</p>
           </div>
 
 
@@ -94,9 +99,10 @@
               type="password"
               autocomplete="new-password"
               required
-              class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              :class="['mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm', errors.password ? 'border-red-300' : 'border-gray-300']"
               placeholder="Create a password"
             />
+            <p v-if="errors.password" class="mt-1 text-xs text-red-600">{{ errors.password }}</p>
           </div>
           
           <div>
@@ -157,9 +163,11 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useFormValidation } from '@/composables/useFormValidation';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { errors, rules, validateForm, sanitizeForm } = useFormValidation();
 
 const form = ref({
   first_name: '',
@@ -177,14 +185,20 @@ const handleRegister = async () => {
   // Clear previous errors
   authStore.error = null;
   
-  // Basic client-side validation
-  if (!form.value.first_name || !form.value.last_name || !form.value.email || !form.value.phone || !form.value.password) {
-    authStore.error = 'Please fill in all required fields.';
-    return;
-  }
-  
-  if (form.value.password.length < 8) {
-    authStore.error = 'Password must be at least 8 characters long.';
+  // Sanitize inputs (strip emojis)
+  sanitizeForm(form.value);
+
+  // Validate form
+  const isValid = validateForm(form.value, {
+    first_name: [rules.required, rules.maxLength(255), rules.alphaSpaces, rules.noEmoji],
+    last_name: [rules.required, rules.maxLength(255), rules.alphaSpaces, rules.noEmoji],
+    email: [rules.required, rules.email, rules.maxLength(255)],
+    phone: [rules.required, rules.phone, rules.maxLength(20)],
+    password: [rules.required, rules.minLength(8)]
+  });
+
+  if (!isValid) {
+    authStore.error = 'Please fix the errors in the form before submitting.';
     return;
   }
   

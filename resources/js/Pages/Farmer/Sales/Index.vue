@@ -330,8 +330,10 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { formatCurrency } from '@/utils/format'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const loading = ref(true)
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 const submitting = ref(false)
 const showModal = ref(false)
 const sales = ref([])
@@ -480,11 +482,40 @@ const submitSale = async () => {
   submitting.value = true
   errors.value = {}
   
+  clearErrors()
+  sanitizeForm(form.value)
+  
+  const isValidSale = validateForm(form.value, {
+    quantity: [rules.required, rules.numeric, rules.minValue(0.01)],
+    unit_price: [rules.required, rules.numeric, rules.minValue(0)],
+    notes: [rules.maxLength(2000), rules.noEmoji]
+  })
+  
+  if (!isValidSale) {
+    for (const [key, msg] of Object.entries(clientErrors.value)) {
+       errors.value[key] = [msg];
+    }
+    submitting.value = false
+    return
+  }
+  
   try {
     let buyerId = form.value.buyer_id
     
     // If creating a new buyer
     if (showNewBuyerForm.value) {
+      sanitizeForm(newBuyerForm.value)
+      const isBuyerValid = validateForm(newBuyerForm.value, {
+        name: [rules.required, rules.maxLength(255), rules.noEmoji],
+        phone: [rules.required, rules.phone],
+        address: [rules.maxLength(500), rules.noEmoji]
+      })
+      if (!isBuyerValid) {
+        alert('Buyer validation failed: ' + Object.values(clientErrors.value).join(' | '))
+        submitting.value = false
+        return
+      }
+      
       // Validate new buyer form slightly
       if (!newBuyerForm.value.name) {
         errors.value = { 'buyer_id': ['Buyer name is required'] }

@@ -327,9 +327,11 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const router = useRouter()
 const route = useRoute()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const loading = ref(false)
 const initialLoading = ref(true)
@@ -478,6 +480,27 @@ const removePhoto = async () => {
 const submitLaborer = async () => {
   loading.value = true
   error.value = ''
+
+  clearErrors()
+  sanitizeForm(form)
+  
+  const isValid = validateForm(form, {
+    name: [rules.required, rules.maxLength(255), rules.noEmoji],
+    phone: [rules.required, rules.phone],
+    email: [rules.maxLength(255), rules.noEmoji],
+    address: [rules.maxLength(500), rules.noEmoji],
+    specialization: [rules.maxLength(255), rules.noEmoji],
+    rate: [rules.numeric, rules.minValue(0)],
+    emergency_contact_name: [rules.maxLength(255), rules.noEmoji],
+    emergency_contact_phone: [rules.phone],
+    notes: [rules.maxLength(2000), rules.noEmoji]
+  })
+
+  if (!isValid) {
+    error.value = 'Please fix errors: ' + Object.values(clientErrors.value).join(' | ')
+    loading.value = false
+    return
+  }
 
   try {
     await axios.put(`/api/laborers/${route.params.id}`, form)

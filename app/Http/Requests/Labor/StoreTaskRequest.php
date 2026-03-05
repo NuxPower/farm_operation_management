@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Labor;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Rules\NoEmoji;
 
 class StoreTaskRequest extends FormRequest
 {
@@ -22,8 +23,8 @@ class StoreTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'title' => ['required', 'string', 'max:255', new NoEmoji],
+            'description' => ['nullable', 'string', 'max:2000', new NoEmoji],
             'laborer_id' => 'required|exists:laborers,id',
             'priority' => 'required|string|in:low,medium,high,urgent',
             'status' => 'required|string|in:pending,in_progress,completed,cancelled',
@@ -32,7 +33,7 @@ class StoreTaskRequest extends FormRequest
             'hours_worked' => 'nullable|numeric|min:0',
             'related_entity_type' => 'nullable|string|in:field,planting,harvest',
             'related_entity_id' => 'nullable|integer',
-            'notes' => 'nullable|string',
+            'notes' => ['nullable', 'string', 'max:2000', new NoEmoji],
         ];
     }
 

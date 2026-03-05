@@ -359,8 +359,10 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const loading = ref(true)
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 const incidents = ref([])
 const stats = ref({ total: 0, active: 0, treated: 0, resolved: 0 })
 const plantings = ref([])
@@ -518,6 +520,24 @@ const loadFields = async () => {
 
 const submitIncident = async () => {
   submitting.value = true
+  
+  clearErrors()
+  sanitizeForm(form.value)
+  
+  const isValid = validateForm(form.value, {
+    pest_type: [rules.required, rules.maxLength(50)],
+    pest_name: [rules.required, rules.maxLength(100), rules.noEmoji],
+    detected_date: [rules.required],
+    affected_area: [rules.numeric, rules.minValue(0.01)],
+    symptoms: [rules.maxLength(1000), rules.noEmoji]
+  })
+  
+  if (!isValid) {
+    alert('Validation failed: ' + Object.values(clientErrors.value).join(' | '))
+    submitting.value = false
+    return
+  }
+  
   try {
     await axios.post('/api/pest-incidents', form.value)
     showCreateModal.value = false

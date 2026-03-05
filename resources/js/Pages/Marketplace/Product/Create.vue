@@ -391,10 +391,12 @@ import FormAlert from '@/Components/UI/FormAlert.vue'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
 import { extractFormErrors, resetFormErrors } from '@/utils/form'
 import { riceMarketplaceAPI } from '@/services/api'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()
 const farmStore = useFarmStore()
+const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const submitting = ref(false)
 const errors = ref({})
@@ -560,6 +562,31 @@ const removeImage = async (index) => {
 
 const submit = async () => {
   if (submitting.value) return
+  
+  clearErrors()
+  sanitizeForm(form)
+  
+  const isValid = validateForm(form, {
+    name: [rules.required, rules.maxLength(255), rules.noEmoji],
+    description: [rules.required, rules.maxLength(2000), rules.noEmoji],
+    quantity_available: [rules.required, rules.numeric],
+    price_per_unit: [rules.required, rules.numeric],
+    rice_variety_id: [rules.required],
+    quality_grade: [rules.required],
+    storage_conditions: [rules.maxLength(500), rules.noEmoji],
+    certification: [rules.maxLength(255), rules.noEmoji],
+    notes: [rules.maxLength(1000), rules.noEmoji]
+  })
+  
+  if (!isValid) {
+    formError.message = 'Please fix the errors below.'
+    const mappedErrors = {}
+    for (const [key, msg] of Object.entries(clientErrors.value)) {
+       mappedErrors[key] = [msg]
+    }
+    formError.fieldErrors = mappedErrors
+    return
+  }
   
   submitting.value = true
   errors.value = {}
