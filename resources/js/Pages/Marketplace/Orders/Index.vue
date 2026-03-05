@@ -245,7 +245,7 @@
                   {{ order.rice_product?.name || 'Rice product' }}
                 </h4>
                 <p class="text-sm text-gray-600">
-                  Qty: {{ order.quantity }} {{ order.rice_product?.unit || 'sacks' }}
+                  Qty: {{ order.quantity }} {{ order.rice_product?.unit || 'kg' }}
                 </p>
               </div>
               <div class="text-right text-sm text-gray-600">

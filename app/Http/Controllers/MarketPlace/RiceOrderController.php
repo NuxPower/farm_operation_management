@@ -171,7 +171,7 @@ class RiceOrderController extends Controller
                 $product->farmer_id,
                 \App\Models\Notification::TYPE_ORDER_PLACED,
                 'New Order Received',
-                "You have a new order for {$request->quantity} kg of {$product->name}",
+                "You have a new order for {$request->quantity} {$product->unit} of {$product->name}",
                 ['order_id' => $order->id],
                 "/farmer/orders/{$order->id}"
             );

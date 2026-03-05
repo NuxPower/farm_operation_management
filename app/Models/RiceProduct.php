@@ -176,7 +176,8 @@ class RiceProduct extends Model
         }
 
         $baseQuery = InventoryItem::where('user_id', $this->farmer_id)
-            ->where('category', InventoryItem::CATEGORY_PRODUCE);
+            ->where('category', InventoryItem::CATEGORY_PRODUCE)
+            ->where('unit', $this->unit);
 
         // 2. Try to find by exact name match for this farmer
         $match = (clone $baseQuery)->where('name', $this->name)->first();
