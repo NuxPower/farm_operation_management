@@ -418,7 +418,7 @@ const form = reactive({
   name: '',
   description: '',
   quantity_available: '',
-  unit: 'sacks',
+  unit: 'kg',
   price_per_unit: '',
   quality_grade: 'premium',
   moisture_content: '',
