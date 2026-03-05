@@ -155,7 +155,7 @@ All five core project objectives have been **fully achieved** with comprehensive
 | **Laravel** | 12.x | MVC Framework |
 | **Laravel Sanctum** | 4.2 | API Token Authentication |
 | **Guzzle HTTP** | 7.8 | External API requests (Weather) |
-| **PostgreSQL** | 14.0+ | Relational Database |
+| **PostgreSQL** | 14+ | Relational Database |
 | **Doctrine DBAL** | 4.3 | Database schema modifications |
 
 ### Frontend
@@ -166,7 +166,7 @@ All five core project objectives have been **fully achieved** with comprehensive
 | **Pinia** | 2.2 | State Management |
 | **Tailwind CSS** | 4.0 | Utility-first CSS |
 | **Chart.js** | 4.4 | Data Visualization |
-| **Vite** | 7.0 | Build Tool & Dev Server |
+| **Vite** | 7.3 | Build Tool & Dev Server |
 | **Axios** | 1.11 | HTTP Client |
 | **Heroicons** | 2.1 | Icon Library |
 | **Leaflet** | 1.9 | Interactive Maps (via CDN) |
@@ -1333,7 +1333,7 @@ Gap % = ((Y_p - Y_a) / Y_p) × 100
 
 ### 2. Weather Analytics
 - The system fetches real-time weather data via **Open-Meteo API**.
-- Weather forecasts (5-day) are displayed and updated.
+- Weather forecasts (10-14 day) are displayed and updated.
 - System provides **Agronomic Alerts** (Heat Stress, High Humidity) to support decisions.
 
 ### 3. Marketplace
@@ -1508,7 +1508,7 @@ The application follows a **Monolithic Architecture** with a clear separation of
 | **Frontend** | **Vue.js 3** | Reactive UI framework for a dynamic Single Page Application (SPA). |
 | **Styling** | **Tailwind CSS 4.0** | Utility-first CSS framework for responsive design. |
 | **State Mgmt** | **Pinia** | Store library for managing application state (User, Cart, Farm). |
-| **Database** | **PostgreSQL 15** | Primary relational database for data integrity. Hosted on **Railway**. |
+| **Database** | **PostgreSQL 14+** | Primary relational database for data integrity. Hosted on **Railway**. |
 | **Visualization** | **Chart.js** | Renders interactive analytics graphs for farmers. |
 | **DevOps** | **Docker** | Containerization for consistent local development and deployment. |
 | **Deployment** | **Railway** | Cloud platform hosting both the Web Service and Database. |
