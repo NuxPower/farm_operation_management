@@ -32,9 +32,9 @@
               :class="{ 'border-red-500': form.errors.field_id }"
             >
               <option value="" disabled>Select a field</option>
-              <option 
-                v-for="field in farmStore.fields" 
-                :key="field.id" 
+              <option
+                v-for="field in farmStore.fields"
+                :key="field.id"
                 :value="field.id"
                 :disabled="field.available_area !== undefined && field.available_area < 0.01"
               >
@@ -81,11 +81,11 @@
         <!-- Middle Section: Source Configuration (Highlighted) -->
         <div class="p-6 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 rounded-2xl border border-emerald-100/80">
           <label class="block text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide">Planting Source</label>
-          
+
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <!-- Source Type Selection (Radio Cards) -->
             <div class="flex flex-col gap-3">
-              <label 
+              <label
                 class="relative flex items-center p-4 cursor-pointer rounded-xl border-2 transition-all duration-200 group hover:shadow-md"
                 :class="sourceType === 'direct' ? 'border-emerald-500 bg-white shadow-md' : 'border-gray-200 bg-white/50 text-gray-500 hover:border-emerald-200'"
               >
@@ -104,7 +104,7 @@
                 </div>
               </label>
 
-              <label 
+              <label
                 class="relative flex items-center p-4 cursor-pointer rounded-xl border-2 transition-all duration-200 group hover:shadow-md"
                 :class="sourceType === 'nursery' ? 'border-emerald-500 bg-white shadow-md' : 'border-gray-200 bg-white/50 text-gray-500 hover:border-emerald-200'"
               >
@@ -115,7 +115,7 @@
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                 </div>
                 <div>
-                  <span class="block text-base font-bold transition-colors" :class="sourceType === 'nursery' ? 'text-gray-900' : 'text-gray-600'">Nursery (Transplant)</span>
+                  <span class="block text-base font-bold transition-colors" :class="sourceType === 'nursery' ? 'text-gray-900' : 'text-gray-600'">Seedbed (Transplant)</span>
                   <span class="block text-xs mt-0.5 font-medium" :class="sourceType === 'nursery' ? 'text-emerald-600' : 'text-gray-400'">Use ready seedlings from nursery</span>
                 </div>
                 <div class="ml-auto" v-if="sourceType === 'nursery'">
@@ -150,7 +150,7 @@
                   </div>
                 </div>
                 <p v-if="form.errors.inventory_item_id" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.inventory_item_id }}</p>
-                
+
                 <div v-if="selectedRiceVariety" class="mt-3 p-3 bg-blue-50/80 rounded-lg text-sm text-blue-700 border border-blue-100 flex items-start animate-fadeIn">
                    <svg class="w-5 h-5 mr-2 mt-0.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                    <span><strong>Auto-Link:</strong> This item is matched to the <strong>{{ selectedRiceVariety.name }}</strong> variety.</span>
@@ -243,7 +243,7 @@
           />
           <p v-if="form.errors.planting_date" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.planting_date }}</p>
         </div>
-        
+
         <div>
           <label for="expected_harvest_date" class="block text-sm font-bold text-gray-700 mb-2">
             Expected Harvest Date
@@ -281,7 +281,7 @@
               <option value="planned">Planned (Future)</option>
               <option value="planted">Planted</option>
             </template>
-            
+
             <!-- When editing existing planting -->
             <template v-else>
               <option value="planned">Planned</option>
@@ -318,9 +318,9 @@
               class="w-full rounded-xl border-gray-300 px-4 py-3 shadow-sm bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium text-gray-800"
               :class="{ 'border-red-500': form.errors.planting_method }"
             >
-              <option 
-                v-for="method in availablePlantingMethods" 
-                :key="method.value" 
+              <option
+                v-for="method in availablePlantingMethods"
+                :key="method.value"
                 :value="method.value"
               >
                 {{ method.label }}
@@ -328,7 +328,7 @@
             </select>
             <p v-if="form.errors.planting_method" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.planting_method }}</p>
           </div>
-          
+
           <div>
             <label for="area_planted" class="block text-sm font-bold text-gray-700 mb-2">
               Area Planted (ha)
@@ -387,7 +387,7 @@
                 <span class="font-bold">✓</span> Stock Available: {{ selectedInventoryItem.current_stock }} {{ selectedInventoryItem.unit || 'kg' }}
               </p>
               <p v-else-if="form.data.seed_planting_id && sourceType === 'nursery'" class="mt-2 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-lg inline-block border border-emerald-100">
-                <span class="font-bold">✓</span> Available from Nursery: {{ selectedSeedPlanting?.quantity }}
+                <span class="font-bold">✓</span> Available from Seedbed: {{ selectedSeedPlanting?.quantity }}
               </p>
             </transition>
           </div>
@@ -416,7 +416,7 @@
         <p v-if="form.errors.notes" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.notes }}</p>
       </div>
     </div>
-    
+
     <div class="flex justify-end gap-4 pt-6 pb-2">
       <button
         type="button"
@@ -489,14 +489,14 @@ const selectedField = computed(() => {
 // If in edit mode, we should add back the *current* planting's area to the available area
 const availableArea = computed(() => {
   if (!selectedField.value) return 0;
-  
+
   let available = Number(selectedField.value.available_area !== undefined ? selectedField.value.available_area : selectedField.value.size);
-  
+
   // If editing, add back the current area so we can maintain or slightly modify it
   if (isEditMode.value && props.planting && props.planting.field_id === selectedField.value.id) {
     available += Number(props.planting.area_planted || 0);
   }
-  
+
   return Math.max(0, available); // Ensure no negative values
 })
 
@@ -527,8 +527,8 @@ const harvestDateManuallyChanged = ref(false)
 
 // Check if harvest date is auto-calculated
 const isAutoCalculated = computed(() => {
-  return !harvestDateManuallyChanged.value && 
-         form.value.data.planting_date && 
+  return !harvestDateManuallyChanged.value &&
+         form.value.data.planting_date &&
          form.value.data.rice_variety_id &&
          selectedRiceVariety.value?.maturity_days
 })
@@ -555,11 +555,11 @@ const formatDateForInput = (dateString) => {
 // Helper function to determine season based on month (Philippines)
 const getSeasonFromDate = (dateString) => {
   if (!dateString) return 'wet'; // Default to rainy season
-  
+
   try {
     const date = new Date(dateString);
     const month = date.getMonth() + 1; // JavaScript months are 0-indexed
-    
+
     // Philippines seasons according to PAGASA:
     // Rainy season: June (6) to November (11)
     // Dry season: December (12) to May (5)
@@ -576,16 +576,16 @@ const getSeasonFromDate = (dateString) => {
 const getInitialFormData = () => {
   // Auto-set status based on planting date for new plantings
   let defaultStatus = 'planted';
-  
+
   // Get planting date (either from existing planting or will be set later)
   const plantingDateStr = formatDateForInput(props.planting?.planting_date);
-  
+
   // For new plantings, we'll default to 'planted' and let the watcher adjust it
   // For existing plantings, use their current status
   if (props.planting) {
     defaultStatus = props.planting.status || 'planted';
   }
-  
+
   // Auto-detect season from planting date (Philippines)
   let defaultSeason = 'wet';
   if (props.planting?.season) {
@@ -596,7 +596,7 @@ const getInitialFormData = () => {
     // If no planting date, use current month to suggest season
     defaultSeason = getSeasonFromDate(new Date().toISOString());
   }
-  
+
   return {
     field_id: props.planting?.field_id || '',
     rice_variety_id: props.planting?.rice_variety_id || '',
@@ -702,7 +702,7 @@ watch(sourceType, (newSource) => {
   // If current method is not valid for new source, pick the first valid one
   const validMethods = plantingMethodConfig[newSource] || []
   const isCurrentValid = validMethods.some(m => m.value === form.value.data.planting_method)
-  
+
   if (!isCurrentValid && validMethods.length > 0) {
     form.value.data.planting_method = validMethods[0].value
   }
@@ -711,7 +711,7 @@ watch(sourceType, (newSource) => {
 // Watch for seed_planting_id selection to autofill
 watch(() => form.value.data.seed_planting_id, (newId) => {
   if (!newId) return;
-  
+
   const seedPlanting = readySeedPlantings.value.find(p => p.id == newId);
   if (seedPlanting) {
     form.value.data.rice_variety_id = seedPlanting.rice_variety_id;
@@ -729,21 +729,21 @@ watch(() => form.value.data.inventory_item_id, (newId) => {
     }
     return;
   }
-  
+
   const item = inventoryStore.riceSeeds.find(i => i.id == newId);
   if (item) {
     if (item.name) {
       // Attempt to fuzzy match the inventory item name with rice varieties
-      const match = riceVarieties.value.find(v => 
-        item.name.toLowerCase().includes(v.name.toLowerCase()) || 
+      const match = riceVarieties.value.find(v =>
+        item.name.toLowerCase().includes(v.name.toLowerCase()) ||
         v.name.toLowerCase().includes(item.name.toLowerCase())
       );
-      
+
       if (match) {
         form.value.data.rice_variety_id = match.id;
       }
     }
-    
+
     // Auto-set unit from inventory item if possible
     if (item.unit) {
        // Check if item.unit is in our list, if not, maybe add it or just use it?
@@ -762,8 +762,8 @@ watch(() => props.planting, () => {
 
 // Calculate expected harvest date when planting date or rice variety changes
 const calculateExpectedHarvestDate = () => {
-  if (!harvestDateManuallyChanged.value && 
-      form.value.data.planting_date && 
+  if (!harvestDateManuallyChanged.value &&
+      form.value.data.planting_date &&
       selectedRiceVariety.value?.maturity_days) {
     const plantingDate = new Date(form.value.data.planting_date)
     const harvestDate = new Date(plantingDate)
@@ -782,7 +782,7 @@ watch(() => form.value.data.planting_date, (newDate) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       plantingDate.setHours(0, 0, 0, 0);
-      
+
       // If planting date is in the future, suggest 'planned'
       // If today or past, suggest 'planted'
       if (plantingDate > today && form.value.data.status === 'planted') {
@@ -791,13 +791,13 @@ watch(() => form.value.data.planting_date, (newDate) => {
         form.value.data.status = 'planted';
       }
     }
-    
+
     // Auto-update season based on planting date month (Philippines)
     const detectedSeason = getSeasonFromDate(newDate);
     if (detectedSeason !== form.value.data.season) {
       form.value.data.season = detectedSeason;
     }
-    
+
     // Auto-calculate harvest date if not manually changed
     calculateExpectedHarvestDate()
   }
@@ -827,12 +827,12 @@ onMounted(async () => {
     if (inventoryStore.items.length === 0) {
       await inventoryStore.fetchItems();
     }
-    
+
     // If in edit mode and harvest date exists, mark as manually changed to preserve it
     if (isEditMode.value && form.value.data.expected_harvest_date) {
       harvestDateManuallyChanged.value = true
     }
-    
+
     // For new plantings, try to auto-calculate if we have the data
     if (!isEditMode.value && form.value.data.planting_date && form.value.data.rice_variety_id) {
       calculateExpectedHarvestDate()
@@ -846,16 +846,16 @@ onMounted(async () => {
 const submitForm = async () => {
   form.value.processing = true
   form.value.errors = {}
-  
+
   clearErrors()
   sanitizeForm(form.value.data)
-  
+
   const isValid = validateForm(form.value.data, {
     notes: [rules.maxLength(2000), rules.noEmoji],
     seed_rate: [rules.numeric, rules.minValue(0)],
     area_planted: [rules.numeric, rules.minValue(0)]
   })
-  
+
   if (!isValid) {
     for (const [key, msg] of Object.entries(clientErrors.value)) {
        form.value.errors[key] = msg;
@@ -869,7 +869,7 @@ const submitForm = async () => {
   if (form.value.data.area_planted && selectedField.value) {
     const areaPlanted = Number(form.value.data.area_planted)
     const available = availableArea.value;
-    
+
     if (areaPlanted > available + 0.001) {
       form.value.errors.area_planted = `Area planted (${areaPlanted} ha) cannot exceed available area (${formatNumber(available)} ha)`
       form.value.processing = false
@@ -881,7 +881,7 @@ const submitForm = async () => {
   if (form.value.data.planting_date && form.value.data.expected_harvest_date) {
     const plantingDate = new Date(form.value.data.planting_date)
     const harvestDate = new Date(form.value.data.expected_harvest_date)
-    
+
     if (harvestDate <= plantingDate) {
       form.value.errors.expected_harvest_date = 'Expected harvest date must be after the planting date'
       form.value.processing = false
@@ -890,8 +890,8 @@ const submitForm = async () => {
   }
 
   // Auto-calculate harvest date if not set and we have the required data
-  if (!form.value.data.expected_harvest_date && 
-      form.value.data.planting_date && 
+  if (!form.value.data.expected_harvest_date &&
+      form.value.data.planting_date &&
       selectedRiceVariety.value?.maturity_days) {
     calculateExpectedHarvestDate()
   }
@@ -912,7 +912,7 @@ const submitForm = async () => {
   // --- DATA CLEANING STEP ---
   // Create a copy of the data to send
   const payload = { ...form.value.data };
-  
+
   // Convert any remaining empty strings "" to null
   // This is crucial for 'nullable' rules in Laravel
   for (const key in payload) {
@@ -920,7 +920,7 @@ const submitForm = async () => {
       payload[key] = null;
     }
   }
-  
+
   // Convert rice_variety_id to number if it exists, otherwise set to null
   if (payload.rice_variety_id && payload.rice_variety_id !== '') {
     payload.rice_variety_id = Number(payload.rice_variety_id);

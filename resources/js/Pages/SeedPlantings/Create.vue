@@ -4,12 +4,12 @@
       <!-- Header -->
       <div class="mb-8 flex items-center justify-between">
         <div>
-          <button 
-            @click="$router.back()" 
+          <button
+            @click="$router.back()"
             class="flex items-center text-sm text-gray-500 hover:text-green-600 transition-colors mb-2"
           >
             <ArrowLeftIcon class="h-4 w-4 mr-1" />
-            Back to Nursery
+            Back to Seedbed
           </button>
           <h1 class="text-3xl font-bold text-gray-900 tracking-tight">New Sowing</h1>
           <p class="mt-2 text-gray-600">Record a new batch of seeds planted in the nursery.</p>
@@ -28,7 +28,7 @@
               <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 mr-3 text-sm">1</span>
               Seed Details
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <!-- Seed Source (Inventory) -->
               <div class="col-span-2">
@@ -55,7 +55,7 @@
                 </div>
                 <!-- Auto-detected Variety -->
                 <div v-if="form.rice_variety_id" class="mt-2 flex items-center text-xs text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
-                  <span class="font-medium mr-1">Variety:</span> 
+                  <span class="font-medium mr-1">Variety:</span>
                   {{ getVarietyName(form.rice_variety_id) }}
                 </div>
                 <div v-else-if="form.inventory_item_id" class="mt-3 bg-amber-50 border border-amber-100 rounded-lg p-3">
@@ -87,8 +87,8 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
                 <div class="relative rounded-xl shadow-sm">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <ScaleIcon 
-                      class="h-5 w-5" 
+                    <ScaleIcon
+                      class="h-5 w-5"
                       :class="isQuantityInvalid ? 'text-red-400' : 'text-gray-400'"
                     />
                   </div>
@@ -97,8 +97,8 @@
                     type="number"
                     step="0.01"
                     class="block w-full pl-10 py-3 rounded-xl focus:ring-green-500 focus:border-green-500 sm:text-sm transition-shadow shadow-sm hover:shadow-md"
-                    :class="isQuantityInvalid 
-                      ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500 pr-12' 
+                    :class="isQuantityInvalid
+                      ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500 pr-12'
                       : 'border-gray-200 pr-3'"
                     placeholder="0.00"
                     required
@@ -107,8 +107,8 @@
                     <ExclamationCircleIcon class="h-5 w-5 text-red-500" aria-hidden="true" />
                   </div>
                 </div>
-                <p 
-                  v-if="selectedInventoryItem" 
+                <p
+                  v-if="selectedInventoryItem"
                   class="mt-1 text-xs transition-colors duration-200"
                   :class="isQuantityInvalid ? 'text-red-600 font-medium' : 'text-gray-500'"
                 >
@@ -183,7 +183,7 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- Quick Tip Alert -->
             <div class="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start">
               <InformationCircleIcon class="h-5 w-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
@@ -201,7 +201,7 @@
               <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 mr-3 text-sm">3</span>
               Additional Info
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                <!-- Batch ID -->
                <div>
@@ -272,11 +272,11 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useInventoryStore } from '@/stores/inventory';
 import axios from 'axios';
-import { 
-  ArrowLeftIcon, 
-  TagIcon, 
-  ScaleIcon, 
-  CalendarDaysIcon, 
+import {
+  ArrowLeftIcon,
+  TagIcon,
+  ScaleIcon,
+  CalendarDaysIcon,
   ClockIcon,
   InformationCircleIcon,
   ExclamationCircleIcon,
@@ -317,7 +317,7 @@ watch(() => form.value.inventory_item_id, (newId) => {
         form.value.rice_variety_id = '';
         return;
     }
-    
+
     // Auto-set unit if available
     const item = selectedInventoryItem.value;
     if (item && item.unit) {
@@ -328,11 +328,11 @@ watch(() => form.value.inventory_item_id, (newId) => {
     }
 
     if (item && item.name) {
-        const match = varieties.value.find(v => 
-          item.name.toLowerCase().includes(v.name.toLowerCase()) || 
+        const match = varieties.value.find(v =>
+          item.name.toLowerCase().includes(v.name.toLowerCase()) ||
           v.name.toLowerCase().includes(item.name.toLowerCase())
         );
-        
+
         if (match) {
             form.value.rice_variety_id = match.id;
         }
@@ -344,7 +344,7 @@ const calculateStrategies = () => {
         const date = new Date(form.value.planting_date);
         date.setDate(date.getDate() + 18); // default to 18 days
         suggestedTransplantDate.value = date.toISOString().split('T')[0];
-        
+
         if (!form.value.expected_transplant_date) {
             form.value.expected_transplant_date = suggestedTransplantDate.value;
         }
@@ -355,7 +355,7 @@ watch(() => form.value.planting_date, calculateStrategies);
 
 const submit = async () => {
   submitting.value = true;
-  
+
   if (!form.value.rice_variety_id) {
     alert("Please select a Rice Variety before submitting.");
     submitting.value = false;
@@ -366,7 +366,7 @@ const submit = async () => {
   if (form.value.expected_transplant_date && form.value.planting_date) {
       const start = new Date(form.value.planting_date);
       const end = new Date(form.value.expected_transplant_date);
-      
+
       if (end <= start) {
           alert("Expected transplant date must be after the planting date.");
           submitting.value = false;
@@ -402,7 +402,7 @@ const fetchVarieties = async () => {
   try {
     const response = await axios.get('/api/rice-varieties');
     console.log('Rice varieties response:', response.data);
-    
+
     if (response.data.varieties && Array.isArray(response.data.varieties)) {
         varieties.value = response.data.varieties;
     } else if (Array.isArray(response.data)) {

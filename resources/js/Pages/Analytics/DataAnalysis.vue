@@ -269,7 +269,7 @@
 
            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 flex items-center justify-between">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Nursery</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Seedbed</p>
                 <p class="text-lg font-bold text-gray-900">{{ analyticsData.nursery?.active_batches ?? 0 }}</p>
               </div>
               <div class="text-right">

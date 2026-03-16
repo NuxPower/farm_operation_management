@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen bg-gray-100 overflow-hidden">
     <!-- Sidebar -->
-    <div 
+    <div
       class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col h-full border-r border-gray-100"
       :class="{ '-translate-x-full': !sidebarOpen, 'translate-x-0': sidebarOpen }"
     >
@@ -78,7 +78,7 @@
               :class="{ 'nav-item-active': $route.path.startsWith('/seed-plantings') }"
             >
               <BeakerIcon class="nav-icon" />
-              Nursery
+              Seedbed
             </router-link>
 
             <router-link
@@ -140,7 +140,7 @@
 
             <!-- Business -->
             <div class="nav-section-title">Business</div>
-            
+
             <router-link
               to="/marketplace/my-products"
               class="nav-item"
@@ -197,7 +197,7 @@
               <DocumentChartBarIcon class="nav-icon" />
               Reports
             </router-link>
-            
+
             <router-link
               to="/weather"
               class="nav-item"
@@ -211,7 +211,7 @@
           <!-- Marketplace Buyer Section -->
           <template v-if="authStore.isBuyer">
             <div class="nav-section-title">Marketplace</div>
-            
+
             <router-link
               to="/marketplace"
               class="nav-item"
@@ -356,7 +356,7 @@ const closeSidebar = () => {
 
 const safeNavigate = async (path) => {
   if (isNavigating.value) return; // Prevent double-clicks
-  
+
   isNavigating.value = true;
   try {
     await router.push(path);
@@ -374,7 +374,7 @@ const safeNavigate = async (path) => {
 
 const logout = async () => {
   if (isNavigating.value) return; // Prevent double-clicks
-  
+
   isNavigating.value = true;
   try {
     await authStore.logout();
@@ -484,7 +484,7 @@ const logout = async () => {
   .sidebar-container {
     transform: translateX(-100%);
   }
-  
+
   .sidebar-container.open {
     transform: translateX(0);
   }

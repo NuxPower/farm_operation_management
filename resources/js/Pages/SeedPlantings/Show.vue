@@ -1,15 +1,15 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
-      
+
       <!-- Back Button -->
       <div class="mb-6">
-        <button 
-          @click="$router.back()" 
+        <button
+          @click="$router.back()"
           class="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
           <ArrowLeftIcon class="h-4 w-4 mr-1" />
-          Back to Nursery
+          Back to Seedbed
         </button>
       </div>
 
@@ -25,8 +25,8 @@
             <div>
               <div class="flex items-center space-x-3 mb-2">
                 <h1 class="text-2xl font-bold text-gray-900">{{ planting.rice_variety?.name }}</h1>
-                <span 
-                  v-if="planting.batch_id" 
+                <span
+                  v-if="planting.batch_id"
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200"
                 >
                   <TagIcon class="mr-1 h-3 w-3" />
@@ -34,7 +34,7 @@
                 </span>
               </div>
               <div class="flex items-center space-x-2">
-                <span 
+                <span
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium"
                   :class="getStatusClass(planting.status)"
                 >
@@ -54,13 +54,13 @@
                 <CheckCircleIcon class="-ml-1 mr-2 h-4 w-4" />
                 Mark Ready
               </button>
-              
+
               <!-- Placeholder for Edit (future) -->
               <!-- <button class="p-2 text-gray-400 hover:text-gray-500 rounded-lg hover:bg-gray-50">
                 <PencilIcon class="h-5 w-5" />
               </button> -->
-              
-              <button 
+
+              <button
                 @click="confirmDelete"
                 class="inline-flex items-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
               >
@@ -126,7 +126,7 @@
             <!-- Quantity Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Inventory Info</h3>
-              
+
               <div class="space-y-4">
                 <div>
                   <label class="text-xs text-gray-500 block">Quantity</label>
@@ -135,7 +135,7 @@
                     <span class="ml-1 text-gray-500">{{ planting.unit }}</span>
                   </div>
                 </div>
-                
+
                 <div class="pt-4 border-t border-gray-100">
                   <label class="text-xs text-gray-500 block mb-1">Created At</label>
                   <span class="text-sm text-gray-700">{{ formatDateTime(planting.created_at) }}</span>
@@ -148,7 +148,7 @@
       </div>
        <div v-else class="text-center py-12">
         <h3 class="mt-2 text-sm font-medium text-gray-900">Planting not found</h3>
-        <button 
+        <button
           @click="$router.push('/seed-plantings')"
           class="mt-3 text-green-600 hover:text-green-500 text-sm font-medium"
         >
@@ -157,7 +157,7 @@
       </div>
 
     </div>
-    
+
      <!-- Confirmation Modal -->
     <ConfirmationModal
       :show="showConfirmModal"
@@ -175,12 +175,12 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
-import { 
-  ArrowLeftIcon, 
-  CalendarDaysIcon, 
-  TagIcon, 
-  CheckCircleIcon, 
-  TrashIcon, 
+import {
+  ArrowLeftIcon,
+  CalendarDaysIcon,
+  TagIcon,
+  CheckCircleIcon,
+  TrashIcon,
   PencilIcon,
   DocumentTextIcon
 } from '@heroicons/vue/24/outline';
@@ -298,7 +298,7 @@ const getDaysFromNow = (dateString) => {
   const now = new Date();
   const diffTime = date - now;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Tomorrow';
   if (diffDays < 0) return `${Math.abs(diffDays)} days ago`;

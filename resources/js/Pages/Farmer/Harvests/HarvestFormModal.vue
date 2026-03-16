@@ -438,7 +438,7 @@ const getInitialFormData = () => ({
   total_value: props.harvest?.total_value || '',
   notes: props.harvest?.notes || '',
   harvester_share: props.harvest?.harvester_share || '',
-  harvester_share_percentage: props.harvest?.harvester_share_percentage || '',
+  harvester_share_percentage: props.harvest?.harvester_share_percentage ?? 8,
 })
 
 const form = ref({

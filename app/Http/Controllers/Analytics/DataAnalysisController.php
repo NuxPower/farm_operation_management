@@ -434,7 +434,7 @@ class DataAnalysisController extends Controller
             $todayForecast = $weatherForecast['list'][0] ?? null;
             if ($todayForecast) {
                 $rainfall = $todayForecast['pop'] > 0 ? ($todayForecast['rain'] ?? 0) : 0; // Check structure
-                // Assuming OWM format might vary, but pop is probability. 
+                // Assuming OWM format might vary, but pop is probability.
                 // Let's rely on rain volume or description if available or simple conditions.
 
                 // Check if weather condition indicates rain/storm
@@ -484,7 +484,7 @@ class DataAnalysisController extends Controller
                 'category' => 'Transplanting',
                 'message' => sprintf('%d seedling batches are ready for transplanting', $nursery['ready_for_transplant']),
                 'priority' => 'medium',
-                'action_label' => 'View Nursery',
+                'action_label' => 'View Seedbed',
                 'action_url' => '/seed-plantings',
             ];
         }
