@@ -4,7 +4,7 @@
       <!-- Standard Header -->
       <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-gray-800">Nursery</h1>
+          <h1 class="text-3xl font-bold text-gray-800">Seedbed</h1>
           <p class="text-gray-500 mt-1">Manage all your seed sowings, from sowing to transplanting.</p>
         </div>
         <div class="flex items-center gap-3">
@@ -55,8 +55,8 @@
       <div class="bg-white p-4 rounded-lg shadow mb-6 flex flex-col md:flex-row gap-4 items-end" v-if="!loading && (seedPlantings.length > 0 || filters.status || filters.variety)">
           <div class="flex-1 w-full md:w-auto">
             <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select 
-              v-model="filters.status" 
+            <select
+              v-model="filters.status"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
             >
               <option value="">All Statuses</option>
@@ -67,26 +67,26 @@
               <option value="failed">Failed</option>
             </select>
           </div>
-          
+
           <div class="flex-1 w-full md:w-auto">
             <label class="block text-sm font-medium text-gray-700 mb-2">Variety</label>
-            <select 
-              v-model="filters.variety" 
+            <select
+              v-model="filters.variety"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
             >
               <option :value="null">All Varieties</option>
-              <option 
-                v-for="option in varietyOptions" 
-                :key="option.key" 
+              <option
+                v-for="option in varietyOptions"
+                :key="option.key"
                 :value="option"
               >
                 {{ option.label }}
               </option>
             </select>
           </div>
-          
+
           <div class="flex items-end">
-            <button 
+            <button
               @click="clearFilters"
               class="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
             >
@@ -336,11 +336,11 @@ const confirmDelete = (planting) => {
 const deletePlanting = async () => {
   if (!plantingToDelete.value) return;
   showConfirmModal.value = false;
-  
+
   try {
     await farmStore.deleteSeedPlanting(plantingToDelete.value.id);
     plantingToDelete.value = null;
-  } catch (err) { 
+  } catch (err) {
     console.error('Failed to delete planting:', err);
     error.value = err.userMessage || 'Unable to delete planting.';
   }

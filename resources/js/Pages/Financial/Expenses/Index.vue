@@ -2,16 +2,16 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 class="text-3xl font-bold text-gray-800">Expenses</h1>
           <p class="text-gray-500 mt-1">Manage and track your farm's operating costs.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-3">
           <button
             @click="refreshExpenses"
             :disabled="loading"
-            class="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50"
+            class="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50 w-full sm:w-auto"
           >
             <svg
               :class="['h-5 w-5', { 'animate-spin': loading }]"
@@ -25,7 +25,7 @@
           </button>
           <button
             @click="exportCsv"
-            class="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+            class="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium w-full sm:w-auto"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -34,7 +34,7 @@
           </button>
           <button
             @click="goToReports"
-            class="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium"
+            class="flex items-center justify-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium w-full sm:w-auto"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

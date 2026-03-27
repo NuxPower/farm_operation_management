@@ -49,7 +49,7 @@
        </div>
     </div>
   </div>
-  
+
   <!-- Loading State -->
   <div v-if="isInitialLoading" class="py-8">
     <div class="text-center">
@@ -57,7 +57,7 @@
       <p class="mt-4 text-gray-600">Loading dashboard...</p>
     </div>
   </div>
-  
+
   <!-- Main Content -->
   <div v-else>
     <!-- Stats Overview -->
@@ -76,8 +76,8 @@
               <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-normal">Total Planted Area</p>
               <div class="flex items-baseline gap-2 flex-wrap">
                 <p class="text-2xl font-bold text-gray-900">{{ totalPlantedArea }} <span class="text-sm font-normal text-gray-600">ha</span></p>
-                <span 
-                  v-if="plantedAreaTrend !== 0" 
+                <span
+                  v-if="plantedAreaTrend !== 0"
                   :class="plantedAreaTrend > 0 ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'"
                   class="text-xs font-medium px-1.5 py-0.5 rounded-full flex items-center whitespace-nowrap"
                 >
@@ -93,9 +93,9 @@
             </div>
           </div>
         </div>
-      
+
       </div>
-      
+
       <div class="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-lg hover:shadow-xl p-6 border border-blue-100 transition-all duration-200 transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div class="flex items-center">
@@ -113,7 +113,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="bg-gradient-to-br from-white to-yellow-50 rounded-xl shadow-lg hover:shadow-xl p-6 border border-yellow-100 transition-all duration-200 transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div class="flex items-center">
@@ -131,7 +131,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Nursery Stats -->
       <div class="bg-gradient-to-br from-white to-orange-50 rounded-xl shadow-lg hover:shadow-xl p-6 border border-orange-100 transition-all duration-200 transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
@@ -144,7 +144,7 @@
               </div>
             </div>
             <div class="ml-4">
-              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nursery Batches</p>
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Seedbed Batches</p>
               <div class="flex items-baseline mt-1">
                 <p class="text-2xl font-bold text-gray-900">{{ activeNurseryBatches }}</p>
                 <span v-if="readyForTransplant > 0" class="ml-2 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
@@ -161,8 +161,8 @@
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-900">Marketplace Overview</h2>
-        <button 
-          @click="navigateTo('/marketplace/my-products')" 
+        <button
+          @click="navigateTo('/marketplace/my-products')"
           class="text-sm font-medium text-purple-600 hover:text-purple-700"
         >
           Manage Products
@@ -208,7 +208,7 @@
              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(marketplaceStats.total_revenue) }}</p>
            </div>
         </div>
-        
+
         <!-- Total Products -->
         <div class="bg-white rounded-xl shadow p-6 border border-gray-100 flex items-center">
            <div class="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
@@ -235,10 +235,10 @@
              <div v-else v-for="product in recentProducts" :key="product.id" class="p-4 flex items-center justify-between hover:bg-gray-50">
                 <div class="flex items-center">
                    <div class="h-10 w-10 flex-shrink-0 rounded bg-gray-100 mr-3 overflow-hidden">
-                      <img 
-                        v-if="product.images && product.images.length && product.images[0]" 
-                        :src="product.images[0]" 
-                        class="h-full w-full object-cover" 
+                      <img
+                        v-if="product.images && product.images.length && product.images[0]"
+                        :src="product.images[0]"
+                        class="h-full w-full object-cover"
                         @error="(e) => { e.target.src = '/images/placeholder-rice.png'; console.error('Image load error:', product.images[0]); }"
                       />
                       <div v-else class="h-full w-full flex items-center justify-center text-gray-400">
@@ -254,7 +254,7 @@
                 </div>
                 <div class="flex items-center space-x-4">
                    <span class="text-sm font-medium text-gray-900">{{ formatCurrency(product.price_per_unit) }}/{{ product.unit }}</span>
-                   <span 
+                   <span
                       class="px-2 py-1 text-xs font-semibold rounded-full"
                       :class="product.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
                    >
@@ -272,8 +272,8 @@
     <!-- Quick Actions (Moved to Sidebar) -->
     <div class="lg:col-span-1 flex flex-col space-y-4">
         <h3 class="text-lg font-semibold text-gray-900">Quick Actions</h3>
-        
-        <button 
+
+        <button
         @click="navigateTo('/tasks/create')"
         :disabled="isNavigating"
         class="bg-white rounded-lg shadow p-4 flex items-center hover:shadow-md transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
@@ -288,9 +288,9 @@
            <p class="text-xs text-gray-500">Assign new work</p>
         </div>
       </button>
-      
-      <button 
-      @click="navigateTo('/harvests/create')"
+
+      <button
+      @click="navigateTo('/harvests?action=create')"
       :disabled="isNavigating"
       class="bg-white rounded-lg shadow p-4 flex items-center hover:shadow-md transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
       >
@@ -304,8 +304,8 @@
          <p class="text-xs text-gray-500">Log crop yields</p>
       </div>
     </button>
-    
-    <button 
+
+    <button
     @click="navigateTo('/inventory')"
     :disabled="isNavigating"
     class="bg-white rounded-lg shadow p-4 flex items-center hover:shadow-md transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
@@ -321,7 +321,7 @@
     </div>
     </button>
 
-    <button 
+    <button
     @click="navigateTo('/marketplace')"
     :disabled="isNavigating"
     class="bg-white rounded-lg shadow p-4 flex items-center hover:shadow-md transition-shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed group"
@@ -340,7 +340,7 @@
 
         <!-- Column: Tasks & Alerts -->
         <div class="lg:col-span-2 flex flex-col space-y-6">
-          
+
           <!-- Low Stock Alerts (Conditional) -->
           <div v-if="lowStockItems.length > 0" class="bg-amber-50 border border-amber-200 rounded-lg shadow-sm p-4 animate-fade-in-down">
             <div class="flex items-center justify-between mb-3">
@@ -350,17 +350,17 @@
                 </svg>
                 Low Stock Warnings
               </h3>
-              <button 
-                @click="navigateTo('/inventory')" 
+              <button
+                @click="navigateTo('/inventory')"
                 class="text-xs font-semibold text-amber-700 hover:text-amber-900 underline"
               >
                 Restock Now
               </button>
             </div>
             <div class="space-y-2">
-              <div 
-                v-for="item in lowStockItems.slice(0, 3)" 
-                :key="item.id" 
+              <div
+                v-for="item in lowStockItems.slice(0, 3)"
+                :key="item.id"
                 class="flex items-center justify-between bg-white bg-opacity-60 p-2 rounded-md border border-amber-100"
               >
                 <div class="flex items-center">
@@ -387,20 +387,20 @@
                 </svg>
                 Weather Farming Suggestions
               </h3>
-              <button 
-                @click="navigateTo('/weather')" 
+              <button
+                @click="navigateTo('/weather')"
                 class="text-xs font-semibold text-blue-700 hover:text-blue-900 underline"
               >
                 View Forecast
               </button>
             </div>
             <div class="space-y-2">
-              <div 
-                v-for="(alert, index) in weatherAlerts.slice(0, 3)" 
-                :key="index" 
+              <div
+                v-for="(alert, index) in weatherAlerts.slice(0, 3)"
+                :key="index"
                 :class="[
                   'flex items-start p-3 rounded-md border',
-                  alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200' : 
+                  alert.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
                   alert.type === 'danger' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-100'
                 ]"
               >
@@ -421,23 +421,23 @@
           <div class="bg-white rounded-lg shadow-lg p-6 flex-1 flex flex-col">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900">Upcoming Tasks</h3>
-      <button 
-      @click="navigateTo('/tasks')" 
+      <button
+      @click="navigateTo('/tasks')"
       :disabled="isNavigating"
       class="text-green-600 hover:text-green-700 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
       View all tasks
     </button>
   </div>
-  
+
   <div v-if="upcomingTasks.length > 0" class="space-y-3 flex-1">
-    <div 
-    v-for="task in upcomingTasks.slice(0, 5)" 
+    <div
+    v-for="task in upcomingTasks.slice(0, 5)"
     :key="task.id"
     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
     >
     <div class="flex items-center space-x-3">
-      <div 
+      <div
       :class="[
       'w-3 h-3 rounded-full',
       getTaskPriorityColor(task.priority)
@@ -450,7 +450,7 @@
     </div>
     <div class="text-right">
       <p class="text-xs text-gray-500">{{ formatDate(task.due_date) }}</p>
-      <span 
+      <span
       :class="[
       'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
       getTaskStatusClass(task.status)
@@ -489,14 +489,14 @@
   import { dashboardAPI } from '@/services/api';
   import CurrentWeather from '@/Components/Weather/CurrentWeather.vue';
   import { formatCurrency } from '@/utils/format';
-  
+
   const router = useRouter();
   const authStore = useAuthStore();
   const farmStore = useFarmStore();
   const inventoryStore = useInventoryStore();
   const marketplaceStore = useMarketplaceStore();
   const weatherStore = useWeatherStore();
-  
+
   // Add loading state to prevent button spamming
   const isNavigating = ref(false);
   const isInitialLoading = ref(true);
@@ -509,29 +509,29 @@
     total_revenue: 0
   });
   const recentProducts = ref([]);
-  
+
   // Global error handling for this component
   const hasError = ref(false);
   const errorMessage = ref('');
-  
+
   // Catch any unhandled errors in this component
   onErrorCaptured((error, instance, info) => {
     console.error('Dashboard component error:', error);
     console.error('Error info:', info);
-    
+
     hasError.value = true;
     errorMessage.value = 'An unexpected error occurred. Please refresh the page.';
-    
+
     // Don't propagate the error further
     return false;
   });
-  
+
   // Function to reset error state
   const resetError = () => {
     hasError.value = false;
     errorMessage.value = '';
   };
-  
+
   const totalPlantedArea = computed(() => {
     try {
       if (!farmStore || !farmStore.plantings || !Array.isArray(farmStore.plantings)) {
@@ -557,17 +557,17 @@
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-      
+
       const currentPeriod = farmStore.plantings.filter(p => {
         const plantDate = new Date(p.created_at || p.planting_date);
         return plantDate >= thirtyDaysAgo && p.status !== 'harvested';
       }).reduce((sum, p) => sum + (parseFloat(p.area_planted) || 0), 0);
-      
+
       const previousPeriod = farmStore.plantings.filter(p => {
         const plantDate = new Date(p.created_at || p.planting_date);
         return plantDate >= sixtyDaysAgo && plantDate < thirtyDaysAgo;
       }).reduce((sum, p) => sum + (parseFloat(p.area_planted) || 0), 0);
-      
+
       if (previousPeriod === 0) return currentPeriod > 0 ? 100 : 0;
       return Math.round(((currentPeriod - previousPeriod) / previousPeriod) * 100);
     } catch (e) {
@@ -597,7 +597,7 @@
       return [1, 1, 1, 1, 1, 1];
     }
   });
-  
+
   const tasksDueToday = computed(() => {
     try {
       if (!farmStore || !farmStore.tasks || !Array.isArray(farmStore.tasks)) {
@@ -609,8 +609,8 @@
         if (!task || !task.due_date) return false;
         try {
           const dueDate = new Date(task.due_date);
-          return !isNaN(dueDate.getTime()) && 
-          dueDate <= today && 
+          return !isNaN(dueDate.getTime()) &&
+          dueDate <= today &&
           ['pending', 'in_progress'].includes(task.status);
         } catch (dateError) {
           console.warn('Invalid date in task:', task.due_date);
@@ -622,16 +622,16 @@
       return 0;
     }
   });
-  
+
   const upcomingTasks = computed(() => {
     try {
       if (!farmStore) return [];
-      
+
       // Check if upcomingTasks getter exists, otherwise use tasks
       if (farmStore.upcomingTasks && Array.isArray(farmStore.upcomingTasks)) {
         return farmStore.upcomingTasks;
       }
-      
+
       // Fallback: calculate upcoming tasks from all tasks
       if (farmStore.tasks && Array.isArray(farmStore.tasks)) {
         const nextWeek = new Date();
@@ -640,23 +640,23 @@
           if (!task || !task.due_date) return false;
           try {
             const dueDate = new Date(task.due_date);
-            return !isNaN(dueDate.getTime()) && 
-            dueDate <= nextWeek && 
+            return !isNaN(dueDate.getTime()) &&
+            dueDate <= nextWeek &&
             ['pending', 'in_progress'].includes(task.status);
           } catch (dateError) {
             return false;
           }
         }).slice(0, 5);
       }
-      
+
       return [];
     } catch (error) {
       console.warn('Error getting upcoming tasks:', error);
       return [];
     }
   });
-  
-  
+
+
   const lowStockItems = computed(() => {
     try {
       if (!inventoryStore) return [];
@@ -669,9 +669,9 @@
         return inventoryStore.items.filter(item => {
            const currentStock = item.current_stock ?? item.quantity ?? 0;
            const minStock = item.minimum_stock ?? item.min_stock ?? 0;
-           return item && 
-           typeof currentStock === 'number' && 
-           typeof minStock === 'number' && 
+           return item &&
+           typeof currentStock === 'number' &&
+           typeof minStock === 'number' &&
            currentStock <= minStock;
         });
       }
@@ -683,15 +683,15 @@
   });
 
   const lowStockCount = computed(() => lowStockItems.value.length);
-  
+
   const pendingOrders = computed(() => {
     try {
       if (!marketplaceStore || !marketplaceStore.orders || !Array.isArray(marketplaceStore.orders)) {
         return 0;
       }
       return marketplaceStore.orders.filter(order => {
-        return order && 
-        order.status && 
+        return order &&
+        order.status &&
         ['pending', 'confirmed', 'processing'].includes(order.status.toLowerCase());
       }).length;
     } catch (error) {
@@ -699,13 +699,13 @@
       return 0;
     }
   });
-  
+
   const activeNurseryBatches = computed(() => {
     try {
       if (!farmStore || !farmStore.seedPlantings || !Array.isArray(farmStore.seedPlantings)) {
         return 0;
       }
-      return farmStore.seedPlantings.filter(p => 
+      return farmStore.seedPlantings.filter(p =>
       ['sown', 'germinating', 'ready'].includes(p.status)
       ).length;
     } catch (error) {
@@ -713,7 +713,7 @@
       return 0;
     }
   });
-  
+
   const readyForTransplant = computed(() => {
     try {
       if (!farmStore || !farmStore.seedPlantings || !Array.isArray(farmStore.seedPlantings)) {
@@ -725,7 +725,7 @@
       return 0;
     }
   });
-  
+
   // Weather-based farming alerts and suggestions
   const weatherAlerts = computed(() => {
     try {
@@ -733,15 +733,15 @@
       // Weather store now manages current weather based on farm ID
       const weather = weatherStore.currentWeather;
       const forecast = weatherStore.forecast || [];
-      
+
       if (!weather) return alerts;
-      
+
       const temp = weather.temperature || weather.temp;
       const humidity = weather.humidity;
       // Backend returns 'conditions' for current weather
       const description = (weather.conditions || weather.description || weather.weather || '').toLowerCase();
       const windSpeed = weather.wind_speed || weather.windSpeed || 0;
-      
+
       // Heavy rain warning
       if (description.includes('rain') || description.includes('storm') || description.includes('shower')) {
         alerts.push({
@@ -751,7 +751,7 @@
           message: 'Delay pesticide application and fertilizer spreading. Check drainage systems.'
         });
       }
-      
+
       // Extreme heat warning
       if (temp && temp > 35) {
         alerts.push({
@@ -761,7 +761,7 @@
           message: 'Water crops early morning or evening. Avoid planting during peak heat hours.'
         });
       }
-      
+
       // Good planting conditions
       if (temp >= 25 && temp <= 32 && humidity >= 60 && humidity <= 85 && !description.includes('rain')) {
         alerts.push({
@@ -771,7 +771,7 @@
           message: 'Temperature and humidity are optimal for transplanting rice seedlings.'
         });
       }
-      
+
       // High winds
       if (windSpeed > 20) {
         alerts.push({
@@ -781,7 +781,7 @@
           message: 'Delay spraying activities. Check plant supports and field structures.'
         });
       }
-      
+
       // Drought conditions
       if (temp > 30 && humidity < 40) {
         alerts.push({
@@ -791,14 +791,14 @@
           message: 'Increase irrigation frequency. Monitor soil moisture levels closely.'
         });
       }
-      
+
       // Check forecast for upcoming rain
       // Backend forecast items have 'most_common_condition'
       const upcomingRain = Array.isArray(forecast) && forecast.slice(0, 3).find(f => {
         const desc = (f.most_common_condition || f.condition || f.description || f.weather || '').toLowerCase();
         return desc.includes('rain') || desc.includes('storm');
       });
-      
+
       if (upcomingRain && !description.includes('rain')) {
         alerts.push({
           type: 'info',
@@ -807,23 +807,23 @@
           message: 'Complete urgent field work today. Harvesting should be prioritized if crops are ready.'
         });
       }
-      
+
       return alerts;
     } catch (error) {
       console.warn('Error generating weather alerts:', error);
       return [];
     }
   });
-  
+
   // Get current farm ID from auth store
   // Get current farm ID from auth store
   const currentFarmId = computed(() => {
     // Check for farm_profile.id (direct) or farm_profile.farm.id (nested wrapper)
     const authProfileId = authStore.user?.farm_profile?.id || authStore.user?.farm_profile?.farm?.id;
-    
+
     // Check for farmProfile.id (direct) or farmProfile.farm.id (nested wrapper from API)
     const storeProfileId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id;
-    
+
     console.log('Computing currentFarmId - Auth:', authProfileId, 'Store:', storeProfileId);
     return authProfileId || storeProfileId;
   });
@@ -834,7 +834,7 @@
       console.log('Farm profile loaded, ID:', newProfile.id);
     }
   }, { immediate: true });
-  
+
   const getTaskPriorityColor = (priority) => {
     const colors = {
       low: 'bg-green-500',
@@ -843,7 +843,7 @@
     };
     return colors[priority] || 'bg-gray-500';
   };
-  
+
   const getTaskStatusClass = (status) => {
     const classes = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -853,11 +853,11 @@
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
   };
-  
+
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString();
   };
-  
+
   const logout = async () => {
     try {
       await authStore.logout();
@@ -871,13 +871,13 @@
       router.push('/login');
     }
   };
-  
+
   const navigateTo = async (path) => {
     if (isNavigating.value) {
       console.warn('Navigation already in progress, ignoring click');
       return; // Prevent double-clicks
     }
-    
+
     isNavigating.value = true;
     try {
       console.log(`Navigating to: ${path}`);
@@ -903,7 +903,7 @@
       }, 1000); // Increased delay to prevent issues
     }
   };
-  
+
   onMounted(async () => {
     // Initialize field selection
     // Ensure farm profile is loaded for weather
@@ -918,7 +918,7 @@
     } else {
         console.log('Skipping farm profile fetch. Profile exists:', !!farmStore.farmProfile, 'Auth:', authStore.isAuthenticated);
     }
-    
+
     // Load data with improved error handling and retry logic
     const loadData = async () => {
       const loadingStates = {
@@ -929,7 +929,7 @@
         orders: false,
         seedPlantings: false
       };
-      
+
       // Load essential data first (fields are required for other operations)
       try {
         loadingStates.fields = true;
@@ -941,7 +941,7 @@
       } finally {
         loadingStates.fields = false;
       }
-      
+
       // Load remaining data with improved error handling
       const dataLoaders = [
       {
@@ -989,7 +989,7 @@
         critical: false
       }
       ];
-      
+
       // Load data with staggered delays and better error handling
       const loadPromises = dataLoaders.map(({ name, loader, delay, critical }) => {
         return new Promise((resolve) => {
@@ -1019,7 +1019,7 @@
           }, delay);
         });
       });
-      
+
       // Don't wait for all to complete, let them load in background
       Promise.all(loadPromises).then(() => {
         console.log('✓ All dashboard data loading attempts completed');
@@ -1032,7 +1032,7 @@
         }, 2000);
       });
     };
-    
+
     // Start loading data
     try {
       await loadData();

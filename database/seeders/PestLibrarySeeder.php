@@ -26,9 +26,11 @@ class PestLibrarySeeder extends Seeder
                 'description' => 'A fungal disease affecting all parts of the rice plant, causing spindle-shaped lesions.',
                 'symptoms' => 'Diamond/spindle-shaped lesions with gray centers on leaves; neck rot causing panicles to fall over.',
                 'treatment_guidance' => 'Use fungicides (e.g., Tricyclazole, Isoprothiolane). Avoid excessive nitrogen fertilizer. Keep field flooded.',
-                'images' => ['https://www.irri.org/sites/default/files/styles/science_standard/public/Rice%20blast%20symptoms%20on%20leaves.jpg']
+                'images' => ['https://www.irri.org/sites/default/files/styles/science_standard/public/Rice%20blast%20symptoms%20on%20leaves.jpg'],
+                'vulnerable_stages' => ['vegetative', 'reproductive', 'ripening'],
             ]
         );
+        $blast->update(['vulnerable_stages' => ['vegetative', 'reproductive', 'ripening']]);
 
         PestAnalyticsRule::firstOrCreate([
             'pest_library_id' => $blast->id,
@@ -37,7 +39,8 @@ class PestLibrarySeeder extends Seeder
             'value_min' => 90,
         ], [
             'risk_level' => 'high',
-            'risk_message' => 'High humidity (>90%) strongly favors Rice Blast spore germination.'
+            'risk_message' => 'High humidity (>90%) strongly favors Rice Blast spore germination.',
+            'stage_note' => 'Leaf blast risk at vegetative stage; neck blast risk at reproductive stage',
         ]);
 
         PestAnalyticsRule::firstOrCreate([
@@ -72,9 +75,11 @@ class PestLibrarySeeder extends Seeder
                 'description' => 'Sucking pests that remove plant sap, causing "hopper burn" where plants turn brown and die.',
                 'symptoms' => 'Yellowing and browning of leaves (Hopper burn), sooty mold at base of stems.',
                 'treatment_guidance' => 'Drain field for 3-4 days. Use resistant varieties. Avoid indiscriminant insecticide use which kills natural enemies.',
-                'images' => ['https://live.staticflickr.com/65535/51234567890_abcdef1234_b.jpg']
+                'images' => ['https://live.staticflickr.com/65535/51234567890_abcdef1234_b.jpg'],
+                'vulnerable_stages' => ['vegetative', 'reproductive'],
             ]
         );
+        $bph->update(['vulnerable_stages' => ['vegetative', 'reproductive']]);
 
         PestAnalyticsRule::firstOrCreate([
             'pest_library_id' => $bph->id,
@@ -84,7 +89,8 @@ class PestLibrarySeeder extends Seeder
             'value_max' => 30,
         ], [
             'risk_level' => 'high',
-            'risk_message' => 'Temperatures of 28-30°C accelerate BPH reproduction.'
+            'risk_message' => 'Temperatures of 28-30°C accelerate BPH reproduction.',
+            'stage_note' => 'Peak damage during tillering (vegetative) stage',
         ]);
 
         PestAnalyticsRule::firstOrCreate([
@@ -108,9 +114,11 @@ class PestLibrarySeeder extends Seeder
                 'description' => 'Larvae bore into stems, causing "Deadheart" in vegetative stage and "Whitehead" in reproductive stage.',
                 'symptoms' => 'Deadhearts (drying central shoot) and Whiteheads (empty, white panicles).',
                 'treatment_guidance' => 'Install pheromone traps. Biological control (Trichogramma). Early planting.',
-                'images' => ['https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Stem_borer_adult.jpg/640px-Stem_borer_adult.jpg']
+                'images' => ['https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Stem_borer_adult.jpg/640px-Stem_borer_adult.jpg'],
+                'vulnerable_stages' => ['vegetative', 'reproductive'],
             ]
         );
+        $ysb->update(['vulnerable_stages' => ['vegetative', 'reproductive']]);
 
         PestAnalyticsRule::firstOrCreate([
             'pest_library_id' => $ysb->id,
@@ -120,7 +128,8 @@ class PestLibrarySeeder extends Seeder
             'value_max' => 32,
         ], [
             'risk_level' => 'high',
-            'risk_message' => 'Warm temperatures (28-32°C) favor Stem Borer moth activity.'
+            'risk_message' => 'Warm temperatures (28-32°C) favor Stem Borer moth activity.',
+            'stage_note' => 'Causes deadheart (vegetative) or whitehead (reproductive)',
         ]);
 
         PestAnalyticsRule::firstOrCreate([
@@ -144,9 +153,11 @@ class PestLibrarySeeder extends Seeder
                 'description' => 'Major vector for Rice Tungro Virus. Feeds on sap.',
                 'symptoms' => 'Stunted growth, yellowing leaves. Main damage is virus transmission.',
                 'treatment_guidance' => 'Use resistant varieties. Manage weeds. Light traps.',
-                'images' => ['https://knowledgebank.irri.org/images/stories/pests-and-diseases/insects/glh/GLH_adult.jpg']
+                'images' => ['https://knowledgebank.irri.org/images/stories/pests-and-diseases/insects/glh/GLH_adult.jpg'],
+                'vulnerable_stages' => ['vegetative'],
             ]
         );
+        $glh->update(['vulnerable_stages' => ['vegetative']]);
 
         PestAnalyticsRule::firstOrCreate([
             'pest_library_id' => $glh->id,
@@ -156,7 +167,8 @@ class PestLibrarySeeder extends Seeder
             'value_max' => 34,
         ], [
             'risk_level' => 'high',
-            'risk_message' => 'Hot temperatures (32-34°C) trigger peak GLH population.'
+            'risk_message' => 'Hot temperatures (32-34°C) trigger peak GLH population.',
+            'stage_note' => 'Seedling stage most vulnerable to Tungro transmission via GLH',
         ]);
 
         PestAnalyticsRule::firstOrCreate([
@@ -180,9 +192,11 @@ class PestLibrarySeeder extends Seeder
                 'description' => 'Most destructive virus disease of rice in SE Asia. Transmitted by Green Leafhopper.',
                 'symptoms' => 'Stunted plants, yellow to orange-red discoloration of leaves, twisting of leaves.',
                 'treatment_guidance' => 'Control the vector (GLH). Rogue infected plants immediately. Synchronous planting.',
-                'images' => ['https://knowledgebank.irri.org/images/stories/pests-and-diseases/diseases/tungro/tungro1.jpg']
+                'images' => ['https://knowledgebank.irri.org/images/stories/pests-and-diseases/diseases/tungro/tungro1.jpg'],
+                'vulnerable_stages' => ['vegetative'],
             ]
         );
+        $tungro->update(['vulnerable_stages' => ['vegetative']]);
 
         PestAnalyticsRule::firstOrCreate([
             'pest_library_id' => $tungro->id,
@@ -192,7 +206,8 @@ class PestLibrarySeeder extends Seeder
             'value_max' => 32,
         ], [
             'risk_level' => 'high',
-            'risk_message' => 'Temperatures of 24-32°C facilitate rapid Tungro Virus transmission.'
+            'risk_message' => 'Temperatures of 24-32°C facilitate rapid Tungro Virus transmission.',
+            'stage_note' => 'Seedling to early tillering most susceptible',
         ]);
 
         // Note: Tungro also needs GLH presence, which is handled by overlap or logic, but we add a rule for vector risk awareness
@@ -217,9 +232,11 @@ class PestLibrarySeeder extends Seeder
                 'description' => 'Sapsucking bugs that attack base of stems. Cause "bugburn". Strongly attracted to light during full moon.',
                 'symptoms' => 'Reddish-brown leaves, dead plants, empty grains.',
                 'treatment_guidance' => 'Light traps during full moon. Raise water level to submerge eggs. Biological controls (Metarhizium).',
-                'images' => ['https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_x_example_check_url']
+                'images' => ['https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_x_example_check_url'],
+                'vulnerable_stages' => ['reproductive', 'ripening'],
             ]
         );
+        $rbb->update(['vulnerable_stages' => ['reproductive', 'ripening']]);
 
         PestAnalyticsRule::firstOrCreate([
             'pest_library_id' => $rbb->id,
@@ -227,7 +244,8 @@ class PestLibrarySeeder extends Seeder
             'condition' => 'equals',
         ], [
             'risk_level' => 'high',
-            'risk_message' => 'Full Moon phase triggers massive Rice Black Bug flight activity.'
+            'risk_message' => 'Full Moon phase triggers massive Rice Black Bug flight activity.',
+            'stage_note' => 'Grain-filling (ripening) stage most damaged by RBB',
         ]);
 
         PestAnalyticsRule::firstOrCreate([

@@ -14,13 +14,13 @@ use Carbon\Carbon;
 
 class WeatherService
 {
-    private string $apiKey;
+    private ?string $apiKey;
     private string $baseUrl;
 
     public function __construct()
     {
         $this->apiKey = config('services.openweather.api_key');
-        $this->baseUrl = config('services.openweather.base_url');
+        $this->baseUrl = config('services.openweather.base_url', 'https://api.open-meteo.com');
     }
 
     /**

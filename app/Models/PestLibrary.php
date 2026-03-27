@@ -19,10 +19,12 @@ class PestLibrary extends Model
         'symptoms',
         'treatment_guidance',
         'images',
+        'vulnerable_stages',
     ];
 
     protected $casts = [
         'images' => 'array',
+        'vulnerable_stages' => 'array',
     ];
 
     public function rules(): HasMany

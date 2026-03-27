@@ -349,7 +349,7 @@ const form = reactive({
   description: '',
   quantity_available: '',
   quantity_available: '',
-  unit: 'sacks',
+  unit: 'kg',
   price_per_unit: '',
   quality_grade: 'premium',
   moisture_content: '',

@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Farm;
 
 use App\Http\Controllers\Controller;
 use App\Models\PestIncident;
+use App\Models\Expense;
 use App\Models\Planting;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class PestIncidentController extends Controller
 {
@@ -101,6 +103,21 @@ class PestIncidentController extends Controller
 
         $incident->load(['planting.field']);
 
+        // Auto-create expense if treatment cost is provided
+        if ($incident->treatment_cost && $incident->treatment_cost > 0) {
+            Expense::create([
+                'description' => "Pest treatment: {$incident->pest_name}",
+                'amount' => $incident->treatment_cost,
+                'category' => Expense::CATEGORY_PESTICIDE,
+                'date' => $incident->treatment_date ?? $incident->detected_date,
+                'planting_id' => $incident->planting_id,
+                'user_id' => Auth::id(),
+                'related_entity_type' => 'pest_incident',
+                'related_entity_id' => $incident->id,
+                'notes' => "Auto-generated from pest incident #{$incident->id}",
+            ]);
+        }
+
         return response()->json([
             'message' => 'Pest incident recorded',
             'incident' => $incident
@@ -160,6 +177,25 @@ class PestIncidentController extends Controller
             'notes'
         ]));
 
+        // Sync expense record if treatment cost changed
+        if ($pestIncident->treatment_cost && $pestIncident->treatment_cost > 0) {
+            Expense::updateOrCreate(
+                [
+                    'related_entity_type' => 'pest_incident',
+                    'related_entity_id' => $pestIncident->id,
+                ],
+                [
+                    'description' => "Pest treatment: {$pestIncident->pest_name}",
+                    'amount' => $pestIncident->treatment_cost,
+                    'category' => Expense::CATEGORY_PESTICIDE,
+                    'date' => $pestIncident->treatment_date ?? $pestIncident->detected_date,
+                    'planting_id' => $pestIncident->planting_id,
+                    'user_id' => Auth::id(),
+                    'notes' => "Auto-generated from pest incident #{$pestIncident->id}",
+                ]
+            );
+        }
+
         return response()->json([
             'message' => 'Pest incident updated',
             'incident' => $pestIncident->fresh()
@@ -195,6 +231,90 @@ class PestIncidentController extends Controller
                 'rodent' => ['Rice Field Rat', 'House Mouse'],
                 'other' => ['Birds', 'Snails', 'Crabs'],
             ],
+        ]);
+    }
+
+    /**
+     * Get pest analytics (type/severity breakdowns, trends, costs, top pests)
+     */
+    public function analytics(): JsonResponse
+    {
+        $userId = Auth::id();
+        $incidents = PestIncident::where('user_id', $userId);
+
+        // By Type
+        $byType = (clone $incidents)->selectRaw('pest_type, count(*) as count')
+            ->groupBy('pest_type')
+            ->pluck('count', 'pest_type');
+
+        // By Severity
+        $bySeverity = (clone $incidents)->selectRaw('severity, count(*) as count')
+            ->groupBy('severity')
+            ->pluck('count', 'severity');
+
+        // Monthly Trend (last 12 months)
+        $twelveMonthsAgo = Carbon::now()->subMonths(12)->startOfMonth();
+        $monthlyTrend = (clone $incidents)
+            ->where('detected_date', '>=', $twelveMonthsAgo)
+            ->selectRaw("TO_CHAR(detected_date, 'YYYY-MM') as month, count(*) as count")
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('count', 'month');
+
+        // Fill in missing months with 0
+        $filledTrend = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $monthKey = Carbon::now()->subMonths($i)->format('Y-m');
+            $filledTrend[$monthKey] = $monthlyTrend[$monthKey] ?? 0;
+        }
+
+        // Treatment Costs
+        $allIncidents = (clone $incidents)->get();
+        $treatedWithCost = $allIncidents->whereNotNull('treatment_cost')->where('treatment_cost', '>', 0);
+        $totalCost = $treatedWithCost->sum('treatment_cost');
+        $avgCost = $treatedWithCost->count() > 0 ? round($totalCost / $treatedWithCost->count(), 2) : 0;
+
+        $mostExpensive = $treatedWithCost->sortByDesc('treatment_cost')->first();
+
+        $treatmentCosts = [
+            'total' => round((float) $totalCost, 2),
+            'average_per_incident' => $avgCost,
+            'treated_count' => $treatedWithCost->count(),
+            'most_expensive' => $mostExpensive ? [
+                'pest_name' => $mostExpensive->pest_name,
+                'cost' => round((float) $mostExpensive->treatment_cost, 2),
+            ] : null,
+        ];
+
+        // Top 5 Recurring Pests
+        $topPests = (clone $incidents)->selectRaw('pest_name, pest_type, count(*) as count')
+            ->groupBy('pest_name', 'pest_type')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get()
+            ->map(fn($p) => [
+                'pest_name' => $p->pest_name,
+                'pest_type' => $p->pest_type,
+                'count' => $p->count,
+            ]);
+
+        // Avg Resolution Days
+        $resolved = $allIncidents->where('status', 'resolved')->filter(fn($i) => $i->detected_date);
+        $avgResolutionDays = 0;
+        if ($resolved->count() > 0) {
+            $totalDays = $resolved->sum(function ($incident) {
+                return Carbon::parse($incident->detected_date)->diffInDays($incident->updated_at);
+            });
+            $avgResolutionDays = round($totalDays / $resolved->count(), 1);
+        }
+
+        return response()->json([
+            'by_type' => $byType,
+            'by_severity' => $bySeverity,
+            'monthly_trend' => $filledTrend,
+            'treatment_costs' => $treatmentCosts,
+            'top_pests' => $topPests,
+            'avg_resolution_days' => $avgResolutionDays,
         ]);
     }
 }

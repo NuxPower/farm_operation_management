@@ -4,12 +4,12 @@
       <!-- Header -->
       <div class="mb-8 flex items-center justify-between">
         <div>
-          <button 
-            @click="$router.back()" 
+          <button
+            @click="$router.back()"
             class="flex items-center text-sm text-gray-500 hover:text-green-600 transition-colors mb-2"
           >
             <ArrowLeftIcon class="h-4 w-4 mr-1" />
-            Back to Nursery
+            Back to Seedbed
           </button>
           <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Edit Sowing</h1>
           <p class="mt-2 text-gray-600">Update details for this sowing batch.</p>
@@ -35,7 +35,7 @@
               <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 mr-3 text-sm">1</span>
               Seed Details
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <!-- Seed Source (Inventory) -->
               <div class="col-span-2">
@@ -60,10 +60,10 @@
                   </select>
                 </div>
                 <p class="mt-1 text-xs text-gray-500">Seed source cannot be changed after creation.</p>
-                
+
                 <!-- Display Variety Name -->
                  <div v-if="form.rice_variety_id" class="mt-2 flex items-center text-xs text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
-                  <span class="font-medium mr-1">Variety:</span> 
+                  <span class="font-medium mr-1">Variety:</span>
                   {{ getVarietyName(form.rice_variety_id) }}
                 </div>
               </div>
@@ -163,7 +163,7 @@
               <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 mr-3 text-sm">3</span>
               Additional Info
             </h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                <!-- Batch ID -->
                <div>
@@ -234,11 +234,11 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useInventoryStore } from '@/stores/inventory';
 import axios from 'axios';
-import { 
-  ArrowLeftIcon, 
-  TagIcon, 
-  ScaleIcon, 
-  CalendarDaysIcon, 
+import {
+  ArrowLeftIcon,
+  TagIcon,
+  ScaleIcon,
+  CalendarDaysIcon,
   ClockIcon,
   DocumentTextIcon
 } from '@heroicons/vue/24/outline';
@@ -266,12 +266,12 @@ const inventorySeeds = computed(() => inventoryStore.riceSeeds);
 
 const submit = async () => {
   submitting.value = true;
-  
+
   // Frontend Validation
   if (form.value.expected_transplant_date && form.value.planting_date) {
       const start = new Date(form.value.planting_date);
       const end = new Date(form.value.expected_transplant_date);
-      
+
       if (end <= start) {
           alert("Expected transplant date must be after the planting date.");
           submitting.value = false;
@@ -336,7 +336,7 @@ const fetchPlanting = async () => {
         const id = route.params.id;
         const response = await axios.get(`/api/seed-plantings/${id}`);
         const data = response.data.data ? response.data.data : response.data;
-        
+
         form.value = {
             inventory_item_id: data.inventory_item_id,
             rice_variety_id: data.rice_variety_id,
@@ -347,7 +347,7 @@ const fetchPlanting = async () => {
             batch_id: data.batch_id,
             notes: data.notes
         };
-        
+
         updateSuggestion();
 
     } catch (error) {
@@ -362,8 +362,8 @@ const fetchPlanting = async () => {
 const updateSuggestion = () => {
     if (form.value.planting_date) {
          const date = new Date(form.value.planting_date);
-         
-         // Basic logic: +18 days usually. 
+
+         // Basic logic: +18 days usually.
          // Could check variety duration if we had that metadata fully loaded
          date.setDate(date.getDate() + 18);
          suggestedTransplantDate.value = date.toISOString().split('T')[0];

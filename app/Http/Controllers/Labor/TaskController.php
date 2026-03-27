@@ -260,16 +260,23 @@ class TaskController extends Controller
             if ($task->wasChanged('status') && $task->status === Task::STATUS_COMPLETED) {
 
                 // Create labor expenses
-                $this->createLaborExpensesForTask($task, $user);
+                $laborExpenses = $this->createLaborExpensesForTask($task, $user);
             }
         }
 
         $task->load(['planting.field', 'laborer', 'laborerGroup']);
 
-        return response()->json([
+        $response = [
             'message' => 'Task updated successfully',
             'task' => $task,
-        ]);
+        ];
+
+        // Add warning if task was completed but no labor expenses were created
+        if (isset($laborExpenses) && empty($laborExpenses)) {
+            $response['warning'] = 'No labor expense was recorded because no laborer is assigned to this task.';
+        }
+
+        return response()->json($response);
     }
 
     /**

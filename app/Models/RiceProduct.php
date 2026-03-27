@@ -175,24 +175,40 @@ class RiceProduct extends Model
             return $this->inventoryItem;
         }
 
-        // 2. Try to find by exact name match for this farmer
-        $match = InventoryItem::where('user_id', $this->farmer_id)
+        $baseQuery = InventoryItem::where('user_id', $this->farmer_id)
             ->where('category', InventoryItem::CATEGORY_PRODUCE)
-            ->where('name', $this->name)
-            ->first();
+            ->where('unit', $this->unit);
 
+        // 2. Try to find by exact name match for this farmer
+        $match = (clone $baseQuery)->where('name', $this->name)->first();
         if ($match) {
             return $match;
         }
 
-        // 3. Try variety name with (Grade X) suffix (common pattern in HarvestController)
+        // 3. Try case-insensitive exact name match
+        $match = (clone $baseQuery)->where('name', 'ILIKE', $this->name)->first();
+        if ($match) {
+            return $match;
+        }
+
+        // 4. Try partial match — product name contained in inventory item name
+        //    e.g., product "IR64" matches inventory "IR64 (Premium)"
+        $match = (clone $baseQuery)->where('name', 'ILIKE', $this->name . '%')->first();
+        if ($match) {
+            return $match;
+        }
+
+        // 5. Try partial match — inventory item name contained in product name
+        //    e.g., inventory "IR64" matches product "IR64 Premium Rice"
+        $match = (clone $baseQuery)->whereRaw('? ILIKE name || \'%\'', [$this->name])->first();
+        if ($match) {
+            return $match;
+        }
+
+        // 6. Try variety name with (Grade X) suffix (common pattern in HarvestController)
         $varietyName = $this->riceVariety?->name;
         if ($varietyName) {
-            $match = InventoryItem::where('user_id', $this->farmer_id)
-                ->where('category', InventoryItem::CATEGORY_PRODUCE)
-                ->where('name', 'ILIKE', $varietyName . '%')
-                ->first();
-
+            $match = (clone $baseQuery)->where('name', 'ILIKE', $varietyName . '%')->first();
             if ($match) {
                 return $match;
             }
@@ -494,4 +510,57 @@ class RiceProduct extends Model
         return $earthRadius * $c;
     }
 
+    /**
+     * Deduct quantity from linked inventory item
+     * 
+     * @param float $quantity Quantity to deduct
+     * @param int|null $orderId Order ID for transaction reference
+     * @return bool True if deduction was successful
+     */
+    public function deductFromInventory($quantity, $orderId = null)
+    {
+        // Find matching inventory item
+        $inventoryItem = $this->findMatchingInventoryItem();
+
+        if (!$inventoryItem) {
+            \Log::warning('Inventory deduction failed: no matching inventory item found', [
+                'product_id' => $this->id,
+                'product_name' => $this->name,
+                'farmer_id' => $this->farmer_id,
+                'inventory_item_id' => $this->inventory_item_id,
+                'order_id' => $orderId,
+                'quantity' => $quantity,
+            ]);
+            return false;
+        }
+
+        // Lock the inventory item for update to prevent race conditions
+        // We use a fresh query to get the lock
+        $inventoryItem = \App\Models\InventoryItem::where('id', $inventoryItem->id)->lockForUpdate()->first();
+
+        if ($inventoryItem && $inventoryItem->removeStock($quantity)) {
+            // Log transaction
+            \App\Models\InventoryTransaction::create([
+                'inventory_item_id' => $inventoryItem->id,
+                'user_id' => $this->farmer_id,
+                'transaction_type' => 'out',
+                'quantity' => $quantity,
+                'unit_cost' => $inventoryItem->unit_price,
+                'total_cost' => $quantity * ($inventoryItem->unit_price ?? 0),
+                'reference_type' => 'RiceOrder',
+                'reference_id' => $orderId,
+                'notes' => "Sold via Marketplace Product: {$this->name}",
+                'transaction_date' => now(),
+            ]);
+
+            // Auto-link ID if missing for future performance
+            if (!$this->inventory_item_id) {
+                $this->update(['inventory_item_id' => $inventoryItem->id]);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 }

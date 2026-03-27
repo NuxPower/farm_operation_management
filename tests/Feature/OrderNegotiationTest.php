@@ -11,10 +11,7 @@ use Tests\TestCase;
 
 class OrderNegotiationTest extends TestCase
 {
-    // use RefreshDatabase; // commenting out to avoid wiping user's dev data if configured wrong, but usually tests use separate DB. 
-    // SAFEST: Use transaction or rely on explicit cleanup. For this environment, I'll trust standard Laravel test config or just clean up created data.
-    // Actually, widespread practice in this env is to just run it. If it fails due to DB state, we handle it.
-    // Let's use clean up in tearDown.
+    use RefreshDatabase;
 
     protected $farmer;
     protected $buyer;
@@ -85,19 +82,6 @@ class OrderNegotiationTest extends TestCase
         ]);
     }
 
-    protected function tearDown(): void
-    {
-        if ($this->order)
-            $this->order->delete();
-        if ($this->product)
-            $this->product->delete();
-        if ($this->buyer)
-            $this->buyer->delete();
-        if ($this->farmer)
-            $this->farmer->delete();
-        parent::tearDown();
-    }
-
     public function test_negotiation_flow()
     {
         // 1. Buyer creates order with negotiation
@@ -118,6 +102,7 @@ class OrderNegotiationTest extends TestCase
                 'delivery_method' => 'pickup',
                 'payment_method' => 'cod',
                 'offer_price' => $offerPrice,
+                'preferred_pickup_date' => now()->addDays(3)->toDateString(),
             ]);
 
         $response->assertStatus(201);
@@ -155,6 +140,7 @@ class OrderNegotiationTest extends TestCase
                 'delivery_method' => 'pickup',
                 'payment_method' => 'cod',
                 'offer_price' => $offerPrice,
+                'preferred_pickup_date' => now()->addDays(3)->toDateString(),
             ]);
 
         $orderId = $response->json('order.id');
@@ -170,10 +156,5 @@ class OrderNegotiationTest extends TestCase
         $order->refresh();
 
         $this->assertEquals(RiceOrder::STATUS_CANCELLED, $order->status, 'Order should be cancelled after rejection');
-
-        // Clean up this specific order
-        $order->delete();
-
-        echo "\nRejection Test Passed!\n";
     }
 }

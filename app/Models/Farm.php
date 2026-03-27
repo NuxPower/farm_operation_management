@@ -49,6 +49,11 @@ class Farm extends Model
         return $this->hasMany(Field::class);
     }
 
+    public function plantings(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(Planting::class, Field::class);
+    }
+
     public function weatherLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(WeatherLog::class);

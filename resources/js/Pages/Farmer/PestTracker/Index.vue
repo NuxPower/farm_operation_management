@@ -35,6 +35,164 @@
         </div>
       </div>
 
+      <!-- Analytics Section (Collapsible) -->
+      <div class="bg-white rounded-xl shadow mb-6 overflow-hidden">
+        <button @click="showAnalytics = !showAnalytics" class="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors">
+          <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <span class="text-xl">📊</span> Pest Analytics
+          </h2>
+          <svg :class="['w-5 h-5 text-gray-400 transition-transform duration-300', showAnalytics ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div v-if="showAnalytics" class="px-5 pb-6 border-t border-gray-100">
+
+          <div v-if="analyticsLoading" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-red-100 border-t-red-600"></div>
+          </div>
+
+          <div v-else-if="analyticsData" class="mt-5 space-y-6">
+
+            <!-- Row 1: Type Distribution + Severity Breakdown -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              <!-- Pest Type Distribution -->
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-3">Incidents by Type</h3>
+                <div v-if="hasTypeData" class="space-y-3">
+                  <div v-for="typeKey in ['insect', 'disease', 'weed', 'rodent', 'other']" :key="typeKey">
+                    <template v-if="analyticsData.by_type[typeKey]">
+                      <div class="flex items-center justify-between text-sm mb-1">
+                        <span class="flex items-center gap-2 text-gray-700 font-medium">
+                          <span>{{ getTypeIcon(typeKey) }}</span>
+                          <span class="capitalize">{{ typeKey }}</span>
+                        </span>
+                        <span class="text-gray-500">{{ analyticsData.by_type[typeKey] }}</span>
+                      </div>
+                      <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div class="h-2 rounded-full transition-all duration-700" :class="typeBarColor(typeKey)"
+                          :style="{ width: `${(analyticsData.by_type[typeKey] / maxTypeCount) * 100}%` }"></div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-400 py-4 text-center">No incident data yet</p>
+              </div>
+
+              <!-- Severity Breakdown (Donut) -->
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-3">Severity Distribution</h3>
+                <div v-if="hasSeverityData" class="flex items-center gap-8">
+                  <div class="relative w-28 h-28 shrink-0">
+                    <svg viewBox="0 0 100 100" class="w-full h-full transform -rotate-90">
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e5e7eb" stroke-width="12" />
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3b82f6" stroke-width="12"
+                        :stroke-dasharray="`${sevPercent('low') * 2.51} 251.2`" class="transition-all duration-700" />
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" stroke-width="12"
+                        :stroke-dasharray="`${sevPercent('medium') * 2.51} 251.2`"
+                        :stroke-dashoffset="`${-sevPercent('low') * 2.51}`" class="transition-all duration-700" />
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f97316" stroke-width="12"
+                        :stroke-dasharray="`${sevPercent('high') * 2.51} 251.2`"
+                        :stroke-dashoffset="`${-(sevPercent('low') + sevPercent('medium')) * 2.51}`" class="transition-all duration-700" />
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" stroke-width="12"
+                        :stroke-dasharray="`${sevPercent('critical') * 2.51} 251.2`"
+                        :stroke-dashoffset="`${-(sevPercent('low') + sevPercent('medium') + sevPercent('high')) * 2.51}`" class="transition-all duration-700" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                      <span class="text-lg font-bold text-gray-900">{{ totalSeverity }}</span>
+                      <span class="text-[10px] text-gray-400 uppercase">Total</span>
+                    </div>
+                  </div>
+                  <div class="flex-1 space-y-2">
+                    <div v-for="sev in [{ key: 'low', color: 'bg-blue-500', text: 'text-blue-700' }, { key: 'medium', color: 'bg-yellow-500', text: 'text-yellow-700' }, { key: 'high', color: 'bg-orange-500', text: 'text-orange-700' }, { key: 'critical', color: 'bg-red-500', text: 'text-red-700' }]"
+                      :key="sev.key" class="flex items-center justify-between p-1.5 rounded hover:bg-gray-50">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full" :class="sev.color"></span>
+                        <span class="text-sm text-gray-600 capitalize">{{ sev.key }}</span>
+                      </div>
+                      <span class="text-sm font-bold text-gray-900">{{ analyticsData.by_severity[sev.key] || 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-400 py-4 text-center">No incident data yet</p>
+              </div>
+            </div>
+
+            <!-- Row 2: Monthly Trend -->
+            <div>
+              <h3 class="text-sm font-semibold text-gray-700 mb-3">Monthly Incident Trend</h3>
+              <div v-if="hasMonthlyData" class="h-40 flex items-end gap-1 border-b border-gray-100 pb-1">
+                <div v-for="(count, month) in analyticsData.monthly_trend" :key="month"
+                  class="flex-1 flex flex-col items-center gap-1 group relative">
+                  <span class="text-[10px] font-medium text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-5">{{ count }}</span>
+                  <div class="w-full rounded-t-sm transition-all duration-500 hover:bg-red-500"
+                    :class="count > 0 ? 'bg-red-400' : 'bg-gray-100'"
+                    :style="{ height: `${count > 0 ? Math.max((count / maxMonthlyCount) * 120, 6) : 4}px` }"></div>
+                  <span class="text-[9px] text-gray-400 truncate w-full text-center">{{ formatMonthLabel(month) }}</span>
+                </div>
+              </div>
+              <p v-else class="text-sm text-gray-400 py-4 text-center">No trend data yet</p>
+            </div>
+
+            <!-- Row 3: Treatment Costs + Top Pests + Resolution Time -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              <!-- Treatment Costs -->
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Treatment Costs</p>
+                <p class="text-xl font-bold text-gray-900">₱{{ formatNumber(analyticsData.treatment_costs.total) }}</p>
+                <div class="mt-2 space-y-1 text-sm">
+                  <div class="flex justify-between text-gray-600">
+                    <span>Avg/incident</span>
+                    <span class="font-medium">₱{{ formatNumber(analyticsData.treatment_costs.average_per_incident) }}</span>
+                  </div>
+                  <div v-if="analyticsData.treatment_costs.most_expensive" class="flex justify-between text-gray-600">
+                    <span>Most expensive</span>
+                    <span class="font-medium text-red-600 truncate max-w-[120px]" :title="analyticsData.treatment_costs.most_expensive.pest_name">{{ analyticsData.treatment_costs.most_expensive.pest_name }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Top Recurring Pests -->
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Top Pests</p>
+                <div v-if="analyticsData.top_pests?.length" class="space-y-2">
+                  <div v-for="(pest, i) in analyticsData.top_pests" :key="i" class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5 text-sm text-gray-700 truncate">
+                      <span class="text-xs">{{ getTypeIcon(pest.pest_type) }}</span>
+                      {{ pest.pest_name }}
+                    </span>
+                    <span class="text-xs font-bold text-gray-900 bg-white px-2 py-0.5 rounded-full border border-gray-200">{{ pest.count }}×</span>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-400 text-center py-2">None yet</p>
+              </div>
+
+              <!-- Avg Resolution -->
+              <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Avg. Resolution</p>
+                <p class="text-xl font-bold text-gray-900">
+                  {{ analyticsData.avg_resolution_days }}
+                  <span class="text-sm font-normal text-gray-500">days</span>
+                </p>
+                <p class="text-xs text-gray-400 mt-1">From detection to resolved</p>
+                <div class="mt-2 text-sm text-gray-600 flex justify-between">
+                  <span>Treated incidents</span>
+                  <span class="font-medium">{{ analyticsData.treatment_costs.treated_count }}</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- No Data State -->
+          <div v-else class="text-center py-8 text-sm text-gray-400">
+            Report pest incidents to start seeing analytics.
+          </div>
+        </div>
+      </div>
+
       <!-- Filters -->
       <div class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-4">
         <select v-model="filter.status" @change="loadData" class="px-3 py-2 border rounded-lg">
@@ -210,6 +368,69 @@ const stats = ref({ total: 0, active: 0, treated: 0, resolved: 0 })
 const plantings = ref([])
 const selectedFieldId = ref('')
 
+// --- Analytics ---
+const showAnalytics = ref(true)
+const analyticsLoading = ref(true)
+const analyticsData = ref(null)
+
+const hasTypeData = computed(() => analyticsData.value && Object.keys(analyticsData.value.by_type || {}).length > 0)
+const hasSeverityData = computed(() => analyticsData.value && Object.keys(analyticsData.value.by_severity || {}).length > 0)
+const hasMonthlyData = computed(() => {
+  if (!analyticsData.value?.monthly_trend) return false
+  return Object.values(analyticsData.value.monthly_trend).some(v => v > 0)
+})
+
+const maxTypeCount = computed(() => {
+  if (!analyticsData.value?.by_type) return 1
+  return Math.max(...Object.values(analyticsData.value.by_type), 1)
+})
+
+const maxMonthlyCount = computed(() => {
+  if (!analyticsData.value?.monthly_trend) return 1
+  return Math.max(...Object.values(analyticsData.value.monthly_trend), 1)
+})
+
+const totalSeverity = computed(() => {
+  if (!analyticsData.value?.by_severity) return 0
+  return Object.values(analyticsData.value.by_severity).reduce((a, b) => a + b, 0)
+})
+
+const sevPercent = (key) => {
+  if (totalSeverity.value === 0) return 0
+  return ((analyticsData.value?.by_severity?.[key] || 0) / totalSeverity.value) * 100
+}
+
+const typeBarColor = (type) => {
+  const colors = { insect: 'bg-amber-500', disease: 'bg-red-500', weed: 'bg-green-500', rodent: 'bg-gray-600', other: 'bg-blue-500' }
+  return colors[type] || 'bg-gray-400'
+}
+
+const formatMonthLabel = (month) => {
+  const [y, m] = month.split('-')
+  const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return labels[parseInt(m) - 1] || m
+}
+
+const formatNumber = (num) => {
+  if (!num) return '0'
+  return new Intl.NumberFormat('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(num)
+}
+
+const loadAnalytics = async () => {
+  analyticsLoading.value = true
+  try {
+    const response = await axios.get('/api/pest-incidents/analytics')
+    analyticsData.value = response.data
+  } catch (error) {
+    console.error('Failed to load pest analytics:', error)
+    analyticsData.value = null
+  } finally {
+    analyticsLoading.value = false
+  }
+}
+
+// --- End Analytics ---
+
 const selectedPlanting = computed(() => {
    if (!form.value.planting_id) return null
    return plantings.value.find(p => p.id === form.value.planting_id)
@@ -322,6 +543,7 @@ const submitIncident = async () => {
     showCreateModal.value = false
     resetForm()
     loadData()
+    loadAnalytics() // Refresh analytics after new incident
   } catch (error) {
     alert(error.response?.data?.message || 'Failed to save incident')
   } finally {
@@ -339,6 +561,7 @@ const markTreated = async (incident) => {
       treatment_date: new Date().toISOString().split('T')[0]
     })
     loadData()
+    loadAnalytics()
   } catch (error) {
     alert('Failed to update')
   }
@@ -348,6 +571,7 @@ const markResolved = async (incident) => {
   try {
     await axios.put(`/api/pest-incidents/${incident.id}`, { status: 'resolved' })
     loadData()
+    loadAnalytics()
   } catch (error) {
     alert('Failed to update')
   }
@@ -398,5 +622,6 @@ onMounted(() => {
   loadData()
   loadPlantings()
   loadFields()
+  loadAnalytics()
 })
 </script>

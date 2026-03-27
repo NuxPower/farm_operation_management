@@ -2,16 +2,16 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 class="text-3xl font-bold text-gray-800">Laborer Management</h1>
           <p class="text-gray-500 mt-1">Manage your farm laborers, track their skills, and assign them to tasks.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-3">
           <button
             @click="fetchLaborers"
             :disabled="loading"
-            class="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50"
+            class="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50 w-full sm:w-auto"
           >
             <svg
               :class="['h-5 w-5', { 'animate-spin': loading }]"
@@ -25,7 +25,7 @@
           </button>
           <button
             @click="goToGroups"
-            class="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium"
+            class="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium w-full sm:w-auto"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -34,7 +34,7 @@
           </button>
           <button
             @click="goToCreate"
-            class="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+            class="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium w-full sm:w-auto"
           >
             <span class="text-xl leading-none">+</span> Add Laborer
           </button>

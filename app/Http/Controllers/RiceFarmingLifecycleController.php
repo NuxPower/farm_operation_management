@@ -214,7 +214,7 @@ class RiceFarmingLifecycleController extends Controller
                 'yield_info' => [
                     'estimated_yield' => $planting->getEstimatedYield(),
                     'actual_yield' => $planting->total_yield,
-                    'yield_unit' => 'kg',
+                    'yield_unit' => $planting->harvests->last()?->unit ?? 'kg',
                 ],
             ]);
 

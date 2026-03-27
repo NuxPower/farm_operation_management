@@ -98,6 +98,8 @@ class InventoryItemController extends Controller
                 'lbs', 'pounds' => 'pounds',
                 'bag', 'bags', 'packet', 'packets' => 'packets',
                 'liter', 'liters' => 'liters',
+                'sack', 'sacks' => 'sacks',
+                'ton', 'tons' => 'tons',
                 default => $unit,
             };
 

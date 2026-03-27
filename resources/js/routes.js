@@ -23,7 +23,6 @@ import TasksEdit from '@/Pages/Farmer/Tasks/Edit.vue';
 import TasksShow from '@/Pages/Farmer/Tasks/Show.vue';
 import TasksCalendar from '@/Pages/Farmer/Tasks/Calendar.vue';
 import HarvestsIndex from '@/Pages/Farmer/Harvests/Index.vue';
-import HarvestsCreate from '@/Pages/Farmer/Harvests/Create.vue';
 
 // Laborer Management
 import LaborersIndex from '@/Pages/Farmer/Laborers/Index.vue';
@@ -228,12 +227,6 @@ const routes = [
     path: '/harvests',
     name: 'harvests',
     component: HarvestsIndex,
-    meta: { requiresAuth: true, roles: ['farmer'] }
-  },
-  {
-    path: '/harvests/create',
-    name: 'harvests-create',
-    component: HarvestsCreate,
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
   {

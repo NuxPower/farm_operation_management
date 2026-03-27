@@ -217,6 +217,10 @@
                      <span class="text-gray-500">%</span>
                    </div>
                 </div>
+                 <p class="text-xs text-gray-500 mt-1.5">
+                   <template v-if="shareSourceLabel">{{ shareSourceLabel }}</template>
+                   <template v-else>Default: 1 for every 8 farmer keeps (≈11.11%)</template>
+                 </p>
              </div>
              <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Share Amount ({{ form.data.unit || 'Units' }})</label>
@@ -390,6 +394,12 @@ const emit = defineEmits(['close', 'saved'])
 const farmStore = useFarmStore()
 const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
+// Default harvester share: 1 for every 8 farmer keeps → 1/9 ≈ 11.11%
+const DEFAULT_HARVESTER_SHARE_PERCENTAGE = 11.11
+
+// Track whether the share % came from a linked task
+const shareSourceLabel = ref('')
+
 const isEditMode = computed(() => !!props.harvest)
 
 // Get harvestable plantings from the store
@@ -438,7 +448,7 @@ const getInitialFormData = () => ({
   total_value: props.harvest?.total_value || '',
   notes: props.harvest?.notes || '',
   harvester_share: props.harvest?.harvester_share || '',
-  harvester_share_percentage: props.harvest?.harvester_share_percentage || '',
+  harvester_share_percentage: props.harvest?.harvester_share_percentage ?? DEFAULT_HARVESTER_SHARE_PERCENTAGE,
 })
 
 const form = ref({
@@ -453,21 +463,57 @@ watch(() => props.show, async (newVal) => {
     form.value.data = getInitialFormData()
     form.value.errors = {}
     form.value.processing = false
-    // Always fetch plantings and fields when modal opens to ensure we have latest data
+    shareSourceLabel.value = ''
+    // Always fetch plantings, fields, and tasks when modal opens
     try {
-      // Always fetch to get latest data
       await farmStore.fetchPlantings()
       
-      // Also fetch fields if not loaded (needed for field name display)
       if (farmStore.fields.length === 0) {
         await farmStore.fetchFields()
       }
+
+      // Fetch tasks so we can look up share percentages from harvesting tasks
+      await farmStore.fetchTasks()
     } catch (err) {
-      console.error('Failed to load plantings/fields:', err)
+      console.error('Failed to load plantings/fields/tasks:', err)
       form.value.errors.general = "Could not load plantings list. Please try again."
+    }
+
+    // If a planting is already selected (e.g. from initialPlantingId), apply task share
+    if (form.value.data.planting_id && !isEditMode.value) {
+      applyTaskSharePercentage(form.value.data.planting_id)
     }
   }
 })
+
+// When planting changes, check for a linked harvesting task with share payment
+watch(() => form.value.data.planting_id, (newPlantingId) => {
+  if (newPlantingId && !isEditMode.value) {
+    applyTaskSharePercentage(newPlantingId)
+  }
+})
+
+// Look up harvesting tasks with share payment for a given planting
+const applyTaskSharePercentage = (plantingId) => {
+  const tasks = farmStore.tasks || []
+  const shareTask = tasks.find(t =>
+    t.planting_id == plantingId &&
+    t.task_type === 'harvesting' &&
+    t.payment_type === 'share' &&
+    t.revenue_share_percentage
+  )
+
+  if (shareTask) {
+    form.value.data.harvester_share_percentage = parseFloat(shareTask.revenue_share_percentage)
+    const laborerName = shareTask.laborer?.name || shareTask.laborer_group?.name
+    shareSourceLabel.value = laborerName
+      ? `From task: ${laborerName} (${shareTask.revenue_share_percentage}%)`
+      : `From linked harvesting task (${shareTask.revenue_share_percentage}%)`
+  } else {
+    form.value.data.harvester_share_percentage = DEFAULT_HARVESTER_SHARE_PERCENTAGE
+    shareSourceLabel.value = ''
+  }
+}
 
 // Auto-calculate total_value
 watch(() => [form.value.data.quantity, form.value.data.price_per_unit], ([qty, price]) => {

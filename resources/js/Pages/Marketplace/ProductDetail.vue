@@ -423,7 +423,7 @@ const loadProductData = async (id) => {
       name: data.name || '',
       description: data.description || '',
       price: data.price_per_unit || data.price || 0,
-      unit: data.unit || 'sacks',
+      unit: data.unit || 'kg',
       category: 'rice', // Rice marketplace products
       seller_name: data.farmer?.name || 'Farmer',
       location: data.farmer?.location || '',

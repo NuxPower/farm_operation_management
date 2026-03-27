@@ -15,7 +15,19 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
 
-# Create storage link if it doesn't exist
+# Ensure storage directory structure exists (Railway volume mounts as empty dir)
+echo "==> Ensuring storage directory structure..."
+mkdir -p storage/app/public/products
+mkdir -p storage/framework/cache/data
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/logs
+
+# Fix ownership so www-data (PHP-FPM) can write to storage
+chown -R www-data:www-data storage
+chmod -R 775 storage
+
+# Create storage link (public/storage -> storage/app/public)
 php artisan storage:link --force 2>/dev/null || true
 
 # Cache configuration, routes, and events
@@ -26,6 +38,7 @@ php artisan event:cache || echo "Warning: event:cache failed"
 
 # Run migrations (skip errors for existing tables)
 php artisan migrate --force 2>/dev/null || echo "Warning: migrate skipped (tables may already exist)"
+
 
 
 # Configure Nginx PORT - Railway sets PORT env var

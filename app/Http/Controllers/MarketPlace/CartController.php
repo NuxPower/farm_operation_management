@@ -198,10 +198,19 @@ class CartController extends Controller
                     'checkout_group_id' => $checkoutGroupId,
                 ]);
 
+                // Deduct from Inventory Item
+                if (!$product->deductFromInventory($item->quantity, $order->id)) {
+                    \Log::warning('Cart checkout: inventory deduction failed', [
+                        'product_id' => $product->id,
+                        'order_id' => $order->id,
+                        'quantity' => $item->quantity,
+                    ]);
+                }
+
                 // Notify farmer
                 $notificationMessage = $isNegotiating
-                    ? "You have a new price negotiation for {$item->quantity} kg of {$product->name}. Offered: ₱{$offerPrice}/kg"
-                    : "You have a new order for {$item->quantity} kg of {$product->name}";
+                    ? "You have a new price negotiation for {$item->quantity} {$product->unit} of {$product->name}. Offered: ₱{$offerPrice}/{$product->unit}"
+                    : "You have a new order for {$item->quantity} {$product->unit} of {$product->name}";
 
                 \App\Models\Notification::notify(
                     $product->farmer_id,

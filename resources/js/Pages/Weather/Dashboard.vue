@@ -2,22 +2,22 @@
   <div class="weather-dashboard-page">
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">Weather Dashboard</h1>
           <p class="text-gray-600 mt-2">Monitor weather conditions across your farm</p>
         </div>
-        <div class="flex space-x-3">
+        <div class="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-3">
           <button
             @click="refreshWeather"
             :disabled="loading"
-            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            class="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 w-full sm:w-auto"
           >
             {{ loading ? 'Refreshing...' : 'Refresh' }}
           </button>
           <button
             @click="viewForecast"
-            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="flex items-center justify-center bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 w-full sm:w-auto"
           >
             View Forecast
           </button>

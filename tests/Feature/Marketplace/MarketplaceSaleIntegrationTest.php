@@ -49,7 +49,8 @@ class MarketplaceSaleIntegrationTest extends TestCase
             'quantity' => 10,
             'delivery_address' => ['address' => '123 Main St'],
             'delivery_method' => 'pickup',
-            'payment_method' => 'cash'
+            'payment_method' => 'cash',
+            'preferred_pickup_date' => now()->addDays(3)->toDateString(),
         ];
 
         // Route: /api/rice-marketplace/orders
