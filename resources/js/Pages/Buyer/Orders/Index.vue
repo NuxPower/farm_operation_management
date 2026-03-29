@@ -77,7 +77,7 @@
                   </span>
                 </div>
                 <div class="text-sm text-gray-600 space-y-1">
-                  <p>Quantity: {{ order.quantity }} kg • {{ formatCurrency(order.total_amount) }}</p>
+                  <p>Quantity: {{ order.quantity }} {{ order.rice_product?.unit || 'kg' }} • {{ formatCurrency(order.total_amount) }}</p>
                   <p>Seller: {{ order.rice_product?.farmer?.name || 'N/A' }}</p>
                   <p>Ordered: {{ formatDate(order.order_date) }}</p>
                 </div>

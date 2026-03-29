@@ -221,6 +221,7 @@
                    <template v-if="shareSourceLabel">{{ shareSourceLabel }}</template>
                    <template v-else>Default: 1 for every 8 farmer keeps (≈11.11%)</template>
                  </p>
+                  <p class="text-xs text-gray-400 mt-0.5">Harvester pay is recorded as a crop expense at your harvest price.</p>
              </div>
              <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Share Amount ({{ form.data.unit || 'Units' }})</label>
@@ -233,7 +234,7 @@
                 />
              </div>
              <div>
-                 <label class="block text-sm font-semibold text-gray-700 mb-2">Net Quantity (Owner)</label>
+                 <label class="block text-sm font-semibold text-gray-700 mb-2">Your Net Share</label>
                  <div class="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700 font-bold">
                     {{ (form.data.quantity - (form.data.harvester_share || 0)).toFixed(2) }} {{ form.data.unit }}
                  </div>

@@ -255,11 +255,11 @@ class RiceOrder extends Model
 
     /**
      * Check if order can be marked as paid
-     * Payment can only be marked after order is picked up
+     * Payment can be marked at any stage of the order lifecycle
      */
     public function canBeMarkedAsPaid(): bool
     {
-        return $this->status === self::STATUS_PICKED_UP
+        return !in_array($this->status, [self::STATUS_CANCELLED, self::STATUS_REFUNDED])
             && $this->payment_status !== self::PAYMENT_PAID;
     }
 

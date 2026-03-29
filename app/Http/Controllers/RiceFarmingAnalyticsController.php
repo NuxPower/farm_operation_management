@@ -55,6 +55,7 @@ class RiceFarmingAnalyticsController extends Controller
                 $plantings = $farm->plantings()
                     ->where('crop_type', 'rice')
                     ->where('planting_date', '>=', $startDate)
+                    ->with('harvests')
                     ->get();
 
                 $productionStats = [
@@ -73,6 +74,17 @@ class RiceFarmingAnalyticsController extends Controller
                         $productionStats['growth_stages'][] = $this->productionService->trackGrowthStages($planting);
                     }
                 }
+
+                // Determine predominant yield unit from harvests
+                $allHarvests = $plantings->flatMap(function ($p) {
+                    return $p->harvests ?? collect();
+                });
+                $yieldUnit = 'kg';
+                if ($allHarvests->isNotEmpty()) {
+                    $unitCounts = $allHarvests->groupBy('unit')->map->count();
+                    $yieldUnit = $unitCounts->sortDesc()->keys()->first() ?: 'kg';
+                }
+                $productionStats['yield_unit'] = $yieldUnit;
 
                 // 2. Financial Analytics (Delegated to FinancialService)
                 // Using existing robust service

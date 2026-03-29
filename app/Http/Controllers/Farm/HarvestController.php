@@ -264,18 +264,52 @@ class HarvestController extends Controller
             ]
         );
 
-        // Calculate net quantity (Gross - Harvester Share)
-        $netQuantity = $harvest->quantity - ($harvest->harvester_share ?? 0);
-
-        // Add the net quantity to inventory
-        if ($netQuantity > 0) {
-            $inventoryItem->addStock($netQuantity);
+        // Add the FULL GROSS quantity to inventory.
+        // The harvester's share is tracked as a separate financial expense below,
+        // not as a physical inventory deduction.
+        if ($harvest->quantity > 0) {
+            $inventoryItem->addStock($harvest->quantity);
         }
 
         // Update unit price if provided and different
         if ($harvest->price_per_unit && $harvest->price_per_unit != $inventoryItem->unit_price) {
             $inventoryItem->unit_price = $harvest->price_per_unit;
             $inventoryItem->save();
+        }
+
+        // --- Record harvester share as a proper peso expense ---
+        $harvesterShare = (float) ($harvest->harvester_share ?? 0);
+        if ($harvesterShare > 0) {
+            $pricePerUnit = (float) ($harvest->price_per_unit ?? 0);
+            $shareValue = $harvesterShare * $pricePerUnit;
+
+            $shareDescription = "Harvester crop share: {$harvesterShare} {$harvest->unit}";
+            if ($pricePerUnit > 0) {
+                $shareDescription .= " at ₱" . number_format($pricePerUnit, 2) . "/{$harvest->unit}";
+            }
+
+            $notes = "Auto-generated from harvest #{$harvest->id}. "
+                . "Gross: {$harvest->quantity} {$harvest->unit}, "
+                . "Share: {$harvesterShare} {$harvest->unit} "
+                . "({$harvest->harvester_share_percentage}%).";
+
+            if ($pricePerUnit <= 0) {
+                $notes .= " WARNING: price_per_unit was not set — expense amount is ₱0. "
+                    . "Update the harvest price to correct this.";
+            }
+
+            \App\Models\Expense::create([
+                'description' => $shareDescription,
+                'amount' => $shareValue,
+                'category' => \App\Models\Expense::CATEGORY_LABOR,
+                'date' => $harvest->harvest_date ?? now(),
+                'user_id' => $user->id,
+                'payment_method' => 'crop_share',
+                'notes' => $notes,
+                'related_entity_type' => \App\Models\Expense::ENTITY_TYPE_HARVEST,
+                'related_entity_id' => $harvest->id,
+                'planting_id' => $harvest->planting_id,
+            ]);
         }
     }
 }

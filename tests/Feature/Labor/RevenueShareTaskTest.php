@@ -47,7 +47,12 @@ class RevenueShareTaskTest extends TestCase
         ]);
     }
 
-    public function test_completing_share_task_creates_revenue_share_expense()
+    /**
+     * Completing a share-based task should NOT create an expense or labor wage.
+     * Crop-share compensation is handled by HarvestController when the harvest
+     * is recorded, since only then do we know the actual quantity and price.
+     */
+    public function test_completing_share_task_does_not_create_expense()
     {
         $task = Task::create([
             'planting_id' => $this->planting->id,
@@ -67,21 +72,50 @@ class RevenueShareTaskTest extends TestCase
 
         $this->assertEquals('completed', $task->fresh()->status);
 
-        // Verify Expense
-        $this->assertDatabaseHas('expenses', [
-            'user_id' => $this->farmer->id,
-            'amount' => 15.00,
-            'category' => 'labor',
-            'payment_method' => 'revenue_share',
+        // Share-based tasks should NOT generate expenses at task-completion time.
+        $this->assertDatabaseMissing('expenses', [
             'related_entity_type' => 'task',
-            'related_entity_id' => $task->id
+            'related_entity_id' => $task->id,
         ]);
 
-        // Verify LaborWage
-        $this->assertDatabaseHas('labor_wages', [
-            'laborer_id' => $this->laborer->id,
+        // No LaborWage either
+        $this->assertDatabaseMissing('labor_wages', [
             'task_id' => $task->id,
-            'wage_amount' => 15.00
+        ]);
+    }
+
+    /**
+     * Non-share tasks (wage-based) should still create expenses as before.
+     */
+    public function test_completing_wage_task_still_creates_expense()
+    {
+        $task = Task::create([
+            'planting_id' => $this->planting->id,
+            'task_type' => 'weeding',
+            'due_date' => now(),
+            'description' => 'Weeding task with daily wage',
+            'assigned_to' => $this->laborer->id,
+            'payment_type' => 'wage',
+            'wage_amount' => 500,
+            'status' => 'pending'
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson("/api/tasks/{$task->id}/complete");
+
+        $response->assertStatus(200);
+
+        // Wage-based tasks should still generate expenses
+        $this->assertDatabaseHas('expenses', [
+            'related_entity_type' => 'task',
+            'related_entity_id' => $task->id,
+            'amount' => 500,
+            'category' => 'labor',
+        ]);
+
+        $this->assertDatabaseHas('labor_wages', [
+            'task_id' => $task->id,
+            'wage_amount' => 500,
         ]);
     }
 }

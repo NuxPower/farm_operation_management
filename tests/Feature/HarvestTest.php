@@ -101,7 +101,7 @@ class HarvestTest extends TestCase
     {
         $grossHarvest = 5000;
         $harvesterShare = 1000;
-        $expectedNetStock = $grossHarvest - $harvesterShare;
+        $pricePerUnit = 20;
 
         $response = $this->actingAs($this->farmer)
             ->postJson('/api/harvests', [
@@ -110,7 +110,7 @@ class HarvestTest extends TestCase
                 'quantity' => $grossHarvest,
                 'unit' => 'kg',
                 'quality_grade' => 'A',
-                'price_per_unit' => 20,
+                'price_per_unit' => $pricePerUnit,
                 'harvester_share' => $harvesterShare,
                 'notes' => 'Harvest with share deduction'
             ]);
@@ -127,11 +127,23 @@ class HarvestTest extends TestCase
             'harvester_share' => $harvesterShare
         ]);
 
-        // 2. Verify that the inventory item has the NET quantity (Gross - Share)
+        // 2. Inventory receives GROSS quantity (share is tracked as a financial expense)
         $this->assertDatabaseHas('inventory_items', [
             'user_id' => $this->farmer->id,
             'name' => $expectedName,
-            'current_stock' => (string) $expectedNetStock,
+            'current_stock' => (string) $grossHarvest,
+        ]);
+
+        // 3. A crop-share expense is created with the correct peso value
+        $harvest = $response->json('harvest');
+        $expectedExpenseAmount = $harvesterShare * $pricePerUnit; // 1000 × 20 = 20000
+
+        $this->assertDatabaseHas('expenses', [
+            'related_entity_type' => 'harvest',
+            'related_entity_id' => $harvest['id'],
+            'amount' => $expectedExpenseAmount,
+            'category' => 'labor',
+            'payment_method' => 'crop_share',
         ]);
     }
 }

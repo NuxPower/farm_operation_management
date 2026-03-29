@@ -48,8 +48,8 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-500">Total Yield</p>
-              <p class="text-2xl font-bold text-gray-900">{{ analytics.production_analytics?.total_yield || 0 }} kg</p>
-              <p class="text-xs text-gray-500">{{ analytics.production_analytics?.average_yield_per_hectare || 0 }} kg/ha avg</p>
+              <p class="text-2xl font-bold text-gray-900">{{ analytics.production_analytics?.total_yield || 0 }} {{ yieldUnit }}</p>
+              <p class="text-xs text-gray-500">{{ analytics.production_analytics?.average_yield_per_hectare || 0 }} {{ yieldUnit }}/ha avg</p>
             </div>
           </div>
         </div>
@@ -150,8 +150,8 @@
                   <p class="text-xs text-gray-500">{{ variety.total_area }} ha planted</p>
                 </div>
                 <div class="text-right">
-                  <p class="text-sm font-bold text-green-600">{{ variety.yield_per_hectare }} kg/ha</p>
-                  <p class="text-xs text-gray-500">{{ variety.total_yield }} kg total</p>
+                  <p class="text-sm font-bold text-green-600">{{ variety.yield_per_hectare }} {{ yieldUnit }}/ha</p>
+                  <p class="text-xs text-gray-500">{{ variety.total_yield }} {{ yieldUnit }} total</p>
                 </div>
               </div>
             </div>
@@ -187,7 +187,7 @@
                     </div>
                     <span class="text-xs text-gray-600">{{ field.productivity_score }}%</span>
                   </div>
-                  <p class="text-xs text-gray-500">{{ field.yield_per_hectare }} kg/ha</p>
+                  <p class="text-xs text-gray-500">{{ field.yield_per_hectare }} {{ yieldUnit }}/ha</p>
                 </div>
               </div>
             </div>
@@ -334,7 +334,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { analyticsAPI } from '@/services/api';
 import { formatCurrency } from '@/utils/format';
 import {
@@ -355,6 +355,9 @@ const analytics = ref(null);
 const loading = ref(true);
 const error = ref('');
 const selectedPeriod = ref('12');
+const yieldUnit = computed(() => {
+  return analytics.value?.production_analytics?.yield_unit || 'kg';
+});
 
 // Chart options
 const chartOptions = {
@@ -395,7 +398,7 @@ const formatProductionChartData = (monthlyProduction) => {
     labels: monthlyProduction.map(item => item.month),
     datasets: [
       {
-        label: 'Total Yield (kg)',
+        label: `Total Yield (${yieldUnit.value})`,
         data: monthlyProduction.map(item => item.total_yield),
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',

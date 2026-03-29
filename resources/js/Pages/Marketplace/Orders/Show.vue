@@ -433,10 +433,10 @@
                   {{ processing ? 'Processing...' : '✓ Confirm Pickup' }}
                 </button>
                 <button
-                  v-if="order.payment_status !== 'paid' && isFarmer && order.status === 'picked_up'"
+                  v-if="order.payment_status !== 'paid' && isFarmer && !['cancelled', 'refunded'].includes(order.status)"
                   @click="markAsPaid"
                   :disabled="processing"
-                  class="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                  class="w-full bg-emerald-600 text-white px-3 py-2 rounded-md hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium"
                 >
                   💵 Mark as Paid
                 </button>

@@ -91,9 +91,9 @@ export const csvExport = {
      * Export Crop Yield Report to CSV
      */
     exportCropYieldReport(data, options = {}) {
-        const { title = 'Crop Yield Report' } = options;
+        const { title = 'Crop Yield Report', unit = 'kg' } = options;
 
-        const headers = ['Date', 'Field', 'Variety', 'Yield (kg)', 'Quality'];
+        const headers = ['Date', 'Field', 'Variety', `Yield (${unit})`, 'Quality'];
         const fields = ['harvest_date', 'field_name', 'variety_name', 'yield', 'quality_grade'];
 
         const csvContent = this.toCSV(data.harvests, headers, fields);
@@ -102,8 +102,8 @@ export const csvExport = {
             `Report: ${title}`,
             `Generated: ${new Date().toLocaleDateString()}`,
             `Total Harvests: ${data.totalHarvests}`,
-            `Total Yield: ${data.totalYield} kg`,
-            `Avg Yield/Ha: ${data.avgYieldPerHa} kg/ha`,
+            `Total Yield: ${data.totalYield} ${unit}`,
+            `Avg Yield/Ha: ${data.avgYieldPerHa} ${unit}/ha`,
             '',
             'Harvest Records:'
         ].join('\n') + '\n';

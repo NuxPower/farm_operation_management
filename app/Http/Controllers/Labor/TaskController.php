@@ -351,6 +351,13 @@ class TaskController extends Controller
         }
 
         foreach ($laborers as $laborer) {
+            // Skip share-based tasks entirely — crop-share compensation is calculated
+            // at harvest time by HarvestController when the actual quantity and price
+            // are known. Creating an expense here would produce an inaccurate amount.
+            if ($task->payment_type === Task::PAYMENT_TYPE_SHARE) {
+                continue;
+            }
+
             // Calculate wage based on rate_type
             $rate = (float) ($laborer->rate ?? 0);
             $rateType = $laborer->rate_type ?? 'per_day';
@@ -365,18 +372,12 @@ class TaskController extends Controller
                 $wageAmount = $rate; // Daily rate
             }
 
-            if ($wageAmount <= 0 && $rateType !== 'per_task') { // Allow per_task to potentially have custom logic, but generally wage should be > 0. But wait, if we have wage_amount, we use that.
-                // logic moved below
-            }
-
             // Override with task specific wage amount if available
-            if ($task->payment_type === Task::PAYMENT_TYPE_SHARE) {
-                $wageAmount = (float) ($task->revenue_share_percentage ?? 0);
-            } elseif ($task->wage_amount > 0) {
+            if ($task->wage_amount > 0) {
                 $wageAmount = (float) $task->wage_amount;
             }
 
-            if ($wageAmount <= 0 && $task->payment_type !== Task::PAYMENT_TYPE_SHARE) {
+            if ($wageAmount <= 0) {
                 continue;
             }
 

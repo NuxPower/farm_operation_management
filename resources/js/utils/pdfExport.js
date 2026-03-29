@@ -69,7 +69,7 @@ export const pdfExport = {
      */
     exportCropYieldReport(data, options = {}) {
         const doc = new jsPDF()
-        const { title = 'Crop Yield Report' } = options
+        const { title = 'Crop Yield Report', unit = 'kg' } = options
 
         // Header
         doc.setFontSize(20)
@@ -94,9 +94,9 @@ export const pdfExport = {
         doc.setFontSize(10)
         doc.text(`Total Harvests: ${data.totalHarvests || 0}`, 20, yPos)
         yPos += 6
-        doc.text(`Total Yield: ${(data.totalYield || 0).toLocaleString()} kg`, 20, yPos)
+        doc.text(`Total Yield: ${(data.totalYield || 0).toLocaleString()} ${unit}`, 20, yPos)
         yPos += 6
-        doc.text(`Average Yield per Hectare: ${(data.avgYieldPerHa || 0).toFixed(2)} kg/ha`, 20, yPos)
+        doc.text(`Average Yield per Hectare: ${(data.avgYieldPerHa || 0).toFixed(2)} ${unit}/ha`, 20, yPos)
 
         // Harvests Table
         if (data.harvests && data.harvests.length > 0) {
@@ -106,7 +106,7 @@ export const pdfExport = {
 
             autoTable(doc, {
                 startY: yPos + 5,
-                head: [['Date', 'Field', 'Variety', 'Yield (kg)', 'Quality']],
+                head: [['Date', 'Field', 'Variety', `Yield (${unit})`, 'Quality']],
                 body: data.harvests.map(h => [
                     h.harvest_date || 'N/A',
                     h.field_name || 'N/A',

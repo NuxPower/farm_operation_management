@@ -65,7 +65,7 @@
                 </span>
               </div>
               <div class="text-sm text-gray-600 space-y-1">
-                <p>{{ order.quantity }} kg • {{ formatCurrency(order.total_amount) }}</p>
+                <p>{{ order.quantity }} {{ order.rice_product?.unit || 'kg' }} • {{ formatCurrency(order.total_amount) }}</p>
                 <p>Buyer: {{ order.buyer?.name || 'N/A' }}</p>
                 <p>Ordered: {{ formatDate(order.order_date) }}</p>
                 <!-- Preferred Pickup Date (pending orders) -->
@@ -82,8 +82,8 @@
                 </p>
                 <!-- Negotiation Price Info -->
                 <p v-if="order.status === 'negotiating' && order.offer_price" class="text-orange-600 font-medium">
-                  🤝 Buyer offers: {{ formatCurrency(order.offer_price) }}/kg
-                  (Original: {{ formatCurrency(order.rice_product?.price_per_unit || order.unit_price) }}/kg)
+                  🤝 Buyer offers: {{ formatCurrency(order.offer_price) }}/{{ order.rice_product?.unit || 'kg' }}
+                  (Original: {{ formatCurrency(order.rice_product?.price_per_unit || order.unit_price) }}/{{ order.rice_product?.unit || 'kg' }})
                 </p>
               </div>
             </div>
@@ -113,11 +113,11 @@
                 class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
               >Mark as Shipped</button>
               
-              <!-- Payment Action (only after pickup) -->
-              <button v-if="order.payment_status !== 'paid' && order.status === 'delivered'"
+              <!-- Payment Action (available at any stage) -->
+              <button v-if="order.payment_status !== 'paid' && !['cancelled', 'refunded'].includes(order.status)"
                 @click="markAsPaid(order)"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
-              >Mark as Paid</button>
+                class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 flex items-center gap-1"
+              >💵 Mark as Paid</button>
 
               <!-- View Details -->
               <router-link :to="`/farmer/orders/${order.id}`"
@@ -142,7 +142,7 @@
         
         <div class="mb-4 p-3 bg-gray-50 rounded-lg">
           <p class="text-sm text-gray-600">Product: <strong>{{ confirmingOrder.rice_product?.name }}</strong></p>
-          <p class="text-sm text-gray-600">Quantity: <strong>{{ confirmingOrder.quantity }} kg</strong></p>
+          <p class="text-sm text-gray-600">Quantity: <strong>{{ confirmingOrder.quantity }} {{ confirmingOrder.rice_product?.unit || 'kg' }}</strong></p>
           <p class="text-sm text-gray-600">Total: <strong>{{ formatCurrency(confirmingOrder.total_amount) }}</strong></p>
         </div>
 
@@ -314,7 +314,7 @@ const shipOrder = async (order) => {
 }
 
 const acceptNegotiation = async (order) => {
-  if (!confirm(`Accept buyer's offer of ${formatCurrency(order.offer_price)}/kg? The order will proceed.`)) return
+  if (!confirm(`Accept buyer's offer of ${formatCurrency(order.offer_price)}/${order.rice_product?.unit || 'kg'}? The order will proceed.`)) return
   try {
     await marketplaceStore.respondToNegotiation(order.id, 'accept')
     order.status = 'pending'

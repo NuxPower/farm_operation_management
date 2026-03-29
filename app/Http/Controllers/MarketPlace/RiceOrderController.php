@@ -375,10 +375,10 @@ class RiceOrderController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Payment can only be marked after pickup
+        // Payment can be marked at any active stage
         if (!$order->canBeMarkedAsPaid()) {
             return response()->json([
-                'message' => 'Payment can only be marked after the order has been picked up'
+                'message' => 'This order cannot be marked as paid'
             ], 422);
         }
 
@@ -386,14 +386,34 @@ class RiceOrderController extends Controller
             'payment_status' => RiceOrder::PAYMENT_PAID,
         ]);
 
-        // Sync with Sale record if exists
+        // Sync with Sale record if exists, or create one for revenue tracking
         $sale = \App\Models\Sale::where('rice_order_id', $order->id)->first();
         if ($sale) {
             $sale->update(['payment_status' => 'paid']);
+        } else {
+            // Create a Sale record so payment is tracked in revenue/reports
+            $this->createSaleFromOrder($order);
+            // Mark the new sale as paid
+            $newSale = \App\Models\Sale::where('rice_order_id', $order->id)->first();
+            if ($newSale) {
+                $newSale->update(['payment_status' => 'paid']);
+            }
         }
+
+        // Notify buyer about payment confirmation
+        \App\Models\Notification::notify(
+            $order->buyer_id,
+            \App\Models\Notification::TYPE_ORDER_STATUS,
+            'Payment Confirmed',
+            "Payment for order #{$order->id} has been confirmed by the farmer.",
+            ['order_id' => $order->id],
+            "/orders/{$order->id}"
+        );
 
         // Invalidate farmer order stats cache
         Cache::forget("farmer_order_stats_{$order->riceProduct->farmer_id}");
+
+        \Log::info("Order #{$order->id} marked as paid by farmer #{$order->riceProduct->farmer_id}");
 
         return response()->json([
             'message' => 'Order marked as paid',

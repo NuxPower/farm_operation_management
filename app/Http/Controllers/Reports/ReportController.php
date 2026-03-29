@@ -742,14 +742,14 @@ class ReportController extends Controller
             $riceOrderRevenue = $riceOrders->sum('total_amount');
         }
 
-        $totalExpenses = $expenses->where('payment_method', '!=', 'revenue_share')->sum('amount');
+        $totalExpenses = $expenses->sum('amount');
         $salesRevenue = $sales->sum('total_amount');
         $totalRevenue = $salesRevenue + $riceOrderRevenue;
         $netProfit = $totalRevenue - $totalExpenses;
         $profitMargin = $totalRevenue > 0 ? ($netProfit / $totalRevenue) * 100 : 0;
 
         // Expense breakdown by category
-        $expenseBreakdown = $expenses->where('payment_method', '!=', 'revenue_share')->groupBy('category')->map(function ($categoryExpenses, $category) use ($totalExpenses) {
+        $expenseBreakdown = $expenses->groupBy('category')->map(function ($categoryExpenses, $category) use ($totalExpenses) {
             $amount = $categoryExpenses->sum('amount');
             return [
                 'category' => ucfirst(str_replace('_', ' ', $category)),
@@ -953,6 +953,13 @@ class ReportController extends Controller
             $currentDate->addMonth();
         }
 
+        // Determine the predominant yield unit from harvests
+        $yieldUnit = 'kg'; // default
+        if ($harvests->isNotEmpty()) {
+            $unitCounts = $harvests->groupBy('unit')->map->count();
+            $yieldUnit = $unitCounts->sortDesc()->keys()->first() ?: 'kg';
+        }
+
         return response()->json([
             'data' => [
                 'yield_summary' => [
@@ -964,6 +971,7 @@ class ReportController extends Controller
                 'field_performance' => $fieldPerformance->values(),
                 'crop_comparison' => $cropComparison,
                 'yield_trends' => $monthlyYield,
+                'yield_unit' => $yieldUnit,
             ],
         ]);
     }
