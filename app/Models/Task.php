@@ -51,6 +51,9 @@ class Task extends Model
     const TYPE_PESTICIDE_APPLICATION = 'pesticide_application';
     const TYPE_HARVESTING = 'harvesting';
     const TYPE_MAINTENANCE = 'maintenance';
+    const TYPE_THRESHING = 'threshing';
+    const TYPE_DRYING = 'drying';
+    const TYPE_MILLING = 'milling';
 
     /**
      * Payment type constants

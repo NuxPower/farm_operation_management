@@ -43,6 +43,7 @@ class Expense extends Model
     const CATEGORY_UTILITIES = 'utilities';
     const CATEGORY_MAINTENANCE = 'maintenance';
     const CATEGORY_INVENTORY_PURCHASE = 'inventory_purchase';
+    const CATEGORY_PROCESSING = 'processing';
     const CATEGORY_OTHER = 'other';
 
     /**
@@ -55,6 +56,7 @@ class Expense extends Model
     const ENTITY_TYPE_LABORER = 'laborer';
     const ENTITY_TYPE_LABOR_WAGE = 'labor_wage';
     const ENTITY_TYPE_INVENTORY_ITEM = 'inventory_item';
+    const ENTITY_TYPE_POST_HARVEST_PROCESS = 'post_harvest_process';
 
     /**
      * Get the planting associated with this expense
@@ -166,6 +168,7 @@ class Expense extends Model
             self::CATEGORY_UTILITIES,
             self::CATEGORY_MAINTENANCE,
             self::CATEGORY_INVENTORY_PURCHASE,
+            self::CATEGORY_PROCESSING,
             self::CATEGORY_OTHER,
         ];
     }
@@ -183,6 +186,7 @@ class Expense extends Model
             self::ENTITY_TYPE_LABORER,
             self::ENTITY_TYPE_LABOR_WAGE,
             self::ENTITY_TYPE_INVENTORY_ITEM,
+            self::ENTITY_TYPE_POST_HARVEST_PROCESS,
         ];
     }
 }

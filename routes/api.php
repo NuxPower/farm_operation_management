@@ -190,6 +190,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{harvest}', [\App\Http\Controllers\Farm\HarvestController::class, 'destroy']);
     });
 
+    // Post-Harvest Processing routes
+    Route::middleware('farmer')->prefix('post-harvest')->group(function () {
+        Route::get('/harvest/{harvest}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\Farm\PostHarvestController::class, 'store']);
+        Route::get('/{process}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'show']);
+        Route::put('/{process}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'update']);
+        Route::post('/{process}/complete', [\App\Http\Controllers\Farm\PostHarvestController::class, 'complete']);
+        Route::delete('/{process}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'destroy']);
+    });
+
     // Labor management routes
     Route::middleware(['auth:sanctum', 'farmer'])->prefix('laborers')->group(function () {
         Route::get('/', [\App\Http\Controllers\Labor\LaborerController::class, 'index']);

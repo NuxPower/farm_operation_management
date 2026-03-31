@@ -568,6 +568,8 @@ class FinancialService
             Expense::CATEGORY_EQUIPMENT => 'Equipment',
             Expense::CATEGORY_UTILITIES => 'Utilities',
             Expense::CATEGORY_MAINTENANCE => 'Maintenance',
+            Expense::CATEGORY_INVENTORY_PURCHASE => 'Inventory Purchase',
+            Expense::CATEGORY_PROCESSING => 'Processing',
             Expense::CATEGORY_OTHER => 'Other',
         ];
     }

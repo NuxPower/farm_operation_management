@@ -77,4 +77,42 @@ class Harvest extends Model
     {
         return $this->available_quantity <= 0;
     }
+
+    /**
+     * Get the post-harvest processes for this harvest
+     */
+    public function postHarvestProcesses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PostHarvestProcess::class);
+    }
+
+    /**
+     * Get the latest completed process for this harvest
+     */
+    public function getLatestProcess()
+    {
+        return $this->postHarvestProcesses()
+            ->where('status', PostHarvestProcess::STATUS_COMPLETED)
+            ->latest('completed_date')
+            ->first();
+    }
+
+    /**
+     * Get the current processing status label for this harvest
+     */
+    public function getProcessingStatus(): string
+    {
+        $latest = $this->getLatestProcess();
+
+        if (!$latest) {
+            return 'unprocessed';
+        }
+
+        return match ($latest->process_type) {
+            PostHarvestProcess::TYPE_THRESHING => 'threshed',
+            PostHarvestProcess::TYPE_DRYING => 'dried',
+            PostHarvestProcess::TYPE_MILLING => 'milled',
+            default => 'processed',
+        };
+    }
 }

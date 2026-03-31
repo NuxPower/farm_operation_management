@@ -680,9 +680,11 @@ The Level 0 DFD explodes the system into four major functional processes:
 ## �📦 Module Overview
 
 ### 1. Farm & Field Management
-- **Models:** `Farm`, `Field`, `Planting`, `PlantingStage`
-- **Controllers:** `FarmController`, `FieldController`, `PlantingController`
-- **Features:** GPS-based field registration, area calculation, crop rotation tracking.
+- **Models:** `Farm`, `Field`, `Planting`, `PlantingStage`, `PostHarvestProcess`
+- **Controllers:** `FarmController`, `FieldController`, `PlantingController`, `PostHarvestController`
+- **Features:**
+  - GPS-based field registration, area calculation, crop rotation tracking.
+  - **Post-Harvest Processing Pipeline:** Track the transformation of raw harvests (e.g., Palay) through Threshing, Drying, and Milling into marketable products (e.g., Milled Rice), complete with weight loss calculations and automatic labor/service fee expense generation.
 
 ### 2. Weather Analytics
 - **Services:** `WeatherService`, `WeatherAnalyticsService`

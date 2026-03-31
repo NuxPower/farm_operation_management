@@ -235,6 +235,12 @@ const routes = [
     component: () => import('@/Pages/Farmer/Harvests/Show.vue'),
     meta: { requiresAuth: true, roles: ['farmer'] }
   },
+  {
+    path: '/harvests/:harvest_id/processing',
+    name: 'post-harvest-pipeline',
+    component: () => import('@/Pages/Farm/PostHarvest/Index.vue'),
+    meta: { requiresAuth: true, roles: ['farmer'] }
+  },
 
   // Laborer Routes
   // Groups first to avoid catching by :id

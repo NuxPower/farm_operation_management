@@ -439,6 +439,9 @@ class TaskController extends Controller
             Task::TYPE_PESTICIDE_APPLICATION,
             Task::TYPE_HARVESTING,
             Task::TYPE_MAINTENANCE,
+            Task::TYPE_THRESHING,
+            Task::TYPE_DRYING,
+            Task::TYPE_MILLING,
         ];
     }
 
