@@ -184,6 +184,42 @@ class PostHarvestProcessTest extends TestCase
         ]);
     }
 
+    public function test_post_harvest_efficiency_endpoint_reported_correctly()
+    {
+        $process = PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_DRYING,
+            'input_quantity' => 1000,
+            'input_unit' => 'kg',
+            'process_date' => now(),
+            'status' => PostHarvestProcess::STATUS_PENDING,
+            'cost' => 1000,
+            'cost_type' => PostHarvestProcess::COST_TYPE_SERVICE_FIXED,
+            'service_provider' => 'Solar Solar'
+        ]);
+
+        $this->actingAs($this->farmer)
+            ->postJson("/api/post-harvest/{$process->id}/complete", [
+                'output_quantity' => 820,
+                'output_unit' => 'kg',
+                'completed_date' => now()->toDateString(),
+            ])
+            ->assertStatus(200);
+
+        $response = $this->actingAs($this->farmer)
+            ->getJson("/api/post-harvest/harvest/{$this->harvest->id}/efficiency");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('efficiency.overall_recovery_rate', 82)
+            ->assertJsonPath('efficiency.average_weight_loss_percentage', 18)
+            ->assertJsonPath('efficiency.cost_per_output_unit', 1.22)
+            ->assertJsonPath('efficiency.total_cost', 1000)
+            ->assertJsonPath('efficiency.final_quantity', 820)
+            ->assertJsonPath('efficiency.efficiency_breakdown.0.type', 'drying');
+    }
+
     public function test_marketplace_product_creation_prefers_latest_processed_inventory_item()
     {
         $process = PostHarvestProcess::create([

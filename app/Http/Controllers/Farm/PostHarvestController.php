@@ -46,6 +46,22 @@ class PostHarvestController extends Controller
     }
 
     /**
+     * Get post-harvest efficiency analytics for a harvest.
+     */
+    public function efficiency(Request $request, Harvest $harvest): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($harvest->planting->field->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized access'], 403);
+        }
+
+        $efficiency = $this->service->getPostHarvestEfficiency($harvest);
+
+        return response()->json([ 'efficiency' => $efficiency ]);
+    }
+
+    /**
      * Create a new post-harvest process
      */
     public function store(Request $request): JsonResponse

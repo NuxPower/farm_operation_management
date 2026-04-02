@@ -299,17 +299,33 @@ class PostHarvestService
 
         $completed = $processes->where('status', PostHarvestProcess::STATUS_COMPLETED);
 
+        $originalQuantity = (float) $harvest->quantity;
+        $finalOutputQuantity = (float) ($completed->last()?->output_quantity ?? $originalQuantity);
+        $averageWeightLoss = $completed->count() > 0 ? round($completed->avg('weight_loss_percentage'), 2) : 0;
+        $totalCost = (float) $completed->sum('cost');
+        $costPerOutputUnit = $finalOutputQuantity > 0 ? round($totalCost / $finalOutputQuantity, 2) : 0;
+
         return [
             'total_processes' => $processes->count(),
             'completed_processes' => $completed->count(),
-            'total_cost' => $completed->sum('cost'),
-            'original_quantity' => $harvest->quantity,
+            'total_cost' => $totalCost,
+            'original_quantity' => $originalQuantity,
             'original_unit' => $harvest->unit,
-            'final_quantity' => $completed->last()?->output_quantity ?? $harvest->quantity,
+            'final_quantity' => $finalOutputQuantity,
             'final_unit' => $completed->last()?->output_unit ?? $harvest->unit,
             'overall_recovery_rate' => $harvest->quantity > 0 && $completed->count() > 0
-                ? round((($completed->last()->output_quantity ?? $harvest->quantity) / $harvest->quantity) * 100, 2)
+                ? round(($finalOutputQuantity / $harvest->quantity) * 100, 2)
                 : 100.0,
+            'average_weight_loss_percentage' => $averageWeightLoss,
+            'cost_per_output_unit' => $costPerOutputUnit,
+            'efficiency_breakdown' => $completed->map(fn($p) => [
+                'id' => $p->id,
+                'type' => $p->process_type,
+                'input_quantity' => $p->input_quantity,
+                'output_quantity' => $p->output_quantity,
+                'weight_loss_percentage' => $p->weight_loss_percentage,
+                'cost' => $p->cost,
+            ]),
             'processes' => $processes->map(fn($p) => [
                 'id' => $p->id,
                 'type' => $p->process_type,
@@ -323,4 +339,21 @@ class PostHarvestService
             ]),
         ];
     }
+
+    public function getPostHarvestEfficiency(Harvest $harvest): array
+    {
+        $summary = $this->getProcessingSummary($harvest);
+
+        return [
+            'harvest_id' => $harvest->id,
+            'planting_id' => $harvest->planting_id,
+            'overall_recovery_rate' => $summary['overall_recovery_rate'],
+            'average_weight_loss_percentage' => $summary['average_weight_loss_percentage'],
+            'cost_per_output_unit' => $summary['cost_per_output_unit'],
+            'total_cost' => $summary['total_cost'],
+            'final_quantity' => $summary['final_quantity'],
+            'efficiency_breakdown' => $summary['efficiency_breakdown'],
+        ];
+    }
 }
+

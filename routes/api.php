@@ -193,6 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Post-Harvest Processing routes
     Route::middleware('farmer')->prefix('post-harvest')->group(function () {
         Route::get('/harvest/{harvest}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'index']);
+        Route::get('/harvest/{harvest}/efficiency', [\App\Http\Controllers\Farm\PostHarvestController::class, 'efficiency']);
         Route::post('/', [\App\Http\Controllers\Farm\PostHarvestController::class, 'store']);
         Route::get('/{process}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'show']);
         Route::put('/{process}', [\App\Http\Controllers\Farm\PostHarvestController::class, 'update']);
