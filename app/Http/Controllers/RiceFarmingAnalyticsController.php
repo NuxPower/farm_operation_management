@@ -52,10 +52,11 @@ class RiceFarmingAnalyticsController extends Controller
 
                 // 1. Production Analytics (Delegated to RiceProductionAnalyticsService)
                 // We iterate through active/recent plantings to get aggregated stats
+                // Add eager loading to prevent N+1 queries in loops below
                 $plantings = $farm->plantings()
                     ->where('crop_type', 'rice')
                     ->where('planting_date', '>=', $startDate)
-                    ->with('harvests')
+                    ->with(['harvests', 'riceVariety', 'field'])
                     ->get();
 
                 $productionStats = [

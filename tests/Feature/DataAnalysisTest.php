@@ -203,6 +203,39 @@ class DataAnalysisTest extends TestCase
     }
 
     /** @test */
+    public function data_analysis_includes_weather_alert_when_coordinates_missing()
+    {
+        // Ensure farm has no coordinates
+        $this->farm->update(['farm_coordinates' => null]);
+
+        $response = $this->actingAs($this->farmer, 'sanctum')
+            ->getJson('/api/analytics/data-analysis');
+
+        $response->assertStatus(200);
+
+        $data = $response->json();
+        $this->assertArrayHasKey('weather', $data);
+        $this->assertArrayHasKey('weather_alert', $data['weather']);
+        $this->assertStringContainsString('not configured', $data['weather']['weather_alert']);
+    }
+
+    /** @test */
+    public function data_analysis_returns_financial_forecast_structure()
+    {
+        $response = $this->actingAs($this->farmer, 'sanctum')
+            ->getJson('/api/analytics/data-analysis');
+
+        $response->assertStatus(200);
+
+        $data = $response->json();
+
+        $this->assertArrayHasKey('financial_forecast', $data);
+        $this->assertArrayHasKey('months', $data['financial_forecast']);
+        $this->assertArrayHasKey('projected_revenue', $data['financial_forecast']);
+        $this->assertArrayHasKey('projected_expenses', $data['financial_forecast']);
+    }
+
+    /** @test */
     public function unauthorized_user_cannot_access_data_analysis()
     {
         $response = $this->getJson('/api/analytics/data-analysis');

@@ -9,6 +9,8 @@ use App\Models\Farm;
 use App\Models\Field;
 use App\Models\Planting;
 use App\Models\PestIncident;
+use App\Models\PlantingStage;
+use App\Models\RiceGrowthStage;
 use App\Models\Expense;
 use Carbon\Carbon;
 
@@ -23,6 +25,23 @@ class PestTreatmentExpenseTest extends TestCase
         $field = Field::factory()->create(['user_id' => $user->id, 'farm_id' => $farm->id]);
         $planting = Planting::factory()->create(['field_id' => $field->id, 'status' => 'growing']);
 
+        // Ensure spray window validation passes: flowering stage + 07:00-08:00
+        $floweringStage = RiceGrowthStage::firstOrCreate([
+            'stage_code' => 'flowering'
+        ], [
+            'name' => 'Flowering',
+            'description' => 'Flowering stage',
+            'typical_duration_days' => 14,
+            'order_sequence' => 5,
+            'is_active' => true,
+        ]);
+
+        PlantingStage::create([
+            'planting_id' => $planting->id,
+            'rice_growth_stage_id' => $floweringStage->id,
+            'status' => 'in_progress',
+        ]);
+
         $response = $this->actingAs($user)->postJson('/api/pest-incidents', [
             'planting_id' => $planting->id,
             'pest_type' => 'insect',
@@ -30,8 +49,8 @@ class PestTreatmentExpenseTest extends TestCase
             'severity' => 'high',
             'affected_area' => 1.5,
             'detected_date' => now()->format('Y-m-d'),
-            'treatment_applied' => 'Sprayed generic pesticide',
-            'treatment_date' => now()->format('Y-m-d'),
+            'treatment_applied' => 'Pesticide spray',
+            'treatment_date' => now()->setTime(7, 15)->toDateTimeString(),
             'treatment_cost' => 500.00,
         ]);
 

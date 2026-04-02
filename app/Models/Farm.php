@@ -66,6 +66,19 @@ class Farm extends Model
 
     /**
      * Get lat/lon from farm_coordinates for weather API calls.
+     * 
+     * Returns coordinates as an array with 'lat' and 'lon' keys.
+     * This accessor extracts weather coordinates from the farm_coordinates JSON column.
+     * 
+     * IMPORTANT: This method returns null if farm_coordinates is not set.
+     * Calling code MUST validate this returned value before using in analytics.
+     * Use AnalyticsValidationTrait::validateWeatherCoordinatesSafe() to safely check coordinates.
+     * 
+     * @return array|null Returns ['lat' => float, 'lon' => float] or null if not configured
+     * 
+     * @example
+     * $farm->weather_coordinates // Returns ['lat' => 14.5995, 'lon' => 120.9842]
+     * $farm->weather_coordinates // Returns null if farm_coordinates is null
      */
     public function getWeatherCoordinatesAttribute(): ?array
     {

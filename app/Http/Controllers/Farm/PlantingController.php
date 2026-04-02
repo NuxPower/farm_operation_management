@@ -40,7 +40,7 @@ class PlantingController extends Controller
             'field_id' => 'required|exists:fields,id',
             'inventory_item_id' => 'nullable|exists:inventory_items,id',
             'seed_planting_id' => 'nullable|exists:seed_plantings,id',
-            'rice_variety_id' => 'nullable|exists:rice_varieties,id',
+            'rice_variety_id' => 'required|exists:rice_varieties,id',
             'crop_name' => 'nullable|string|max:255',
             'crop_type' => 'nullable|string|max:255',
             'planting_date' => 'required|date',

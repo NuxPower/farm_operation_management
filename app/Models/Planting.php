@@ -52,6 +52,30 @@ class Planting extends Model
     const STATUS_FAILED = 'failed';
 
     /**
+     * Boot the model - add validation hooks
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        /**
+         * Validate rice_variety_id is set before saving
+         * This prevents silent failures in analytics calculations
+         */
+        static::saving(function ($model) {
+            if (!$model->rice_variety_id) {
+                \Illuminate\Support\Facades\Log::warning(
+                    "Planting {$model->id} being saved without rice_variety_id",
+                    ['field_id' => $model->field_id]
+                );
+                
+                // Optional: uncomment to enforce NOT NULL at application level
+                // throw new \Exception('Rice variety must be selected for a planting.');
+            }
+        });
+    }
+
+    /**
      * Get the field that owns the planting
      */
     public function field(): \Illuminate\Database\Eloquent\Relations\BelongsTo

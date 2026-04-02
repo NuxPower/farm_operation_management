@@ -323,27 +323,72 @@ class WeatherService
 
     /**
      * Update weather data for all farms
+     * 
+     * Logs any farms that are skipped due to missing or invalid coordinates
+     * instead of silently failing.
      */
     public function updateAllFarmsWeather(): int
     {
-        $farms = Farm::whereNotNull('farm_coordinates')->get();
+        // Get all farms, including those with null coordinates (to log them)
+        $allFarms = Farm::all();
         $updated = 0;
+        $skipped = 0;
+        $failed = 0;
 
-        foreach ($farms as $farm) {
+        foreach ($allFarms as $farm) {
             /** @var \App\Models\Farm $farm */
             $coords = $farm->weather_coordinates;
-            if (!$coords || !$coords['lat'] || !$coords['lon']) {
+            
+            // Validate coordinates
+            if (!$coords) {
+                Log::warning("Weather update skipped: Farm {$farm->id} ({$farm->name}) has no coordinates configured");
+                $skipped++;
+                continue;
+            }
+            
+            if (!isset($coords['lat'], $coords['lon'])) {
+                Log::warning("Weather update skipped: Farm {$farm->id} ({$farm->name}) has incomplete coordinates (missing lat/lon)", [
+                    'farm_coordinates' => $farm->farm_coordinates,
+                ]);
+                $skipped++;
+                continue;
+            }
+            
+            // Validate coordinate ranges
+            if ($coords['lat'] < -90 || $coords['lat'] > 90 || $coords['lon'] < -180 || $coords['lon'] > 180) {
+                Log::warning("Weather update skipped: Farm {$farm->id} ({$farm->name}) has invalid coordinates", [
+                    'lat' => $coords['lat'],
+                    'lon' => $coords['lon'],
+                ]);
+                $skipped++;
                 continue;
             }
 
-            $weatherData = $this->getCurrentWeather((float) $coords['lat'], (float) $coords['lon']);
+            try {
+                $weatherData = $this->getCurrentWeather((float) $coords['lat'], (float) $coords['lon']);
 
-            if ($weatherData && $this->updateFarmWeather($farm, $weatherData)) {
-                $updated++;
+                if ($weatherData && $this->updateFarmWeather($farm, $weatherData)) {
+                    $updated++;
+                } else {
+                    Log::debug("Weather update failed for farm {$farm->id} ({$farm->name}): No weather data returned");
+                    $failed++;
+                }
+            } catch (\Exception $e) {
+                Log::error("Weather update error for farm {$farm->id} ({$farm->name}): {$e->getMessage()}", [
+                    'exception' => get_class($e),
+                ]);
+                $failed++;
             }
 
             usleep(100000); // 100ms delay between farms
         }
+
+        Log::info("Weather update completed", [
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'failed' => $failed,
+            'total' => $updated + $skipped + $failed,
+        ]);
 
         return $updated;
     }

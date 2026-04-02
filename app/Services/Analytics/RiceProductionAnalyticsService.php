@@ -8,6 +8,7 @@ use App\Models\WeatherLog;
 use App\Models\Task;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class RiceProductionAnalyticsService
 {
@@ -25,6 +26,25 @@ class RiceProductionAnalyticsService
      */
     public function calculateYieldGap(Planting $planting): array
     {
+        // 0. Validate rice variety reference exists
+        if (!$planting->riceVariety) {
+            Log::warning("Yield gap calculation skipped: Planting {$planting->id} missing rice variety reference", [
+                'planting_id' => $planting->id,
+                'field_id' => $planting->field_id,
+                'rice_variety_id' => $planting->rice_variety_id,
+            ]);
+            
+            return [
+                'status' => 'incomplete_data',
+                'message' => 'Rice variety not set for this planting',
+                'actual_yield_ha' => 0,
+                'potential_yield_ha' => 0,
+                'gap_kg_ha' => 0,
+                'gap_percentage' => 0,
+                'planting_id' => $planting->id,
+            ];
+        }
+
         // 1. Get Actual Yield from Harvests
         $actualYield = $planting->harvests->sum('yield'); // in kg
         $actualYieldPerHa = $planting->area_planted > 0 ? $actualYield / $planting->area_planted : 0;
@@ -33,14 +53,22 @@ class RiceProductionAnalyticsService
         // Use average_yield_per_hectare as the 'Attainable Potential'
         $potentialYieldPerHa = $planting->riceVariety->average_yield_per_hectare ?? 0;
 
-        // If potential is not set or 0, fallback to a regional benchmark or return null
+        // If potential is not set or 0, return diagnostic information
         if ($potentialYieldPerHa <= 0) {
+            Log::warning("Yield gap calculation incomplete: Variety {$planting->rice_variety_id} missing average yield", [
+                'planting_id' => $planting->id,
+                'variety_id' => $planting->rice_variety_id,
+                'variety_name' => $planting->riceVariety->name,
+            ]);
+            
             return [
                 'actual_yield_ha' => round($actualYieldPerHa, 2),
                 'potential_yield_ha' => 0,
                 'gap_kg_ha' => 0,
                 'gap_percentage' => 0,
-                'status' => 'unknown_potential'
+                'status' => 'unknown_potential',
+                'message' => "Rice variety '{$planting->riceVariety->name}' does not have average yield data configured",
+                'planting_id' => $planting->id,
             ];
         }
 

@@ -7,6 +7,7 @@ use App\Services\ReportService;
 use App\Services\FinancialService;
 use App\Services\WeatherAnalyticsService;
 use App\Services\PestPredictionService;
+use App\Services\Traits\AnalyticsValidationTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Task;
@@ -20,9 +21,12 @@ use App\Models\WeatherLog;
 use App\Models\Laborer;
 use App\Models\LaborWage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class DataAnalysisController extends Controller
 {
+    use AnalyticsValidationTrait;
+
     protected $reportService;
     protected $financialService;
     protected $weatherAnalyticsService;
@@ -138,12 +142,20 @@ class DataAnalysisController extends Controller
             }
 
             // Get Forecast for suggestions
-            $coords = $farm->weather_coordinates;
-            if (isset($coords['lat'], $coords['lon'])) {
-                $weatherForecast = $this->weatherService->getForecast(
-                    (float) $coords['lat'],
-                    (float) $coords['lon']
-                );
+            $weatherCoordValidation = $this->validateWeatherCoordinatesSafe($farm);
+            if ($weatherCoordValidation['valid']) {
+                try {
+                    $weatherForecast = $this->weatherService->getForecast(
+                        (float) $weatherCoordValidation['coordinates']['lat'],
+                        (float) $weatherCoordValidation['coordinates']['lon']
+                    );
+                } catch (\Exception $e) {
+                    Log::error("Weather forecast fetch failed for farm {$farm->id}: " . $e->getMessage());
+                    $weatherForecast = null;
+                }
+            } else {
+                Log::warning("Weather forecast skipped for farm {$farm->id}: {$weatherCoordValidation['issue']}");
+                $weatherData['weather_alert'] = $weatherCoordValidation['issue'];
             }
         }
 
@@ -195,7 +207,9 @@ class DataAnalysisController extends Controller
                 $q->where('farm_id', $farm->id);
             })->pluck('id');
 
-            $farmIncidents = PestIncident::whereIn('planting_id', $plantingIds);
+            // Add eager loading to prevent N+1 queries
+            $farmIncidents = PestIncident::whereIn('planting_id', $plantingIds)
+                ->with(['planting.riceVariety', 'planting.field']);
 
             $pestsData['total_incidents'] = (clone $farmIncidents)->count();
             $pestsData['active_incidents'] = (clone $farmIncidents)->active()->count();
@@ -227,10 +241,10 @@ class DataAnalysisController extends Controller
             $resolvedIncidents = (clone $farmIncidents)->where('status', 'resolved')->get();
 
             foreach ($farm->fields as $field) {
-                // Find active planting for this field
+                // Find active planting for this field - add eager loading
                 $activePlanting = $field->plantings()
                     ->whereIn('status', ['planted', 'growing'])
-                    ->with('riceVariety')
+                    ->with(['riceVariety', 'harvests'])
                     ->first();
 
                 // Get per-field risks (passing planting for growth-stage filtering)
