@@ -77,6 +77,7 @@ class RiceProductionAnalyticsService
         $gapPercentage = ($potentialYieldPerHa > 0) ? ($gapPerHa / $potentialYieldPerHa) * 100 : 0;
 
         return [
+            'status' => 'calculated',
             'actual_yield_ha' => round($actualYieldPerHa, 2),
             'potential_yield_ha' => round($potentialYieldPerHa, 2),
             'gap_kg_ha' => round($gapPerHa, 2),
@@ -139,19 +140,24 @@ class RiceProductionAnalyticsService
         // Reproductive: 1100 - 1700
         // Ripening: 1700+
 
-        $estimatedStage = 'Vegetative';
-        if ($gddSum > 1100)
+        $estimatedStage = 'Unknown';
+        if ($gddSum <= 1100) {
+            $estimatedStage = 'Vegetative';
+        } elseif ($gddSum <= 1700) {
             $estimatedStage = 'Reproductive';
-        if ($gddSum > 1700)
+        } elseif ($gddSum <= 2200) {
             $estimatedStage = 'Ripening';
-        if ($gddSum > 2200)
+        } else {
             $estimatedStage = 'Maturity';
+        }
 
         return [
+            'status' => 'ok',
             'accumulated_gdd' => round($gddSum, 1),
             'estimated_biological_stage' => $estimatedStage,
             'calendar_days' => $startDate->diffInDays($endDate),
-            'is_delayed' => $this->isGrowthDelayed($planting, $gddSum)
+            'is_delayed' => $this->isGrowthDelayed($planting, $gddSum),
+            'records_count' => $logs->count()
         ];
     }
 
@@ -196,14 +202,20 @@ class RiceProductionAnalyticsService
 
         // Partial Factor Productivity (PFP)
         // Target: > 40 kg grain / kg fertilizer (rough proxy for N if mostly Urea/NPK)
-        $pfp = ($totalFertilizerKg > 0) ? ($totalYield / $totalFertilizerKg) * 100 : 0; // Using *100 not standard, usually just ratio
-        // Actually standard PFP is kg/kg. Let's keep it raw ratio.
         $pfp = ($totalFertilizerKg > 0) ? ($totalYield / $totalFertilizerKg) : 0;
 
+        $rating = 'low';
+        if ($pfp > 40) {
+            $rating = 'good';
+        } elseif ($pfp >= 20) {
+            $rating = 'fair';
+        }
+
         return [
+            'status' => 'ok',
             'total_fertilizer_applied_kg' => $totalFertilizerKg,
             'pfp_efficiency' => round($pfp, 2),
-            'rating' => ($pfp > 40) ? 'good' : 'low'
+            'rating' => $rating
         ];
     }
 
