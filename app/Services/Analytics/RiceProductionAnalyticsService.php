@@ -6,6 +6,7 @@ use App\Models\Planting;
 use App\Models\Field;
 use App\Models\WeatherLog;
 use App\Models\Task;
+use App\Models\ActivityLog;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -75,6 +76,27 @@ class RiceProductionAnalyticsService
         // 3. Calculate Gap
         $gapPerHa = max(0, $potentialYieldPerHa - $actualYieldPerHa);
         $gapPercentage = ($potentialYieldPerHa > 0) ? ($gapPerHa / $potentialYieldPerHa) * 100 : 0;
+
+        if ($gapPercentage >= 85 || $actualYieldPerHa > $potentialYieldPerHa * 1.5) {
+            ActivityLog::log(
+                'yield_gap_drift',
+                $planting,
+                [
+                    'actual_yield_ha' => round($actualYieldPerHa, 2),
+                    'potential_yield_ha' => round($potentialYieldPerHa, 2),
+                    'gap_percentage' => round($gapPercentage, 1)
+                ],
+                [],
+                'Data drift/production anomaly detected for planting yield gap analysis.'
+            );
+
+            Log::warning('Data drift: unusual yield gap detected', [
+                'planting_id' => $planting->id,
+                'gap_percentage' => round($gapPercentage, 1),
+                'actual_yield_ha' => round($actualYieldPerHa, 2),
+                'potential_yield_ha' => round($potentialYieldPerHa, 2),
+            ]);
+        }
 
         return [
             'status' => 'calculated',

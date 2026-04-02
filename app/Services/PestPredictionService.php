@@ -36,10 +36,14 @@ class PestPredictionService
             return [];
         }
 
-        // Get 7-day forecast
-        $forecast = $this->weatherService->getForecast((float) $lat, (float) $lon, 7);
+        // Get 7-day forecast (cache for 30 min, because far fewer calls improves API usage)
+        $cacheKey = sprintf('pest_forecast_%s_%s', round($lat, 5), round($lon, 5));
+        $forecast = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($lat, $lon) {
+            return $this->weatherService->getForecast((float) $lat, (float) $lon, 7);
+        });
 
         if (!$forecast || empty($forecast['list'])) {
+            Log::warning('Pest prediction skipped due to missing forecast data', ['lat' => $lat, 'lon' => $lon]);
             return [];
         }
 
