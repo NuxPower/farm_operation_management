@@ -170,27 +170,7 @@ class PlantingController extends Controller
             $plantingMethod = $this->normalizePlantingMethod($request->input('planting_method'));
 
             if ($plantingMethod === 'transplanting') {
-                // For transplanting, we assume the seedling stage (Stage 1) is done in nursery
-                // So we mark Stage 1 as completed and start Stage 2 (Tillering)
-
-                // Get ordered stages
-                $stages = $planting->plantingStages()
-                    ->join('rice_growth_stages', 'planting_stages.rice_growth_stage_id', '=', 'rice_growth_stages.id')
-                    ->orderBy('rice_growth_stages.order_sequence')
-                    ->select('planting_stages.*')
-                    ->get();
-
-                if ($stages->count() >= 2) {
-                    // Mark first stage as completed
-                    $stages[0]->markAsCompleted('Completed in nursery (Transplanting)');
-
-                    // Start second stage
-                    $stages[1]->markAsStarted();
-                } elseif ($stages->count() > 0) {
-                    // Fallback if only 1 stage exists
-                    $stages[0]->markAsStarted();
-                }
-
+                $planting->startTransplantingStage();
             } else {
                 // Direct seeding / Broadcasting starts at Stage 1
                 $firstStage = $planting->plantingStages()
@@ -200,7 +180,9 @@ class PlantingController extends Controller
                     ->first();
 
                 if ($firstStage) {
-                    $firstStage->markAsStarted();
+                    if ($firstStage->status !== 'in_progress') {
+                        $firstStage->markAsStarted();
+                    }
                 }
             }
         }

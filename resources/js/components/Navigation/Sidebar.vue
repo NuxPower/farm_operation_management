@@ -10,9 +10,7 @@
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md transform transition-transform hover:scale-110">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-              </svg>
+              <img src="@assets/logo.png" alt="Logo" class="w-6 h-6" />
             </div>
           </div>
           <div class="ml-3">
@@ -111,10 +109,19 @@
             <router-link
               to="/harvests"
               class="nav-item"
-              :class="{ 'nav-item-active': $route.path.startsWith('/harvests') }"
+              :class="{ 'nav-item-active': $route.path.startsWith('/harvests') && !$route.path.includes('/processing') && $route.query.focus !== 'processing' }"
             >
               <ArchiveBoxIcon class="nav-icon" />
               Harvests
+            </router-link>
+
+            <router-link
+              :to="{ path: '/harvests', query: { focus: 'processing' } }"
+              class="nav-item"
+              :class="{ 'nav-item-active': $route.path.includes('/processing') || $route.query.focus === 'processing' }"
+            >
+              <BeakerIcon class="nav-icon" />
+              Post-Harvest
             </router-link>
 
             <!-- Resources -->

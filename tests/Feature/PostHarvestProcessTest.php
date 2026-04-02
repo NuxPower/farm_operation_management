@@ -183,4 +183,48 @@ class PostHarvestProcessTest extends TestCase
             'quantity' => 820
         ]);
     }
+
+    public function test_marketplace_product_creation_prefers_latest_processed_inventory_item()
+    {
+        $process = PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_MILLING,
+            'input_quantity' => 1000,
+            'input_unit' => 'kg',
+            'process_date' => now(),
+            'status' => PostHarvestProcess::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($this->farmer)
+            ->postJson("/api/post-harvest/{$process->id}/complete", [
+                'output_quantity' => 650,
+                'output_unit' => 'kg',
+                'completed_date' => now()->toDateString(),
+            ])
+            ->assertStatus(200);
+
+        $milledInventoryId = InventoryItem::where('user_id', $this->farmer->id)
+            ->where('name', 'NSIC Rc222 - Milled (Grade A)')
+            ->value('id');
+
+        $this->assertNotNull($milledInventoryId, 'Expected the milled inventory item to be created after completion.');
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson('/api/rice-marketplace/products', [
+                'rice_variety_id' => $this->harvest->planting->rice_variety_id,
+                'harvest_id' => $this->harvest->id,
+                'name' => 'Farm Fresh Rc222 Rice',
+                'description' => 'Freshly processed rice ready for sale.',
+                'quantity_available' => 650,
+                'unit' => 'kg',
+                'price_per_unit' => 48,
+                'quality_grade' => 'premium',
+                'processing_method' => 'milled',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('product.inventory_item_id', $milledInventoryId);
+    }
 }

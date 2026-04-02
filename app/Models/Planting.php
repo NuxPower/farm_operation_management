@@ -181,6 +181,64 @@ class Planting extends Model
     }
 
     /**
+     * Initialize transplanting lifecycle fast-forward to tillering
+     */
+    public function startTransplantingStage()
+    {
+        $tilleringStage = RiceGrowthStage::where('stage_code', 'stage_2_tillering')->first();
+
+        if ($tilleringStage) {
+            $tilleringPlantingStage = $this->plantingStages()
+                ->where('rice_growth_stage_id', $tilleringStage->id)
+                ->first();
+
+            if ($tilleringPlantingStage) {
+                $priorStageIds = RiceGrowthStage::active()
+                    ->where('order_sequence', '<', $tilleringStage->order_sequence)
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($priorStageIds)) {
+                    $this->plantingStages()
+                        ->whereIn('rice_growth_stage_id', $priorStageIds)
+                        ->get()
+                        ->each(function ($stage) {
+                            if ($stage->status !== 'completed') {
+                                $stage->markAsCompleted('Completed in nursery (Transplanting)');
+                            }
+                        });
+                }
+
+                if ($tilleringPlantingStage->status !== 'in_progress') {
+                    $tilleringPlantingStage->markAsStarted();
+                }
+
+                return;
+            }
+        }
+
+        // fallback: treat as stage sequence 2 for transplanting
+        $stages = $this->plantingStages()
+            ->join('rice_growth_stages', 'planting_stages.rice_growth_stage_id', '=', 'rice_growth_stages.id')
+            ->orderBy('rice_growth_stages.order_sequence')
+            ->select('planting_stages.*')
+            ->get();
+
+        if ($stages->count() >= 2) {
+            if ($stages[0]->status !== 'completed') {
+                $stages[0]->markAsCompleted('Completed in nursery (Transplanting)');
+            }
+            if ($stages[1]->status !== 'in_progress') {
+                $stages[1]->markAsStarted();
+            }
+        } elseif ($stages->count() > 0) {
+            if ($stages[0]->status !== 'in_progress') {
+                $stages[0]->markAsStarted();
+            }
+        }
+    }
+
+    /**
      * Get progress percentage
      */
     public function getProgressPercentage()

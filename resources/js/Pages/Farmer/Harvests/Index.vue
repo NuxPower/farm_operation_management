@@ -52,7 +52,24 @@
         </div>
       </div>
 
-      <div v-else-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div
+        v-if="route.query.focus === 'processing' && !error"
+        class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm"
+      >
+        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-sm font-semibold text-amber-900">Post-Harvest Processing</h2>
+            <p class="text-sm text-amber-800">
+              Choose a harvest and click <span class="font-semibold">Process</span> to record threshing, drying, or milling before publishing to the marketplace.
+            </p>
+          </div>
+          <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-amber-700">
+            Flexible workflow enabled
+          </span>
+        </div>
+      </div>
+
+      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="n in 6"
           :key="n"

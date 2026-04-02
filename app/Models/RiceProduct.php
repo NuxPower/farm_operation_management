@@ -179,33 +179,46 @@ class RiceProduct extends Model
             ->where('category', InventoryItem::CATEGORY_PRODUCE)
             ->where('unit', $this->unit);
 
-        // 2. Try to find by exact name match for this farmer
+        // 2. Prefer inventory generated from the linked harvest's latest processed output
+        foreach ($this->preferredInventoryNames() as $candidateName) {
+            $match = (clone $baseQuery)->where('name', $candidateName)->first();
+            if ($match) {
+                return $match;
+            }
+
+            $match = (clone $baseQuery)->where('name', 'ILIKE', $candidateName)->first();
+            if ($match) {
+                return $match;
+            }
+        }
+
+        // 3. Try to find by exact name match for this farmer
         $match = (clone $baseQuery)->where('name', $this->name)->first();
         if ($match) {
             return $match;
         }
 
-        // 3. Try case-insensitive exact name match
+        // 4. Try case-insensitive exact name match
         $match = (clone $baseQuery)->where('name', 'ILIKE', $this->name)->first();
         if ($match) {
             return $match;
         }
 
-        // 4. Try partial match — product name contained in inventory item name
+        // 5. Try partial match — product name contained in inventory item name
         //    e.g., product "IR64" matches inventory "IR64 (Premium)"
         $match = (clone $baseQuery)->where('name', 'ILIKE', $this->name . '%')->first();
         if ($match) {
             return $match;
         }
 
-        // 5. Try partial match — inventory item name contained in product name
+        // 6. Try partial match — inventory item name contained in product name
         //    e.g., inventory "IR64" matches product "IR64 Premium Rice"
         $match = (clone $baseQuery)->whereRaw('? ILIKE name || \'%\'', [$this->name])->first();
         if ($match) {
             return $match;
         }
 
-        // 6. Try variety name with (Grade X) suffix (common pattern in HarvestController)
+        // 7. Try variety name with (Grade X) suffix (common pattern in HarvestController)
         $varietyName = $this->riceVariety?->name;
         if ($varietyName) {
             $match = (clone $baseQuery)->where('name', 'ILIKE', $varietyName . '%')->first();
@@ -215,6 +228,61 @@ class RiceProduct extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Build the preferred inventory item names based on the linked harvest
+     * and the latest completed post-harvest output.
+     */
+    private function preferredInventoryNames(): array
+    {
+        if (!$this->harvest_id) {
+            return [];
+        }
+
+        $harvest = $this->relationLoaded('harvest')
+            ? $this->harvest
+            : Harvest::with('planting.riceVariety')->find($this->harvest_id);
+
+        if (!$harvest) {
+            return [];
+        }
+
+        $varietyName = $harvest->planting?->riceVariety?->name
+            ?? $harvest->planting?->crop_type
+            ?? $this->riceVariety?->name;
+
+        if (!$varietyName) {
+            return [];
+        }
+
+        $gradeSuffix = $harvest->quality_grade
+            ? ' (Grade ' . $harvest->quality_grade . ')'
+            : '';
+
+        $candidates = [];
+        $latestProcess = $harvest->getLatestProcess();
+
+        if ($latestProcess) {
+            $processSuffix = match ($latestProcess->process_type) {
+                PostHarvestProcess::TYPE_THRESHING => ' - Threshed',
+                PostHarvestProcess::TYPE_DRYING => ' - Dried',
+                PostHarvestProcess::TYPE_MILLING => ' - Milled',
+                default => null,
+            };
+
+            if ($processSuffix) {
+                $candidates[] = $varietyName . $processSuffix . $gradeSuffix;
+            }
+        }
+
+        if ($this->processing_method === self::PROCESSING_MILLED) {
+            $candidates[] = $varietyName . ' - Milled' . $gradeSuffix;
+        }
+
+        $candidates[] = $varietyName . $gradeSuffix;
+
+        return array_values(array_unique(array_filter($candidates)));
     }
 
     /**

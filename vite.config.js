@@ -15,6 +15,7 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': '/resources/js',
+            '@assets': '/resources/assets',
         },
     },
     server: {

@@ -1,15 +1,28 @@
 <template>
   <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <h2 class="text-2xl font-bold tracking-tight text-gray-900">
         Post-Harvest Processing
         <span v-if="harvest" class="text-gray-500 text-lg ml-2 font-normal">
           for {{ harvest.planting.rice_variety?.name || harvest.planting.crop_type }}
         </span>
       </h2>
-      <button @click="$router.push('/harvests')" class="text-sm font-medium text-primary hover:text-primary-dark">
-        &larr; Back to Harvests
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          v-if="harvest"
+          @click="openMarketplaceCreate"
+          class="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+        >
+          Publish to Marketplace
+        </button>
+        <button @click="router.push('/harvests')" class="text-sm font-medium text-primary hover:text-primary-dark">
+          &larr; Back to Harvests
+        </button>
+      </div>
+    </div>
+
+    <div v-if="summary?.final_quantity" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+      Current processed output is ready to carry into the marketplace whenever you want to publish it.
     </div>
 
     <!-- Summary Cards -->
@@ -171,11 +184,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import ProcessForm from './ProcessForm.vue';
 
 const route = useRoute();
+const router = useRouter();
 const harvestId = route.params.harvest_id;
 
 const harvest = ref(null);
@@ -239,6 +253,15 @@ const deleteProcess = async (process) => {
       alert(error.response?.data?.message || 'Failed to delete process');
     }
   }
+};
+
+const openMarketplaceCreate = () => {
+  router.push({
+    path: '/marketplace/product/create',
+    query: {
+      harvest_id: harvestId,
+    },
+  });
 };
 
 const closeModal = () => {

@@ -77,19 +77,7 @@ class RiceFarmingLifecycleController extends Controller
             $plantingMethod = $planting->planting_method;
 
             if ($plantingMethod === 'transplanting') {
-                // For transplanting, start Stage 2
-                $stages = $planting->plantingStages()
-                    ->join('rice_growth_stages', 'planting_stages.rice_growth_stage_id', '=', 'rice_growth_stages.id')
-                    ->orderBy('rice_growth_stages.order_sequence')
-                    ->select('planting_stages.*')
-                    ->get();
-
-                if ($stages->count() >= 2) {
-                    $stages[0]->markAsCompleted('Completed in nursery (Transplanting)');
-                    $stages[1]->markAsStarted();
-                } elseif ($stages->count() > 0) {
-                    $stages[0]->markAsStarted();
-                }
+                $planting->startTransplantingStage();
             } else {
                 // Start the first stage (usually seedling/germination)
                 $firstStage = $planting->plantingStages()
@@ -152,19 +140,7 @@ class RiceFarmingLifecycleController extends Controller
                     $plantingMethod = $planting->planting_method;
 
                     if ($plantingMethod === 'transplanting') {
-                        // For transplanting, we assume the seedling stage (Stage 1) is done in nursery
-                        $stages = $planting->plantingStages()
-                            ->join('rice_growth_stages', 'planting_stages.rice_growth_stage_id', '=', 'rice_growth_stages.id')
-                            ->orderBy('rice_growth_stages.order_sequence')
-                            ->select('planting_stages.*')
-                            ->get();
-
-                        if ($stages->count() >= 2) {
-                            $stages[0]->markAsCompleted('Completed in nursery (Transplanting)');
-                            $stages[1]->markAsStarted();
-                        } elseif ($stages->count() > 0) {
-                            $stages[0]->markAsStarted();
-                        }
+                        $planting->startTransplantingStage();
                     } else {
                         // Direct seeding / Broadcasting starts at Stage 1
                         $firstStage = $planting->plantingStages()

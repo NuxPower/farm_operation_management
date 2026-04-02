@@ -120,6 +120,9 @@ class TaskController extends Controller
 
         $task->load(['planting.field', 'laborer', 'laborerGroup']);
 
+        // If due_date is already reached at creation, generate expenses now.
+        $this->ensureDueDateCompletion($task, $user);
+
         return response()->json([
             'message' => 'Task created successfully',
             'task' => $task,
@@ -258,9 +261,11 @@ class TaskController extends Controller
 
             // Check if status was changed to completed
             if ($task->wasChanged('status') && $task->status === Task::STATUS_COMPLETED) {
-
                 // Create labor expenses
-                $laborExpenses = $this->createLaborExpensesForTask($task, $user);
+                $laborExpenses = $this->createLaborExpensesForTask($task, $user, null, Carbon::now());
+            } else {
+                // If due date has passed, complete task and create expenses
+                $laborExpenses = $this->ensureDueDateCompletion($task, $user);
             }
         }
 
@@ -322,7 +327,8 @@ class TaskController extends Controller
         $task->load(['planting.field', 'laborer', 'laborerGroup.laborers']);
 
         // Create labor wage and expense records for assigned laborers
-        $laborExpenses = $this->createLaborExpensesForTask($task, $user, $hoursWorked);
+        // Use actual completion time for per-day wage calculation
+        $laborExpenses = $this->createLaborExpensesForTask($task, $user, $hoursWorked, Carbon::now());
 
         return response()->json([
             'message' => 'Task marked as completed',
@@ -334,10 +340,15 @@ class TaskController extends Controller
     /**
      * Create labor wage and expense records for a completed task
      */
-    private function createLaborExpensesForTask(Task $task, $user, $hoursWorked = null): array
+    private function createLaborExpensesForTask(Task $task, $user, $hoursWorked = null, $effectiveDate = null): array
     {
         $laborers = collect();
         $expenses = [];
+
+        // Prevent duplicate wage/expense when already generated for this task.
+        if ($task->laborWages()->exists()) {
+            return $expenses;
+        }
 
         // Get laborers: either individual or from group
         if ($task->laborer) {
@@ -358,18 +369,25 @@ class TaskController extends Controller
                 continue;
             }
 
-            // Calculate wage based on rate_type
+            // Calculate wage based on rate_type and effective period.
             $rate = (float) ($laborer->rate ?? 0);
-            $rateType = $laborer->rate_type ?? 'per_day';
+            $rateType = strtolower($laborer->rate_type ?? 'per_day');
+            if ($rateType === 'daily') {
+                $rateType = 'per_day';
+            }
 
-            // Determine hours and wage amount based on rate type
+            // Determine date range used for wage calc.
+            $startDate = $task->created_at ? Carbon::parse($task->created_at)->startOfDay() : Carbon::now()->startOfDay();
+            $endDate = $effectiveDate ? Carbon::parse($effectiveDate)->startOfDay() : Carbon::now()->startOfDay();
+            $days = max(1, $startDate->diffInDays($endDate) + 1);
+
             if ($rateType === 'per_task') {
                 $hours = $hoursWorked ?? 1;
-                $wageAmount = $rate; // Fixed rate per task
+                $wageAmount = $rate;
             } else {
                 // per_day (default)
-                $hours = $hoursWorked ?? 8;
-                $wageAmount = $rate; // Daily rate
+                $hours = $hoursWorked ?? ($days * 8);
+                $wageAmount = $rate * $days;
             }
 
             // Override with task specific wage amount if available
@@ -420,6 +438,19 @@ class TaskController extends Controller
         }
 
         return $expenses;
+    }
+
+    /**
+     * Ensure overdue task is marked completed and labor cost is recorded.
+     */
+    private function ensureDueDateCompletion(Task $task, $user): array
+    {
+        if ($task->status !== Task::STATUS_COMPLETED && $task->due_date && $task->due_date->lte(now())) {
+            $task->update(['status' => Task::STATUS_COMPLETED]);
+            return $this->createLaborExpensesForTask($task, $user, null, $task->due_date);
+        }
+
+        return [];
     }
 
     /**

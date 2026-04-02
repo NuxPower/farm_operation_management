@@ -48,4 +48,11 @@ Schedule::command('weather:monitor')
     ->timezone('Asia/Manila')
     ->withoutOverlapping();
 
+// Schedule due task processing to run daily at 10 AM
+// Auto-completes overdue tasks and generates labor wages/expenses
+Schedule::command('tasks:process-due')
+    ->dailyAt('10:00')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping();
+
 

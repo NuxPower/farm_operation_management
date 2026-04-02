@@ -69,6 +69,39 @@ class LaborTaskTest extends TestCase
         ]);
     }
 
+    public function test_task_due_date_auto_complete_and_creates_expense()
+    {
+        $task = Task::create([
+            'planting_id' => $this->planting->id,
+            'task_type' => 'fertilizing',
+            'due_date' => now()->subDay(),
+            'description' => 'Apply fertilizer',
+            'assigned_to' => $this->laborer->id,
+            'status' => 'pending'
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->putJson("/api/tasks/{$task->id}", [
+                'description' => 'Apply fertilizer (updated)'
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('completed', $task->fresh()->status);
+
+        // Should have generated expense and labor wage using due_date as effective end date
+        $this->assertDatabaseHas('expenses', [
+            'user_id' => $this->farmer->id,
+            'category' => 'labor',
+            'related_entity_type' => 'task',
+            'related_entity_id' => $task->id
+        ]);
+
+        $this->assertDatabaseHas('labor_wages', [
+            'laborer_id' => $this->laborer->id,
+            'task_id' => $task->id,
+        ]);
+    }
+
     public function test_completing_task_creates_expense()
     {
         $task = Task::create([

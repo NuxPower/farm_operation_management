@@ -17,7 +17,19 @@
           </button>
           <h1 class="text-3xl font-bold text-gray-800">Harvest Details</h1>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
+          <button
+            @click="viewProcessing"
+            class="px-4 py-2 text-white bg-amber-600 rounded-lg hover:bg-amber-700"
+          >
+            View Processing
+          </button>
+          <button
+            @click="createProduct"
+            class="px-4 py-2 text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+          >
+            Create Marketplace Product
+          </button>
           <button
             @click="editHarvest"
             class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
@@ -150,16 +162,22 @@
             <h3 class="font-semibold text-gray-900 mb-4">Actions</h3>
             <div class="space-y-2">
               <button
+                @click="viewProcessing"
+                class="w-full text-left px-4 py-3 bg-amber-50 hover:bg-amber-100 rounded-lg text-sm font-medium text-amber-700"
+              >
+                ⚙️ View Post-Harvest Processing
+              </button>
+              <button
+                @click="createProduct"
+                class="w-full text-left px-4 py-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-sm font-medium text-emerald-700"
+              >
+                🛒 Create Marketplace Product
+              </button>
+              <button
                 @click="editHarvest"
                 class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700"
               >
                 ✏️ Edit Harvest Record
-              </button>
-              <button
-                @click="createProduct"
-                class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700"
-              >
-                🛒 Create Marketplace Product
               </button>
               <button
                 @click="confirmDeleteHarvest"
@@ -232,8 +250,23 @@ const editHarvest = () => {
   router.push('/harvests')
 }
 
+const viewProcessing = () => {
+  if (!harvest.value?.id) return
+  router.push(`/harvests/${harvest.value.id}/processing`)
+}
+
 const createProduct = () => {
-  router.push('/marketplace/product/create')
+  if (!harvest.value?.id) {
+    router.push('/marketplace/product/create')
+    return
+  }
+
+  router.push({
+    path: '/marketplace/product/create',
+    query: {
+      harvest_id: harvest.value.id,
+    },
+  })
 }
 
 const confirmDeleteHarvest = () => {

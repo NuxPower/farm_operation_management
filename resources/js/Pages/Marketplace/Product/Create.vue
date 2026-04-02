@@ -91,7 +91,7 @@
             <div class="space-y-4">
                <div>
                   <label class="block text-sm font-semibold text-gray-700 mb-1.5">Link to Harvest (Optional)</label>
-                  <p class="text-xs text-gray-500 mb-2">Select a harvest to auto-fill quantity and quality details.</p>
+                  <p class="text-xs text-gray-500 mb-2">Select a harvest to auto-fill quantity, quality details, and the latest post-harvest output when available.</p>
                   <select
                     v-model="form.harvest_id"
                     class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
@@ -101,6 +101,47 @@
                       {{ formatHarvestOption(harvest) }}
                     </option>
                   </select>
+               </div>
+
+               <div v-if="form.harvest_id" class="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+                  <div v-if="processingLoading" class="text-sm text-emerald-800">
+                    Checking post-harvest output for this harvest...
+                  </div>
+                  <div v-else-if="latestCompletedProcess" class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">
+                        Latest completed output: {{ getProcessStageLabel(latestCompletedProcess.process_type) }}
+                      </p>
+                      <p class="mt-1 text-sm text-emerald-800">
+                        Suggested ready quantity: {{ processingSummary?.summary?.final_quantity }} {{ processingSummary?.summary?.final_unit || form.unit }}
+                      </p>
+                      <p class="mt-2 text-xs text-emerald-700">
+                        This form uses the latest completed post-harvest output when available while keeping your processing workflow flexible.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="openProcessingPipeline"
+                      class="inline-flex items-center rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+                    >
+                      View Processing
+                    </button>
+                  </div>
+                  <div v-else class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p class="text-sm font-semibold text-amber-900">No completed post-harvest output yet</p>
+                      <p class="mt-1 text-xs text-amber-800">
+                        You can publish directly, or open the processing page first to record threshing, drying, or milling for this harvest.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="openProcessingPipeline"
+                      class="inline-flex items-center rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                    >
+                      Open Processing
+                    </button>
+                  </div>
                </div>
 
                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
@@ -274,7 +315,8 @@
               
               <div class="space-y-4">
                  <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Processing</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Marketplace Processing Label</label>
+                    <p class="text-xs text-gray-500 mb-2">Customer-facing product style. Actual threshing, drying, and milling records stay in the post-harvest module.</p>
                     <select
                       v-model="form.processing_method"
                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
@@ -384,7 +426,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useFarmStore } from '@/stores/farm'
 import FormAlert from '@/Components/UI/FormAlert.vue'
@@ -392,14 +434,18 @@ import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
 import { extractFormErrors, resetFormErrors } from '@/utils/form'
 import { riceMarketplaceAPI } from '@/services/api'
 import { useFormValidation } from '@/composables/useFormValidation'
+import axios from 'axios'
 
 const router = useRouter()
+const route = useRoute()
 const marketplaceStore = useMarketplaceStore()
 const farmStore = useFarmStore()
 const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 const submitting = ref(false)
 const errors = ref({})
+const processingLoading = ref(false)
+const processingSummary = ref(null)
 const formError = reactive({
   message: '',
   fieldErrors: {},
@@ -439,14 +485,27 @@ const qualityGrades = {
   commercial: 'Commercial'
 }
 const processingMethods = {
-  milled: 'Milled',
+  milled: 'Fresh Milled Rice',
   brown: 'Brown Rice',
-  parboiled: 'Parboiled',
-  organic: 'Organic'
+  parboiled: 'Parboiled Rice',
+  organic: 'Organic Rice'
 }
 
 const riceVarieties = computed(() => marketplaceStore.riceVarieties || [])
 const harvests = computed(() => farmStore.harvests || [])
+const latestCompletedProcess = computed(() => {
+  const completed = (processingSummary.value?.processes || []).filter(process => process.status === 'completed')
+
+  if (completed.length === 0) {
+    return null
+  }
+
+  return completed.sort((a, b) => {
+    const left = new Date(b.completed_date || b.process_date || 0).getTime()
+    const right = new Date(a.completed_date || a.process_date || 0).getTime()
+    return left - right
+  })[0]
+})
 
 const formatHarvestOption = (harvest) => {
   const crop = harvest?.planting?.crop_type || 'Harvest'
@@ -455,11 +514,72 @@ const formatHarvestOption = (harvest) => {
   return `${crop} • ${date}${yieldKg ? ` • ${yieldKg}` : ''}`
 }
 
-// Watch for Harvest selection to auto-fill data
-watch(() => form.harvest_id, (newId) => {
-  if (!newId) return
+const getProcessStageLabel = (type) => {
+  const labels = {
+    threshing: 'Threshed Palay',
+    drying: 'Dried Palay',
+    milling: 'Milled Rice',
+  }
 
-  const harvest = harvests.value.find(h => h.id === newId)
+  return labels[type] || 'Processed Rice'
+}
+
+const applyProcessingSuggestions = () => {
+  if (!latestCompletedProcess.value || !processingSummary.value?.summary?.final_quantity) {
+    return
+  }
+
+  form.quantity_available = Number(processingSummary.value.summary.final_quantity)
+
+  if (processingSummary.value.summary.final_unit && units.includes(processingSummary.value.summary.final_unit)) {
+    form.unit = processingSummary.value.summary.final_unit
+  }
+
+  if (!form.processing_method && latestCompletedProcess.value.process_type === 'milling') {
+    form.processing_method = 'milled'
+  }
+
+  if (!form.name && latestCompletedProcess.value.process_type === 'milling') {
+    const linkedHarvest = harvests.value.find(h => Number(h.id) === Number(form.harvest_id))
+    const varietyLabel = linkedHarvest?.planting?.riceVariety?.name || linkedHarvest?.planting?.crop_type || 'Rice'
+    form.name = `${varietyLabel} Milled Rice`
+  }
+}
+
+const loadProcessingSummary = async (harvestId) => {
+  processingSummary.value = null
+
+  if (!harvestId) {
+    return
+  }
+
+  processingLoading.value = true
+
+  try {
+    const response = await axios.get(`/api/post-harvest/harvest/${harvestId}`)
+    processingSummary.value = response.data
+    applyProcessingSuggestions()
+  } catch (error) {
+    console.warn('Failed to load post-harvest summary for marketplace form:', error)
+  } finally {
+    processingLoading.value = false
+  }
+}
+
+const openProcessingPipeline = () => {
+  if (!form.harvest_id) return
+
+  router.push(`/harvests/${form.harvest_id}/processing`)
+}
+
+// Watch for Harvest selection to auto-fill data
+watch(() => form.harvest_id, async (newId) => {
+  if (!newId) {
+    processingSummary.value = null
+    return
+  }
+
+  const harvest = harvests.value.find(h => Number(h.id) === Number(newId))
   if (harvest) {
     // 1. Auto-fill Unit
     if (harvest.unit && units.includes(harvest.unit)) {
@@ -498,6 +618,8 @@ watch(() => form.harvest_id, (newId) => {
        form.price_per_unit = Number(harvest.price_per_unit)
     }
   }
+
+  await loadProcessingSummary(newId)
 })
 
 // Image upload handlers
@@ -642,5 +764,10 @@ onMounted(async () => {
     marketplaceStore.fetchRiceVarieties(),
     farmStore.fetchHarvests()
   ])
+
+  const requestedHarvestId = Number(route.query.harvest_id || 0)
+  if (requestedHarvestId && harvests.value.some(h => Number(h.id) === requestedHarvestId)) {
+    form.harvest_id = requestedHarvestId
+  }
 })
 </script>

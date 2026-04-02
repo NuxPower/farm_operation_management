@@ -83,6 +83,10 @@ class PestIncidentController extends Controller
             return response()->json(['message' => 'Planting not found'], 404);
         }
 
+        if ($validationResponse = $this->validateSprayRestriction($request->all(), $planting)) {
+            return $validationResponse;
+        }
+
         $incident = PestIncident::create([
             ...$request->only([
                 'planting_id',
@@ -164,6 +168,10 @@ class PestIncidentController extends Controller
             return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
+        if ($validationResponse = $this->validateSprayRestriction($request->all(), $pestIncident->planting)) {
+            return $validationResponse;
+        }
+
         $pestIncident->update($request->only([
             'pest_type',
             'pest_name',
@@ -200,6 +208,34 @@ class PestIncidentController extends Controller
             'message' => 'Pest incident updated',
             'incident' => $pestIncident->fresh()
         ]);
+    }
+
+    /**
+     * Check spraying restrictions for insect control
+     */
+    private function validateSprayRestriction(array $data, Planting $planting): ?\Illuminate\Http\JsonResponse
+    {
+        $treatment = strtolower($data['treatment_applied'] ?? '');
+
+        // Only enforce on pesticide spray actions
+        if (!str_contains($treatment, 'spray') && !str_contains($treatment, 'pesticide')) {
+            return null;
+        }
+
+        $currentStage = $planting->getCurrentStage();
+        if (!$currentStage || $currentStage->riceGrowthStage->stage_code !== 'flowering') {
+            return response()->json(['message' => 'Pesticide spray is allowed only during flowering stage'], 422);
+        }
+
+        $treatmentDate = isset($data['treatment_date']) ? Carbon::parse($data['treatment_date']) : Carbon::now();
+
+        // Ensure 7:00-8:00 local time (single hour window)
+        $hour = (int) $treatmentDate->format('H');
+        if ($hour !== 7) {
+            return response()->json(['message' => 'Pesticide spray is allowed only between 07:00 and 08:00'], 422);
+        }
+
+        return null;
     }
 
     /**

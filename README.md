@@ -131,6 +131,8 @@ All five core project objectives have been **fully achieved** with comprehensive
 - **Field Management:** Register and manage multiple fields with GPS coordinates.
 - **Nursery Operations:** Manage seedling batches with auto-inventory deduction for seeds.
 - **Planting Lifecycle:** Track growth stages (Seedling → Tillering → Flowering → Grain Filling → Maturity) with automated transition logic and overdue alerts.
+- **Pest Treatment Timing Guardrail:** Pesticide spray entries are enforced only during `flowering` stage and within 07:00-08:00 local time, with backend validation in `app/Http/Controllers/Farm/PestIncidentController.php` (`validateSprayRestriction`).
+- **Transplanting Behavior:** For `transplanting` planting method, seedbed nursery stage is auto-completed and lifecycle begins immediately at **Tillering** (`stage_2_tillering`) in the new planting record.
 - **Weather Alerts:** Receive actionable advice based on temperature, humidity, and rainfall thresholds.
 - **Harvest Recording:** Log yields, quality grades, and harvester shares.
 - **Inventory Management:** Track seeds, fertilizers, pesticides with Weighted Average Cost (WAC).
@@ -178,6 +180,33 @@ All five core project objectives have been **fully achieved** with comprehensive
 | **ColorfulClouds API** | Primary Forecasts (10-day precision) |
 | **OpenWeatherMap** | Agricultural Intelligence (Pest/Disease risks) |
 | **Windy.com** | Interactive weather map embed |
+
+---
+
+## 🗒️ Post-Harvest Processing Update (April 2026)
+
+- `threshing`, `drying`, and `milling` are maintained as a flexible pipeline (no enforced order by design).
+- Added processing entry to the harvest show page and explicit `Post-Harvest` navigation item:
+  - `resources/js/Pages/Farmer/Harvests/Show.vue`
+  - `resources/js/components/Navigation/Sidebar.vue`
+  - `resources/js/Pages/Farmer/Harvests/Index.vue`
+- Enhanced post-harvest pipeline user flow:
+  - `resources/js/Pages/Farm/PostHarvest/Index.vue`
+- Marketplace product creation now prefers latest processed inventory output from linked harvests:
+  - `resources/js/Pages/Marketplace/Product/Create.vue`
+  - `app/Models/RiceProduct.php`
+- Added test coverage to guarantee behavior:
+  - `tests/Feature/PostHarvestProcessTest.php`
+
+### Verification commands
+
+- `php artisan test --filter=PostHarvestProcessTest`
+- `npm run build`
+
+### Result
+- All asserted tests passed.
+- Production build succeeded.
+
 | **Brevo (SMTP)** | Email Notifications (OTP, Alerts, Reports) |
 | **OpenStreetMap** | Base map tiles for field visualization |
 
@@ -1437,6 +1466,63 @@ php artisan migrate --seed
 composer run dev
 # This runs: php artisan serve & npm run dev (concurrently)
 ```
+## 🔄 Automated Tasks & Background Processing
+
+The system includes several automated background tasks that run on scheduled intervals to maintain data integrity and provide proactive features:
+
+### Scheduled Commands
+
+| Command | Frequency | Purpose |
+|---------|-----------|---------|
+| `pre-orders:send-notifications` | Daily at 9:00 AM | Sends notifications for upcoming pre-orders |
+| `inventory:check-expiry` | Daily at 8:00 AM | Checks for expiring inventory items |
+| `reports:send-scheduled` | Hourly | Sends scheduled reports to users |
+| `orders:send-deadline-warnings` | Daily at 8:00 AM | Warns farmers about expiring pickup deadlines |
+| `orders:cancel-expired-pickups` | Hourly | Auto-cancels orders past pickup deadline |
+| `weather:monitor` | Hourly | Monitors weather conditions and triggers alerts |
+| `tasks:process-due` | Daily at 10:00 AM | **NEW:** Auto-completes overdue tasks and generates wages |
+
+### Task Due Date Automation
+
+The `tasks:process-due` command automatically handles overdue labor tasks:
+
+- **Trigger:** Runs daily at 10:00 AM (Asia/Manila timezone)
+- **Logic:** Finds tasks where `due_date <= current_time` and `status != 'completed'`
+- **Action:** Marks tasks as completed and generates labor wages/expenses
+- **Wage Calculation:** Uses the same logic as manual completion, calculating based on:
+  - Task creation date to due date interval
+  - Laborer rate type (`per_day` or `per_task`)
+  - Task-specific wage amounts if set
+
+### Docker Integration
+
+All scheduled commands run automatically in Docker via Supervisor:
+
+```yaml
+# docker/supervisord.conf
+[program:scheduler]
+command=php /var/www/html/artisan schedule:work
+autostart=true
+autorestart=true
+```
+
+The scheduler runs continuously in the background, executing commands at their defined intervals without manual intervention.
+
+### Manual Command Execution
+
+For testing or manual execution:
+
+```bash
+# Process due tasks immediately
+php artisan tasks:process-due
+
+# Check scheduled commands
+php artisan schedule:list
+
+# Run scheduler manually (for testing)
+php artisan schedule:work
+```
+
 ## 🧪 Testing
 
 ```bash
