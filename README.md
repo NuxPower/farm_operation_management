@@ -1815,6 +1815,20 @@ To ensure agricultural accuracy and system resilience, the system employs a **Mu
 
 ---
 
+## 🚀 Recent Architecture & Feature Stabilization (April 2026)
+
+To ensure high data integrity, reliability, and accuracy across operations, several critical backend features and test suites were audited and stabilized:
+
+**1. Analytics & Dashboard Engine Correction**
+- **Dual-Polymorphism Fix:** `DataAnalysisController` and `DashboardController` were restricted from fetching tasks purely by `planting_id`. Because tasks in the system act as a polymorphic layer targeting both specific `Plantings` (crop-specific) and the overarching `Field` (general land maintenance), SQL aggregation logic was updated with `orWhere` parameters to ingest both field-level and crop-level tasks. Dashboard and analytics UI figures are now 100% synced with backend operations.
+
+**2. Post-Harvest Module Integrity**
+- Standardized backend controller validations on `HarvestController` to strictly accept `bushels` as the default output unit to protect mathematical algorithms downstream from miscalculating `sacks` to `kg` conversions during post-harvest shrinkage deductions.
+- Stabilized `PostHarvestService` and the accompanying UI Vue components to accurately complete threshing, milling, and drying operations which generate weight-loss calculations mapped dynamically to `InventoryItem` generation.
+
+**3. Test Suite Remediation**
+- Overhauled and synchronized all PHPUnit core tests including `HarvestOperationTest`, `HarvestShareExpenseTest`, `HarvestTest`, and `SystemSimulationTest`. Corrected all legacy mock API request parameters to strictly adhere to the unified standard of `bushels`.
+- Adjusted assertion hooks to match the dynamic `orWhere` data analytics aggregation logic, resulting in a perfectly stable testing environment (100% passing across the board).
 
 ## 📄 License
 This project is developed as a capstone project for academic purposes.
