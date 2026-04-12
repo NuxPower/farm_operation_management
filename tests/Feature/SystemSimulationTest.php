@@ -92,7 +92,7 @@ class SystemSimulationTest extends TestCase
             'planting_id' => $plantingId,
             'harvest_date' => now()->toDateString(),
             'quantity' => 10000, // 10 tons
-            'unit' => 'kg',
+            'unit' => 'bushels',
             'quality_grade' => 'A',
             'price_per_unit' => 20.00, // Cost price
             'notes' => 'Bountiful harvest'
@@ -104,7 +104,7 @@ class SystemSimulationTest extends TestCase
         // Assert Inventory was created automatically
         $this->assertDatabaseHas('inventory_items', [
             'user_id' => $farmer->id,
-            'unit' => 'kg',
+            'unit' => 'bushels',
             'current_stock' => 10000
         ]);
 

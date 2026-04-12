@@ -47,7 +47,7 @@ class HarvestTest extends TestCase
                 'planting_id' => $this->planting->id,
                 'harvest_date' => now()->toDateString(),
                 'quantity' => 5000,
-                'unit' => 'kg',
+                'unit' => 'bushels',
                 'quality_grade' => 'A',
                 'price_per_unit' => 25,
                 'notes' => 'Bountiful harvest'
@@ -85,7 +85,7 @@ class HarvestTest extends TestCase
             'harvest_date' => now(),
             'quantity' => 100,
             'yield' => 100,
-            'unit' => 'kg',
+            'unit' => 'bushels',
             'quality_grade' => 'B',
             'quality' => 'good' // Required by DB
         ]);
@@ -108,7 +108,7 @@ class HarvestTest extends TestCase
                 'planting_id' => $this->planting->id,
                 'harvest_date' => now()->toDateString(),
                 'quantity' => $grossHarvest,
-                'unit' => 'kg',
+                'unit' => 'bushels',
                 'quality_grade' => 'A',
                 'price_per_unit' => $pricePerUnit,
                 'harvester_share' => $harvesterShare,

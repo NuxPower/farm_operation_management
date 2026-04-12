@@ -50,7 +50,7 @@ class HarvestShareExpenseTest extends TestCase
                 'planting_id' => $this->planting->id,
                 'harvest_date' => now()->toDateString(),
                 'quantity' => 100,
-                'unit' => 'sacks',
+                'unit' => 'bushels',
                 'harvester_share' => 11.11,
                 'harvester_share_percentage' => 11.11,
                 'price_per_unit' => 25.00,
@@ -85,7 +85,7 @@ class HarvestShareExpenseTest extends TestCase
                 'planting_id' => $this->planting->id,
                 'harvest_date' => now()->toDateString(),
                 'quantity' => 100,
-                'unit' => 'sacks',
+                'unit' => 'bushels',
                 'harvester_share' => 11.11,
                 'harvester_share_percentage' => 11.11,
                 'price_per_unit' => 25.00,
@@ -96,7 +96,7 @@ class HarvestShareExpenseTest extends TestCase
         // Check that inventory has the full 100 sacks, not 88.89
         $inventory = InventoryItem::where('user_id', $this->farmer->id)
             ->where('category', 'produce')
-            ->where('unit', 'sacks')
+            ->where('unit', 'bushels')
             ->first();
 
         $this->assertNotNull($inventory);
@@ -114,7 +114,7 @@ class HarvestShareExpenseTest extends TestCase
                 'planting_id' => $this->planting->id,
                 'harvest_date' => now()->toDateString(),
                 'quantity' => 100,
-                'unit' => 'sacks',
+                'unit' => 'bushels',
                 'harvester_share' => 11.11,
                 'harvester_share_percentage' => 11.11,
                 // price_per_unit intentionally omitted
@@ -142,7 +142,7 @@ class HarvestShareExpenseTest extends TestCase
                 'planting_id' => $this->planting->id,
                 'harvest_date' => now()->toDateString(),
                 'quantity' => 100,
-                'unit' => 'sacks',
+                'unit' => 'bushels',
                 'price_per_unit' => 25.00,
                 // no harvester_share
             ]);

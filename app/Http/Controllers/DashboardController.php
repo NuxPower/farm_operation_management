@@ -50,10 +50,16 @@ class DashboardController extends Controller
                 'ready_seed_plantings' => SeedPlanting::where('user_id', $user->id)
                     ->where('status', 'ready')
                     ->count(),
-                'pending_tasks' => Task::whereIn('field_id', $fieldIds)
+                'pending_tasks' => Task::where(function ($q) use ($fieldIds, $plantingIds) {
+                        $q->whereIn('field_id', $fieldIds)
+                          ->orWhereIn('planting_id', $plantingIds);
+                    })
                     ->where('status', Task::STATUS_PENDING)
                     ->count(),
-                'overdue_tasks' => Task::whereIn('field_id', $fieldIds)
+                'overdue_tasks' => Task::where(function ($q) use ($fieldIds, $plantingIds) {
+                        $q->whereIn('field_id', $fieldIds)
+                          ->orWhereIn('planting_id', $plantingIds);
+                    })
                     ->where('status', Task::STATUS_PENDING)
                     ->where('due_date', '<', now())
                     ->count(),
@@ -63,13 +69,19 @@ class DashboardController extends Controller
             ];
 
             // Recent activities
-            $recentTasks = Task::whereIn('field_id', $fieldIds)
+            $recentTasks = Task::where(function ($q) use ($fieldIds, $plantingIds) {
+                    $q->whereIn('field_id', $fieldIds)
+                      ->orWhereIn('planting_id', $plantingIds);
+                })
                 ->with(['planting.field', 'field', 'laborer'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get();
 
-            $upcomingTasks = Task::whereIn('field_id', $fieldIds)
+            $upcomingTasks = Task::where(function ($q) use ($fieldIds, $plantingIds) {
+                    $q->whereIn('field_id', $fieldIds)
+                      ->orWhereIn('planting_id', $plantingIds);
+                })
                 ->where('status', Task::STATUS_PENDING)
                 ->where('due_date', '>=', now())
                 ->with(['planting.field', 'field', 'laborer'])

@@ -44,7 +44,7 @@ class HarvestOperationTest extends TestCase
             'planting_id' => $this->planting->id,
             'harvest_date' => now()->toDateString(),
             'quantity' => 5000, // Changed from yield_quantity
-            'unit' => 'kg', // Added required field
+            'unit' => 'bushels', // Added required field
             'status' => 'completed',
             'notes' => 'Good harvest',
             'create_inventory_record' => true // assuming feature exists
