@@ -13,6 +13,7 @@ class Task extends Model
 
     protected $fillable = [
         'planting_id',
+        'field_id',
         'task_type',
         'due_date',
         'description',
@@ -76,6 +77,14 @@ class Task extends Model
     public function planting(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Planting::class);
+    }
+
+    /**
+     * Get the field that owns the task
+     */
+    public function field(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Field::class);
     }
 
     /**

@@ -477,7 +477,7 @@ const form = reactive({
   notes: ''
 })
 
-const units = ['kg', 'tons', 'sacks', 'bushels', 'pounds', 'grams']
+const units = ['kg', 'tons', 'sacks', 'bags', 'bushels', 'pounds', 'grams']
 const qualityGrades = {
   premium: 'Premium',
   grade_a: 'Grade A',
@@ -485,6 +485,8 @@ const qualityGrades = {
   commercial: 'Commercial'
 }
 const processingMethods = {
+  threshed: 'Threshed Palay',
+  dried: 'Dried Palay',
   milled: 'Fresh Milled Rice',
   brown: 'Brown Rice',
   parboiled: 'Parboiled Rice',
@@ -535,8 +537,14 @@ const applyProcessingSuggestions = () => {
     form.unit = processingSummary.value.summary.final_unit
   }
 
-  if (!form.processing_method && latestCompletedProcess.value.process_type === 'milling') {
-    form.processing_method = 'milled'
+  if (!form.processing_method) {
+    if (latestCompletedProcess.value.process_type === 'milling') {
+      form.processing_method = 'milled'
+    } else if (latestCompletedProcess.value.process_type === 'threshing') {
+      form.processing_method = 'threshed'
+    } else if (latestCompletedProcess.value.process_type === 'drying') {
+      form.processing_method = 'dried'
+    }
   }
 
   if (!form.name && latestCompletedProcess.value.process_type === 'milling') {

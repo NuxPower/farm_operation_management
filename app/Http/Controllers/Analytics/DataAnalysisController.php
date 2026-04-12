@@ -20,6 +20,7 @@ use App\Models\InventoryTransaction;
 use App\Models\WeatherLog;
 use App\Models\Laborer;
 use App\Models\LaborWage;
+use App\Models\PostHarvestProcess;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -360,6 +361,91 @@ class DataAnalysisController extends Controller
             ],
         ];
 
+        // 11.5 PostHarvest Data
+        $postHarvestData = [
+            'total_processes' => 0,
+            'average_recovery_rate' => 0,
+            'cost_optimization' => [
+                'self_avg_cost' => 0,
+                'provider_avg_cost' => 0,
+            ],
+            'variety_performance' => [],
+            'historical_trends' => []
+        ];
+
+        if ($farm) {
+            $processes = PostHarvestProcess::with(['harvest.planting.riceVariety'])->whereHas('planting.field', function ($q) use ($farm) {
+                $q->where('farm_id', $farm->id);
+            })->where('status', PostHarvestProcess::STATUS_COMPLETED)
+              ->orderBy('completed_date', 'asc')
+              ->get();
+
+            $postHarvestData['total_processes'] = $processes->count();
+
+            if ($processes->count() > 0) {
+                $totalRecovery = 0;
+                $recoveryCount = 0;
+                
+                $selfCosts = [];
+                $providerCosts = [];
+                $varietyStats = [];
+                $historicalTrends = [];
+
+                foreach ($processes as $process) {
+                    $rate = $process->getRecoveryRate();
+                    if ($rate !== null) {
+                        $totalRecovery += $rate;
+                        $recoveryCount++;
+
+                        // Historical trends
+                        $month = Carbon::parse($process->completed_date ?? $process->updated_at)->format('Y-m');
+                        if (!isset($historicalTrends[$month])) {
+                            $historicalTrends[$month] = ['total_rate' => 0, 'count' => 0];
+                        }
+                        $historicalTrends[$month]['total_rate'] += $rate;
+                        $historicalTrends[$month]['count']++;
+
+                        // Variety performance
+                        $varietyName = $process->harvest->planting->riceVariety->name ?? $process->harvest->planting->crop_type ?? 'Unknown';
+                        if (!isset($varietyStats[$varietyName])) {
+                            $varietyStats[$varietyName] = ['total_rate' => 0, 'count' => 0];
+                        }
+                        $varietyStats[$varietyName]['total_rate'] += $rate;
+                        $varietyStats[$varietyName]['count']++;
+                    }
+
+                    // Cost Optimization
+                    if ($process->cost > 0 && $process->output_quantity > 0) {
+                        $costPerUnit = $process->cost / $process->output_quantity;
+                        if ($process->cost_type === 'self') {
+                            $selfCosts[] = $costPerUnit;
+                        } else {
+                            $providerCosts[] = $costPerUnit;
+                        }
+                    }
+                }
+
+                $postHarvestData['average_recovery_rate'] = $recoveryCount > 0 ? round($totalRecovery / $recoveryCount, 2) : 0;
+                
+                $postHarvestData['cost_optimization']['self_avg_cost'] = count($selfCosts) > 0 ? round(array_sum($selfCosts) / count($selfCosts), 2) : 0;
+                $postHarvestData['cost_optimization']['provider_avg_cost'] = count($providerCosts) > 0 ? round(array_sum($providerCosts) / count($providerCosts), 2) : 0;
+
+                foreach ($varietyStats as $name => $stat) {
+                    $postHarvestData['variety_performance'][] = [
+                        'variety' => $name,
+                        'average_recovery_rate' => round($stat['total_rate'] / $stat['count'], 2)
+                    ];
+                }
+
+                foreach ($historicalTrends as $month => $stat) {
+                    $postHarvestData['historical_trends'][] = [
+                        'month' => $month,
+                        'average_recovery_rate' => round($stat['total_rate'] / $stat['count'], 2)
+                    ];
+                }
+            }
+        }
+
         // 12. Executive Summary & Action Suggestions (Generated)
         $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData);
         $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData);
@@ -376,6 +462,7 @@ class DataAnalysisController extends Controller
             'pests' => $pestsData,
             'laborers' => $laborersData,
             'inventory' => $inventoryData,
+            'post_harvest' => $postHarvestData,
             'financial_forecast' => $financialForecast,
             'generated_at' => now(),
         ]);

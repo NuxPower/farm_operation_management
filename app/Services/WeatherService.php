@@ -962,6 +962,41 @@ class WeatherService
             }
         }
 
+        // Add Post-Harvest Drying Advisory based on forecast
+        $coords = $farm->weather_coordinates;
+        if ($coords && isset($coords['lat'], $coords['lon'])) {
+            $forecast = $this->getForecast((float) $coords['lat'], (float) $coords['lon'], 3);
+            if ($forecast && isset($forecast['list'])) {
+                $upcomingRain = false;
+                $daysChecked = 0;
+                
+                foreach (array_slice($forecast['list'], 0, 3) as $day) {
+                    if (isset($day['pop']) && $day['pop'] > 0.4) {
+                        $upcomingRain = true;
+                    }
+                    $daysChecked++;
+                }
+
+                if ($daysChecked > 0) {
+                    if ($upcomingRain) {
+                        $recommendations[] = [
+                            'type' => 'advisory',
+                            'category' => 'post_harvest',
+                            'recommendation' => 'Rain is expected in the next 3 days. Use mechanical dryers for recently threshed palay to avoid spoilage.',
+                            'priority' => 'high'
+                        ];
+                    } else {
+                        $recommendations[] = [
+                            'type' => 'advisory',
+                            'category' => 'post_harvest',
+                            'recommendation' => 'Clear weather expected for the next 3 days. Conditions are optimal for open-air sun drying operations.',
+                            'priority' => 'low'
+                        ];
+                    }
+                }
+            }
+        }
+
         return $recommendations;
     }
 

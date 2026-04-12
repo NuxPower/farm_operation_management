@@ -7,6 +7,7 @@ use App\Models\Field;
 use App\Models\WeatherLog;
 use App\Models\Task;
 use App\Models\ActivityLog;
+use App\Models\PostHarvestProcess;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -279,6 +280,59 @@ class RiceProductionAnalyticsService
             'average_yield_gap_pct' => round($avgYieldGap / $count, 1),
             'average_fertilizer_efficiency' => round($avgPfp / $count, 2),
             'productivity_score' => $field->productivity_score // Use existing model attribute
+        ];
+    }
+
+    /**
+     * Calculate post-harvest efficiency for a planting
+     * 
+     * @param Planting $planting
+     * @return array
+     */
+    public function calculatePostHarvestEfficiency(Planting $planting): array
+    {
+        $processes = PostHarvestProcess::where('planting_id', $planting->id)
+            ->where('status', PostHarvestProcess::STATUS_COMPLETED)
+            ->get();
+
+        if ($processes->isEmpty()) {
+            return ['status' => 'no_data', 'message' => 'No completed post-harvest processes recorded'];
+        }
+
+        $totalRecovery = 0;
+        $recoveryCount = 0;
+        $totalCost = 0;
+        $totalWeightLoss = 0;
+
+        foreach ($processes as $process) {
+            $rate = $process->getRecoveryRate();
+            if ($rate !== null) {
+                $totalRecovery += $rate;
+                $recoveryCount++;
+            }
+            $totalCost += $process->cost;
+            $totalWeightLoss += $process->weight_loss_percentage;
+        }
+
+        $avgRecovery = $recoveryCount > 0 ? round($totalRecovery / $recoveryCount, 2) : 0;
+        $avgWeightLoss = round($totalWeightLoss / $processes->count(), 2);
+
+        $rating = 'low';
+        if ($avgRecovery >= 65) {
+            $rating = 'excellent';
+        } elseif ($avgRecovery >= 55) {
+            $rating = 'good';
+        } elseif ($avgRecovery >= 45) {
+            $rating = 'fair';
+        }
+
+        return [
+            'status' => 'calculated',
+            'processes_count' => $processes->count(),
+            'average_recovery_rate' => $avgRecovery,
+            'average_weight_loss_percentage' => $avgWeightLoss,
+            'total_processing_cost' => $totalCost,
+            'performance_rating' => $rating
         ];
     }
 }

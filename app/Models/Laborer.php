@@ -97,4 +97,19 @@ class Laborer extends Model
     {
         return $this->belongsToMany(LaborerGroup::class, 'group_laborer');
     }
+
+    /**
+     * Get the post-harvest processes assigned to this laborer (via tasks)
+     */
+    public function postHarvestProcesses(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            PostHarvestProcess::class,
+            Task::class,
+            'assigned_to', // Foreign key on the tasks table
+            'task_id',     // Foreign key on the post_harvest_processes table
+            'id',          // Local key on the laborers table
+            'id'           // Local key on the tasks table
+        );
+    }
 }

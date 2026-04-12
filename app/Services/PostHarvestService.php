@@ -52,24 +52,57 @@ class PostHarvestService
             $data['cost'] = $costPerUnit * (float) $data['input_quantity'];
         }
 
-        return PostHarvestProcess::create([
-            'harvest_id' => $harvest->id,
-            'planting_id' => $harvest->planting_id,
-            'user_id' => $userId,
-            'task_id' => $data['task_id'] ?? null,
-            'parent_process_id' => $data['parent_process_id'] ?? null,
-            'process_type' => $data['process_type'],
-            'status' => $data['status'] ?? PostHarvestProcess::STATUS_PENDING,
-            'input_quantity' => $data['input_quantity'],
-            'input_unit' => $data['input_unit'],
-            'process_date' => $data['process_date'],
-            'cost' => $data['cost'] ?? 0,
-            'cost_type' => $data['cost_type'] ?? PostHarvestProcess::COST_TYPE_SELF,
-            'cost_per_unit' => $data['cost_per_unit'] ?? null,
-            'service_provider' => $data['service_provider'] ?? null,
-            'process_data' => $data['process_data'] ?? null,
-            'notes' => $data['notes'] ?? null,
-        ]);
+        $process = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $harvest, $userId) {
+            // Create the process first
+            $process = PostHarvestProcess::create([
+                'harvest_id' => $harvest->id,
+                'planting_id' => $harvest->planting_id,
+                'user_id' => $userId,
+                'parent_process_id' => $data['parent_process_id'] ?? null,
+                'process_type' => $data['process_type'],
+                'status' => $data['status'] ?? PostHarvestProcess::STATUS_PENDING,
+                'input_quantity' => $data['input_quantity'],
+                'input_unit' => $data['input_unit'],
+                'process_date' => $data['process_date'],
+                'cost' => $data['cost'] ?? 0,
+                'cost_type' => $data['cost_type'] ?? PostHarvestProcess::COST_TYPE_SELF,
+                'cost_per_unit' => $data['cost_per_unit'] ?? null,
+                'service_provider' => $data['service_provider'] ?? null,
+                'process_data' => $data['process_data'] ?? null,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            // Handle optional laborer assignment → Create Task
+            if (!empty($data['assign_laborers'])) {
+                $processData = $data;
+
+                // Task types map exactly from process types in this case
+                $taskType = match ($data['process_type']) {
+                    PostHarvestProcess::TYPE_THRESHING => \App\Models\Task::TYPE_THRESHING,
+                    PostHarvestProcess::TYPE_DRYING => \App\Models\Task::TYPE_DRYING,
+                    PostHarvestProcess::TYPE_MILLING => \App\Models\Task::TYPE_MILLING,
+                    default => \App\Models\Task::TYPE_MAINTENANCE,
+                };
+
+                $task = \App\Models\Task::create([
+                    'planting_id' => $harvest->planting_id,
+                    'field_id' => $harvest->planting->field_id,
+                    'task_type' => $taskType,
+                    'due_date' => $data['process_date'],
+                    'description' => "Post-harvest processing: " . ucfirst($data['process_type']) . " for harvest #{$harvest->id}",
+                    'status' => \App\Models\Task::STATUS_PENDING,
+                    'quantity' => $data['input_quantity'],
+                    'unit' => $data['input_unit'],
+                    'payment_type' => \App\Models\Task::PAYMENT_TYPE_WAGE, // Default to wage for now
+                ]);
+
+                $process->update(['task_id' => $task->id]);
+            }
+
+            return $process;
+        });
+
+        return $process;
     }
 
     /**
@@ -130,6 +163,11 @@ class PostHarvestService
                 $this->createProcessingExpense($process, $cost);
             }
 
+            // ── Task Sync ──
+            if ($process->task_id && $process->task) {
+                $process->task->update(['status' => \App\Models\Task::STATUS_COMPLETED]);
+            }
+
             return $process->fresh();
         });
     }
@@ -159,20 +197,29 @@ class PostHarvestService
             ->first();
 
         if ($sourceItem && $inputQty > 0) {
-            $sourceItem->removeStock($inputQty);
+            $deducted = $sourceItem->removeStock($inputQty);
 
-            InventoryTransaction::create([
-                'inventory_item_id' => $sourceItem->id,
-                'user_id' => $userId,
-                'transaction_type' => 'out',
-                'quantity' => $inputQty,
-                'unit_cost' => $sourceItem->unit_price ?? 0,
-                'total_cost' => $inputQty * ($sourceItem->unit_price ?? 0),
-                'reference_type' => 'PostHarvestProcess',
-                'reference_id' => $process->id,
-                'notes' => ucfirst($process->process_type) . " processing — deducted from {$sourceItemName}",
-                'transaction_date' => now(),
-            ]);
+            if ($deducted) {
+                InventoryTransaction::create([
+                    'inventory_item_id' => $sourceItem->id,
+                    'user_id' => $userId,
+                    'transaction_type' => 'out',
+                    'quantity' => $inputQty,
+                    'unit_cost' => $sourceItem->unit_price ?? 0,
+                    'total_cost' => $inputQty * ($sourceItem->unit_price ?? 0),
+                    'reference_type' => 'PostHarvestProcess',
+                    'reference_id' => $process->id,
+                    'notes' => ucfirst($process->process_type) . " processing — deducted from {$sourceItemName}",
+                    'transaction_date' => now(),
+                ]);
+            } else {
+                Log::warning('Post-harvest: insufficient stock to deduct from source inventory', [
+                    'process_id' => $process->id,
+                    'item_name' => $sourceItemName,
+                    'requested' => $inputQty,
+                    'available' => $sourceItem->current_stock,
+                ]);
+            }
         } else {
             Log::info('Post-harvest: no source inventory item found to deduct from', [
                 'process_id' => $process->id,
@@ -318,15 +365,15 @@ class PostHarvestService
                 : 100.0,
             'average_weight_loss_percentage' => $averageWeightLoss,
             'cost_per_output_unit' => $costPerOutputUnit,
-            'efficiency_breakdown' => $completed->map(fn($p) => [
+            'efficiency_breakdown' => $completed->values()->map(fn($p) => [
                 'id' => $p->id,
                 'type' => $p->process_type,
                 'input_quantity' => $p->input_quantity,
                 'output_quantity' => $p->output_quantity,
                 'weight_loss_percentage' => $p->weight_loss_percentage,
                 'cost' => $p->cost,
-            ]),
-            'processes' => $processes->map(fn($p) => [
+            ])->all(),
+            'processes' => $processes->values()->map(fn($p) => [
                 'id' => $p->id,
                 'type' => $p->process_type,
                 'status' => $p->status,
@@ -336,7 +383,7 @@ class PostHarvestService
                 'cost' => $p->cost,
                 'date' => $p->process_date?->toDateString(),
                 'completed' => $p->completed_date?->toDateString(),
-            ]),
+            ])->all(),
         ];
     }
 

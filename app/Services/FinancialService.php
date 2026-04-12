@@ -27,8 +27,20 @@ class FinancialService
 
         $totalExpenses = $expenses->sum('amount');
         $totalSales = $sales->sum('total_amount');
-        $totalLaborCosts = $laborCosts->sum('wage_amount');
-        $totalCosts = $totalExpenses + $totalLaborCosts;
+        
+        // Remove double-counting: if labor costs are already in expenses, do not add them again
+        // Or if you only sum non-labor expenses, we'll just use total Expenses.
+        // Assuming Expense model creates 'labor' category expenses for tasks.
+        $totalLaborCosts = $expenses->where('category', 'labor')->sum('amount');
+        if ($totalLaborCosts == 0) {
+           // Fallback to LaborWages if Expense records were missed for some reason
+           $totalLaborCosts = $laborCosts->sum('wage_amount');
+           $totalCosts = $totalExpenses + $totalLaborCosts;
+        } else {
+           $totalCosts = $totalExpenses; // Expense already includes labor
+        }
+        
+        $totalProcessingCosts = $expenses->where('category', 'processing')->sum('amount');
 
         $netProfit = $totalSales - $totalCosts;
         $profitMargin = $totalSales > 0 ? ($netProfit / $totalSales) * 100 : 0;
@@ -38,6 +50,7 @@ class FinancialService
             'total_revenue' => $totalSales,
             'total_expenses' => $totalExpenses,
             'total_labor_costs' => $totalLaborCosts,
+            'total_processing_costs' => $totalProcessingCosts,
             'total_costs' => $totalCosts,
             'net_profit' => $netProfit,
             'profit_margin' => round($profitMargin, 2),
@@ -231,11 +244,20 @@ class FinancialService
                 ->where('sale_date', '<=', $endDate)
                 ->sum('total_amount');
 
-            $monthlyLaborCosts = $this->getFarmLaborCosts($farmId, $startDate)
+            $monthlyProcessingCosts = $this->getFarmExpenses($farmId, $startDate)
                 ->where('date', '<=', $endDate)
-                ->sum('wage_amount');
+                ->where('category', 'processing')
+                ->sum('amount');
 
-            $totalCosts = $monthlyExpenses + $monthlyLaborCosts;
+            // Total costs should just be monthlyExpenses because labor is tracked in expenses
+            $totalCosts = $monthlyExpenses;
+            
+            // For explicitly showing labor:
+            $monthlyLaborCosts = $this->getFarmExpenses($farmId, $startDate)
+                ->where('date', '<=', $endDate)
+                ->where('category', 'labor')
+                ->sum('amount');
+
             $netProfit = $monthlySales - $totalCosts;
 
             $trends[] = [
@@ -244,6 +266,7 @@ class FinancialService
                 'revenue' => $monthlySales,
                 'expenses' => $monthlyExpenses,
                 'labor_costs' => $monthlyLaborCosts,
+                'processing_costs' => $monthlyProcessingCosts,
                 'total_costs' => $totalCosts,
                 'net_profit' => $netProfit,
                 'profit_margin' => $monthlySales > 0 ? round(($netProfit / $monthlySales) * 100, 2) : 0,

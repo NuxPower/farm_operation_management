@@ -27,7 +27,7 @@ class PostHarvestController extends Controller
     {
         $user = $request->user();
 
-        if ($harvest->planting->field->user_id !== $user->id) {
+        if (!$harvest->planting || !$harvest->planting->field || $harvest->planting->field->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized access'], 403);
         }
 
@@ -52,7 +52,7 @@ class PostHarvestController extends Controller
     {
         $user = $request->user();
 
-        if ($harvest->planting->field->user_id !== $user->id) {
+        if (!$harvest->planting || !$harvest->planting->field || $harvest->planting->field->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized access'], 403);
         }
 
@@ -80,6 +80,7 @@ class PostHarvestController extends Controller
             'process_data' => 'nullable|array',
             'notes' => 'nullable|string',
             'task_id' => 'nullable|exists:tasks,id',
+            'assign_laborers' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -92,7 +93,7 @@ class PostHarvestController extends Controller
         $harvest = Harvest::with('planting.field')->findOrFail($request->harvest_id);
         $user = $request->user();
 
-        if ($harvest->planting->field->user_id !== $user->id) {
+        if (!$harvest->planting || !$harvest->planting->field || $harvest->planting->field->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized access to harvest'], 403);
         }
 
@@ -228,13 +229,15 @@ class PostHarvestController extends Controller
         }
 
         if (!$process->canDelete()) {
-            return response()->json(['message' => 'Only pending processes can be deleted'], 422);
+            return response()->json(['message' => 'Only pending or cancelled processes can be deleted'], 422);
         }
 
+        $harvest = $process->harvest;
         $process->delete();
 
         return response()->json([
             'message' => 'Process deleted successfully',
+            'summary' => $harvest ? $this->service->getProcessingSummary($harvest) : null,
         ]);
     }
 }

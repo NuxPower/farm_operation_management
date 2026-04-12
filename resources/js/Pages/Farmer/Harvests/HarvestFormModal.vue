@@ -175,12 +175,7 @@
                 class="w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm bg-white focus:border-green-500 focus:ring-2 focus:ring-green-500 transition"
                 :class="{ 'border-red-500 ring-2 ring-red-200': form.errors.unit }"
               >
-                <option value="kg">Kilograms (kg)</option>
-                <option value="tons">Tons</option>
-                <option value="sacks">Sacks</option>
                 <option value="bushels">Bushels</option>
-                <option value="pounds">Pounds (lbs)</option>
-                <option value="grams">Grams (g)</option>
               </select>
               <p v-if="form.errors.unit" class="mt-1 text-xs text-red-600">{{ form.errors.unit }}</p>
             </div>
@@ -443,7 +438,7 @@ const getInitialFormData = () => ({
   planting_id: props.harvest?.planting_id || props.initialPlantingId || '',
   harvest_date: formatDateForInput(props.harvest?.harvest_date),
   quantity: props.harvest?.quantity || '',
-  unit: props.harvest?.unit || 'kg',
+  unit: props.harvest?.unit || 'bushels',
   quality_grade: props.harvest?.quality_grade || '',
   price_per_unit: props.harvest?.price_per_unit || '',
   total_value: props.harvest?.total_value || '',

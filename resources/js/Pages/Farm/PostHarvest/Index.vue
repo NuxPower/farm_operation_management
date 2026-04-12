@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <h2 class="text-2xl font-bold tracking-tight text-gray-900">
         Post-Harvest Processing
@@ -23,6 +23,27 @@
 
     <div v-if="summary?.final_quantity" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
       Current processed output is ready to carry into the marketplace whenever you want to publish it.
+    </div>
+
+    <!-- Error Banner -->
+    <div v-if="errorMessage" class="rounded-md bg-red-50 border border-red-200 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3 flex-1">
+          <p class="text-sm text-red-700">{{ errorMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="errorMessage = ''" class="text-red-500 hover:text-red-700">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Summary Cards -->
@@ -67,7 +88,7 @@
         </div>
       </div>
 
-      <div v-else class="relative">
+      <div v-else class="relative overflow-x-auto pb-2">
         <div class="absolute inset-0 flex items-center" aria-hidden="true">
           <div class="w-full border-t border-gray-300"></div>
         </div>
@@ -86,6 +107,7 @@
             <span :class="[
               'h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white cursor-pointer transition-transform group-hover:scale-110',
               process.status === 'completed' ? 'bg-emerald-600' : 
+              process.status === 'cancelled' ? 'bg-red-400' :
               process.status === 'in_progress' ? 'bg-amber-500 border-2 border-white' : 'bg-gray-300'
             ]" @click="viewProcess(process)">
               <span v-if="process.status === 'completed'" class="text-white text-xs font-bold">✓</span>
@@ -96,6 +118,9 @@
             <template v-if="process.status === 'completed'">
               <span class="text-xs text-emerald-600 font-medium">{{ process.output_quantity }} {{ process.output_unit }}</span>
               <span class="text-xs text-gray-500">Loss: {{ process.weight_loss_percentage }}%</span>
+            </template>
+            <template v-else-if="process.status === 'cancelled'">
+              <span class="text-xs text-red-500 font-medium line-through">Cancelled</span>
             </template>
             <template v-else>
               <span class="text-xs text-amber-600 font-medium">{{ process.status.replace('_', ' ') }}</span>
@@ -133,14 +158,17 @@
                 <span v-else-if="process.status === 'in_progress'" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                   In Progress
                 </span>
+                <span v-else-if="process.status === 'cancelled'" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Cancelled
+                </span>
                 <span v-else class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                   Pending
                 </span>
               </div>
               <div class="ml-2 flex-shrink-0 flex space-x-2">
-                <button v-if="process.status !== 'completed'" @click="completeProcess(process)" class="text-sm text-green-600 hover:text-green-900 font-medium">Complete</button>
-                <button v-if="process.status !== 'completed'" @click="editProcess(process)" class="text-sm text-indigo-600 hover:text-indigo-900 font-medium">Edit</button>
-                <button v-if="process.status === 'pending'" @click="deleteProcess(process)" class="text-sm text-red-600 hover:text-red-900 font-medium">Delete</button>
+                <button v-if="process.status !== 'completed' && process.status !== 'cancelled'" @click="completeProcess(process)" class="text-sm text-green-600 hover:text-green-900 font-medium">Complete</button>
+                <button v-if="process.status !== 'completed' && process.status !== 'cancelled'" @click="editProcess(process)" class="text-sm text-indigo-600 hover:text-indigo-900 font-medium">Edit</button>
+                <button v-if="process.status === 'pending' || process.status === 'cancelled'" @click="deleteProcess(process)" class="text-sm text-red-600 hover:text-red-900 font-medium">Delete</button>
               </div>
             </div>
             <div class="mt-2 sm:flex sm:justify-between">
@@ -201,6 +229,7 @@ const selectedParentId = ref(null);
 const selectedProcess = ref(null);
 const isCompletionMode = ref(false);
 const defaultProcessType = ref(null);
+const errorMessage = ref('');
 
 onMounted(() => {
   fetchData();
@@ -208,12 +237,14 @@ onMounted(() => {
 
 const fetchData = async () => {
   try {
+    errorMessage.value = '';
     const response = await axios.get(`/api/post-harvest/harvest/${harvestId}`);
     harvest.value = response.data.harvest;
     processes.value = response.data.processes;
     summary.value = response.data.summary;
   } catch (error) {
     console.error('Failed to fetch post-harvest data', error);
+    errorMessage.value = error.response?.data?.message || 'Failed to load post-harvest data. Please try refreshing the page.';
   }
 };
 
@@ -246,11 +277,15 @@ const completeProcess = (process) => {
 const deleteProcess = async (process) => {
   if (confirm('Are you sure you want to delete this process?')) {
     try {
-      await axios.delete(`/api/post-harvest/${process.id}`);
-      fetchData();
+      const response = await axios.delete(`/api/post-harvest/${process.id}`);
+      // Use returned summary to avoid extra round-trip
+      if (response.data.summary) {
+        summary.value = response.data.summary;
+      }
+      await fetchData();
     } catch (error) {
       console.error('Failed to delete process', error);
-      alert(error.response?.data?.message || 'Failed to delete process');
+      errorMessage.value = error.response?.data?.message || 'Failed to delete process';
     }
   }
 };

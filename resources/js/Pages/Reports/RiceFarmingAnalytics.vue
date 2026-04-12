@@ -229,42 +229,73 @@
       </div>
 
       <!-- Efficiency Metrics -->
-      <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Efficiency Metrics</h2>
-        </div>
-        <div class="p-6">
-          <div v-if="analytics.efficiency_metrics" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="text-center">
-              <div class="w-24 h-24 mx-auto mb-4">
-                <PieChart
-                  :data="formatEfficiencyData('Stage Completion', analytics.efficiency_metrics.stage_completion_efficiency)"
-                  :options="{ responsive: true, maintainAspectRatio: false }"
-                />
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-white rounded-lg shadow">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Crop Efficiency</h2>
+          </div>
+          <div class="p-6">
+            <div v-if="analytics.efficiency_metrics" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="text-center">
+                <div class="w-24 h-24 mx-auto mb-4">
+                  <PieChart
+                    :data="formatEfficiencyData('Stage Completion', analytics.efficiency_metrics.stage_completion_efficiency)"
+                    :options="{ responsive: true, maintainAspectRatio: false }"
+                  />
+                </div>
+                <p class="text-sm font-medium text-gray-900">Stage Completion</p>
+                <p class="text-xs text-gray-500">{{ analytics.efficiency_metrics.stage_completion_efficiency }}% on time</p>
               </div>
-              <p class="text-sm font-medium text-gray-900">Stage Completion</p>
-              <p class="text-xs text-gray-500">{{ analytics.efficiency_metrics.stage_completion_efficiency }}% on time</p>
-            </div>
-            
-            <div class="text-center">
-              <div class="w-24 h-24 mx-auto mb-4">
-                <PieChart
-                  :data="formatEfficiencyData('Yield Efficiency', analytics.efficiency_metrics.yield_efficiency)"
-                  :options="{ responsive: true, maintainAspectRatio: false }"
-                />
+              
+              <div class="text-center">
+                <div class="w-24 h-24 mx-auto mb-4">
+                  <PieChart
+                    :data="formatEfficiencyData('Yield Efficiency', analytics.efficiency_metrics.yield_efficiency)"
+                    :options="{ responsive: true, maintainAspectRatio: false }"
+                  />
+                </div>
+                <p class="text-sm font-medium text-gray-900">Yield Efficiency</p>
+                <p class="text-xs text-gray-500">{{ analytics.efficiency_metrics.yield_efficiency }}% of expected</p>
               </div>
-              <p class="text-sm font-medium text-gray-900">Yield Efficiency</p>
-              <p class="text-xs text-gray-500">{{ analytics.efficiency_metrics.yield_efficiency }}% of expected</p>
             </div>
-            
-            <div class="text-center">
-              <p class="text-lg font-bold text-gray-900">{{ analytics.efficiency_metrics.average_growth_cycle_days }} days</p>
-              <p class="text-sm text-gray-600">Average Growth Cycle</p>
-              <p class="text-xs text-gray-500">From planting to harvest</p>
+            <div v-else class="text-center py-8 text-gray-500">
+              No crop efficiency data available
             </div>
           </div>
-          <div v-else class="text-center py-8 text-gray-500">
-            No efficiency data available
+        </div>
+
+        <!-- NEW: Post-Harvest Efficiency -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Post-Harvest Efficiency</h2>
+          </div>
+          <div class="p-6">
+            <div v-if="analytics.post_harvest_efficiency" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="text-center">
+                <div class="w-24 h-24 mx-auto mb-4">
+                  <PieChart
+                    :data="formatEfficiencyData('Recovery Rate', analytics.post_harvest_efficiency.average_recovery_rate)"
+                    :options="{ responsive: true, maintainAspectRatio: false }"
+                  />
+                </div>
+                <p class="text-sm font-medium text-gray-900">Avg. Recovery Rate</p>
+                <p class="text-xs text-gray-500">{{ analytics.post_harvest_efficiency.average_recovery_rate }}% yield recovered</p>
+              </div>
+              
+              <div class="text-center flex flex-col justify-center">
+                <div class="p-4 bg-orange-50 rounded-lg mb-4">
+                   <p class="text-2xl font-bold text-orange-600">{{ analytics.post_harvest_efficiency.average_weight_loss }}%</p>
+                   <p class="text-xs text-gray-600">Avg. Weight Loss</p>
+                </div>
+                <div class="p-4 bg-green-50 rounded-lg">
+                   <p class="text-2xl font-bold text-green-600">{{ formatCurrency(analytics.post_harvest_efficiency.cost_efficiency?.avg_cost_per_bushel || 0) }}</p>
+                   <p class="text-xs text-gray-600">Avg. Cost / Bushel</p>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-8 text-gray-500">
+              No post-harvest efficiency data available. Start recording processing steps to see metrics.
+            </div>
           </div>
         </div>
       </div>

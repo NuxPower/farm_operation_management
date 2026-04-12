@@ -190,9 +190,15 @@ All five core project objectives have been **fully achieved** with comprehensive
   - `resources/js/Pages/Farmer/Harvests/Show.vue`
   - `resources/js/components/Navigation/Sidebar.vue`
   - `resources/js/Pages/Farmer/Harvests/Index.vue`
-- Enhanced post-harvest pipeline user flow:
+- Enhanced post-harvest pipeline user flow (threshing → drying → milling).
   - `resources/js/Pages/Farm/PostHarvest/Index.vue`
-- Marketplace product creation now prefers latest processed inventory output from linked harvests:
+- Fully documented and standard unit measurement implemented across the pipeline: **Bushels**.
+  - Standardized harvest default unit to bushels.
+  - Form validation correctly handles bushels input, calculating losses/recovery against accurate measurements.
+- Integrated Labor Tasks into PostHarvest Processing:
+  - Added support to instantly create labor Tasks per post-harvest process via the 'Assign Laborers' option in the `ProcessForm`.
+  - Links generated `Task` IDs directly to the `PostHarvestProcess`.
+- Marketplace product creation now automatically incorporates post-harvest inventory and handles quantity transformations accurately based on final processed form (e.g. Milled Rice):
   - `resources/js/Pages/Marketplace/Product/Create.vue`
   - `app/Models/RiceProduct.php`
 - Added test coverage to guarantee behavior:

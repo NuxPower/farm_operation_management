@@ -197,7 +197,7 @@ class PostHarvestProcess extends Model
      */
     public function canDelete(): bool
     {
-        return $this->status === self::STATUS_PENDING;
+        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_CANCELLED]);
     }
 
     /**

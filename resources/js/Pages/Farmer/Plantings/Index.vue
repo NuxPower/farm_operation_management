@@ -114,7 +114,7 @@
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
-            v-for="planting in plantings"
+            v-for="planting in filteredPlantings"
             :key="planting.id"
             class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
           >
@@ -284,7 +284,10 @@ const varietyOptions = computed(() => {
 const filteredPlantings = computed(() => {
   let filtered = plantings.value;
 
-  if (filters.value.status) {
+  // Default filter: hide harvested and failed unless explicitly requested
+  if (!filters.value.status) {
+    filtered = filtered.filter(p => !['harvested', 'failed'].includes(p.status));
+  } else {
     filtered = filtered.filter(p => p.status === filters.value.status);
   }
 

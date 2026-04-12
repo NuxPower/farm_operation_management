@@ -40,7 +40,7 @@ class HarvestController extends Controller
             'planting_id' => 'required|exists:plantings,id',
             'harvest_date' => 'required|date',
             'quantity' => 'required|numeric|min:0',
-            'unit' => 'required|string|in:kg,grams,pounds,bushels,tons,sacks',
+            'unit' => 'required|string|in:bushels',
             'quality_grade' => 'nullable|string|in:A,B,C,D',
             'price_per_unit' => 'nullable|numeric|min:0',
             'total_value' => 'nullable|numeric|min:0',
@@ -152,7 +152,7 @@ class HarvestController extends Controller
         $validator = Validator::make($request->all(), [
             'harvest_date' => 'sometimes|required|date',
             'quantity' => 'sometimes|required|numeric|min:0',
-            'unit' => 'sometimes|required|string|in:kg,grams,pounds,bushels,tons,sacks',
+            'unit' => 'sometimes|required|string|in:bushels',
             'quality_grade' => 'nullable|string|in:A,B,C,D',
             'price_per_unit' => 'nullable|numeric|min:0',
             'total_value' => 'nullable|numeric|min:0',

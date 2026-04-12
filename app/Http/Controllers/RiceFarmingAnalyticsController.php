@@ -70,13 +70,15 @@ class RiceFarmingAnalyticsController extends Controller
                 $productionStats = [
                     'total_plantings' => $plantings->count(),
                     'yield_gaps' => [],
-                    'growth_stages' => []
+                    'growth_stages' => [],
+                    'post_harvest_efficiency' => []
                 ];
 
                 foreach ($plantings as $planting) {
                     // Calculate Yield Gap (Gap II)
                     if ($planting->status === 'harvested') {
                         $productionStats['yield_gaps'][] = $this->productionService->calculateYieldGap($planting);
+                        $productionStats['post_harvest_efficiency'][] = $this->productionService->calculatePostHarvestEfficiency($planting);
                     }
                     // Track Growth Stages (GDD)
                     if ($planting->status !== 'harvested') {

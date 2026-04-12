@@ -59,20 +59,38 @@
                     </div>
                   </div>
 
-                  <div class="space-y-2">
-                    <label class="form-label">Target Planting</label>
-                    <div class="relative">
-                      <select v-model="form.planting_id" class="form-input appearance-none" required>
-                        <option value="" disabled>Select active planting...</option>
-                        <option v-for="planting in plantings" :key="planting.id" :value="planting.id">
-                           {{ formatPlantingOption(planting) }}
-                        </option>
-                      </select>
-                      <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                      </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                       <label class="form-label">Target Field</label>
+                       <div class="relative">
+                         <select v-model="form.field_id" class="form-input appearance-none" required @change="onFieldChange">
+                           <option value="" disabled>Select field...</option>
+                           <option v-for="field in farmStore.fields" :key="field.id" :value="field.id">
+                              {{ field.name }} ({{ field.size }} ha)
+                           </option>
+                         </select>
+                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                           <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                         </div>
+                       </div>
+                       <p v-if="errors.field_id" class="form-error">{{ errors.field_id[0] }}</p>
                     </div>
-                     <p v-if="errors.planting_id" class="form-error">{{ errors.planting_id[0] }}</p>
+
+                    <div class="space-y-2">
+                      <label class="form-label">Planting (Optional)</label>
+                      <div class="relative">
+                        <select v-model="form.planting_id" class="form-input appearance-none" :disabled="!form.field_id">
+                          <option value="">No specific planting (Field-wide task)</option>
+                          <option v-for="planting in filteredPlantings" :key="planting.id" :value="planting.id">
+                             {{ formatPlantingOption(planting) }}
+                          </option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </div>
+                      </div>
+                      <p v-if="errors.planting_id" class="form-error">{{ errors.planting_id[0] }}</p>
+                    </div>
                   </div>
 
                   <div class="space-y-2">
@@ -338,6 +356,7 @@ const groups = ref([])
 
 const form = reactive({
   task_type: '',
+  field_id: '',
   planting_id: '',
   due_date: '',
   description: '',
@@ -360,9 +379,18 @@ const plantings = computed(() => {
   // For editing, show current planting even if it's harvested/cancelled, or stick to active filter?
   // Usually better to include the current one if it's not active anymore.
   return (farmStore.plantings || []).filter(p => {
-    return (p.status !== 'harvested' && p.status !== 'failed' && p.status !== 'cancelled') || p.id === form.planting_id
+    return (p.status !== 'harvested' && p.status !== 'failed' && p.status !== 'cancelled') || p.id == form.planting_id
   })
 })
+
+const filteredPlantings = computed(() => {
+  if (!form.field_id) return []
+  return plantings.value.filter(p => p.field_id == form.field_id)
+})
+
+const onFieldChange = () => {
+  form.planting_id = '' // Reset planting when field changes
+}
 
 const taskTypeOptions = computed(() =>
   buildTaskTypeOptions(farmStore.tasks || [], { includeBase: true })
@@ -408,37 +436,31 @@ const submitTask = async () => {
     return;
   }
 
-  try {
-    if (!form.task_type || !form.planting_id || !form.due_date || !form.description.trim()) {
-      errors.value = {
-        ...(form.task_type ? {} : { task_type: ['Task type is required'] }),
-        ...(form.planting_id ? {} : { planting_id: ['Linked planting is required'] }),
-        ...(form.due_date ? {} : { due_date: ['Due date is required'] }),
-        ...(form.description.trim() ? {} : { description: ['Description is required'] }),
+    try {
+      if (!form.task_type || !form.field_id || !form.due_date || !form.description.trim()) {
+        errors.value = {
+          ...(form.task_type ? {} : { task_type: ['Task type is required'] }),
+          ...(form.field_id ? {} : { field_id: ['Target field is required'] }),
+          ...(form.due_date ? {} : { due_date: ['Due date is required'] }),
+          ...(form.description.trim() ? {} : { description: ['Description is required'] }),
+        }
+        submitting.value = false
+        return
       }
-      submitting.value = false
-      return
-    }
 
-    const plantingId = Number(form.planting_id)
-    if (isNaN(plantingId) || plantingId <= 0) {
-      errors.value = { planting_id: ['Please select a valid planting'] }
-      submitting.value = false
-      return
-    }
-
-    const payload = {
-      task_type: form.task_type,
-      planting_id: plantingId,
-      due_date: form.due_date,
-      description: form.description.trim(),
-      payment_type: form.payment_type,
-      revenue_share_percentage: form.payment_type === 'share' ? form.revenue_share_percentage : null,
-      wage_amount: form.payment_type === 'wage' ? form.wage_amount : null,
-      unit: form.payment_type === 'piece_rate' ? form.unit : null,
-      quantity: form.payment_type === 'piece_rate' ? form.quantity : null,
-      unit_price: form.payment_type === 'piece_rate' ? form.unit_price : null,
-    }
+      const payload = {
+        task_type: form.task_type,
+        field_id: form.field_id,
+        planting_id: form.planting_id || null,
+        due_date: form.due_date,
+        description: form.description.trim(),
+        payment_type: form.payment_type,
+        revenue_share_percentage: form.payment_type === 'share' ? form.revenue_share_percentage : null,
+        wage_amount: form.payment_type === 'wage' ? form.wage_amount : null,
+        unit: form.payment_type === 'piece_rate' ? form.unit : null,
+        quantity: form.payment_type === 'piece_rate' ? form.quantity : null,
+        unit_price: form.payment_type === 'piece_rate' ? form.unit_price : null,
+      }
 
     if (form.assignment_type === 'individual' && form.assigned_to) {
         const assignedToNum = Number(form.assigned_to)
@@ -488,10 +510,14 @@ onMounted(async () => {
   loading.value = true
   const loaders = []
 
-  if (!plantings.value.length) {
+  if (!(farmStore.plantings && farmStore.plantings.length)) {
     loaders.push(farmStore.fetchPlantings())
   }
   
+  if (!(farmStore.fields && farmStore.fields.length)) {
+    loaders.push(farmStore.fetchFields())
+  }
+
   // Wait for initial data
   await Promise.all(loaders)
   await loadLaborersAndGroups()
@@ -503,6 +529,7 @@ onMounted(async () => {
      const task = response.data.task || response.data
      
      form.task_type = task.task_type
+     form.field_id = task.field_id || task.planting?.field_id
      form.planting_id = task.planting_id
      form.due_date = formatDateForInput(task.due_date)
      form.description = task.description

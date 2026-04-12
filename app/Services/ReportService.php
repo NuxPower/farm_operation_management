@@ -11,6 +11,7 @@ use App\Models\Sale;
 use App\Models\LaborWage;
 use App\Models\InventoryItem;
 use App\Models\WeatherLog;
+use App\Models\PostHarvestProcess;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -150,9 +151,17 @@ class ReportService
             ->where('status', 'active')
             ->count();
 
+        $recentProcessing = PostHarvestProcess::whereHas('planting.field', function ($q) use ($farmIds) {
+            $q->whereIn('farm_id', $farmIds);
+        })
+            ->where('status', PostHarvestProcess::STATUS_COMPLETED)
+            ->where('completed_date', '>=', now()->subDays(30))
+            ->get();
+
         return [
             'recent_harvests_count' => $recentHarvests->count(),
             'recent_total_yield' => $recentHarvests->sum('yield_kg'),
+            'recent_processed_yield' => $recentProcessing->sum('output_quantity'),
             'upcoming_harvests' => $upcomingHarvests,
             'average_yield_per_harvest' => $recentHarvests->count() > 0 ?
                 $recentHarvests->avg('yield_kg') : 0,
@@ -264,6 +273,26 @@ class ReportService
                 'amount' => null,
                 'date' => $harvest->created_at,
                 'crop_type' => $harvest->planting->crop_type ?? 'Unknown',
+            ];
+        }
+
+        // Recent post-harvest processing
+        $recentProcessing = PostHarvestProcess::whereHas('planting.field', function ($q) use ($farmIds) {
+            $q->whereIn('farm_id', $farmIds);
+        })
+            ->where('status', PostHarvestProcess::STATUS_COMPLETED)
+            ->where('completed_date', '>=', now()->subDays(7)->toDateString())
+            ->orderBy('completed_date', 'desc')
+            ->limit(5)
+            ->get();
+
+        foreach ($recentProcessing as $process) {
+            $activities[] = [
+                'type' => 'processing',
+                'description' => "Processing: ". ucfirst($process->process_type) ." {$process->output_quantity} {$process->output_unit}",
+                'amount' => null,
+                'date' => Carbon::parse($process->completed_date ?? $process->updated_at),
+                'crop_type' => $process->planting->crop_type ?? 'Unknown',
             ];
         }
 

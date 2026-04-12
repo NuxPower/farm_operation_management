@@ -42,7 +42,7 @@ class DashboardController extends Controller
             $stats = [
                 'total_fields' => $fields->count(),
                 'active_plantings' => Planting::whereIn('field_id', $fieldIds)
-                    ->where('status', '!=', 'harvested')
+                    ->whereNotIn('status', [Planting::STATUS_HARVESTED, Planting::STATUS_FAILED])
                     ->count(),
                 'active_seed_plantings' => SeedPlanting::where('user_id', $user->id)
                     ->whereIn('status', ['sown', 'germinating', 'ready'])
@@ -50,10 +50,10 @@ class DashboardController extends Controller
                 'ready_seed_plantings' => SeedPlanting::where('user_id', $user->id)
                     ->where('status', 'ready')
                     ->count(),
-                'pending_tasks' => Task::whereIn('planting_id', $plantingIds)
+                'pending_tasks' => Task::whereIn('field_id', $fieldIds)
                     ->where('status', Task::STATUS_PENDING)
                     ->count(),
-                'overdue_tasks' => Task::whereIn('planting_id', $plantingIds)
+                'overdue_tasks' => Task::whereIn('field_id', $fieldIds)
                     ->where('status', Task::STATUS_PENDING)
                     ->where('due_date', '<', now())
                     ->count(),
@@ -63,16 +63,16 @@ class DashboardController extends Controller
             ];
 
             // Recent activities
-            $recentTasks = Task::whereIn('planting_id', $plantingIds)
-                ->with(['planting.field', 'laborer'])
+            $recentTasks = Task::whereIn('field_id', $fieldIds)
+                ->with(['planting.field', 'field', 'laborer'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get();
 
-            $upcomingTasks = Task::whereIn('planting_id', $plantingIds)
+            $upcomingTasks = Task::whereIn('field_id', $fieldIds)
                 ->where('status', Task::STATUS_PENDING)
                 ->where('due_date', '>=', now())
-                ->with(['planting.field', 'laborer'])
+                ->with(['planting.field', 'field', 'laborer'])
                 ->orderBy('due_date', 'asc')
                 ->limit(5)
                 ->get();

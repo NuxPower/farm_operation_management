@@ -24,6 +24,13 @@ class PlantingController extends Controller
             $q->where('user_id', $user->id);
         });
 
+        // Filter out harvested/failed plantings by default unless status is specified
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        } else {
+            $query->whereNotIn('status', [Planting::STATUS_HARVESTED, Planting::STATUS_FAILED]);
+        }
+
         $plantings = $query->with(['field', 'riceVariety'])->get();
 
         return response()->json([
@@ -178,6 +185,11 @@ class PlantingController extends Controller
                     ->orderBy('rice_growth_stages.order_sequence')
                     ->select('planting_stages.*')
                     ->first();
+
+                // Cast to model if it's returning as stdClass due to join
+                if ($firstStage && !($firstStage instanceof \App\Models\PlantingStage)) {
+                    $firstStage = \App\Models\PlantingStage::find($firstStage->id);
+                }
 
                 if ($firstStage) {
                     if ($firstStage->status !== 'in_progress') {
