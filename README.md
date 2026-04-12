@@ -279,14 +279,16 @@ All five core project objectives have been **fully achieved** with comprehensive
 |  🛒 Buyer Orders   |      |   (Auth, Validation)    |      |  🔔 Alerts          |
 |  ☁️ Weather APIs   |      |          +              |      |  📄 Reports         |
 |  🗺️ Map Service    |----->|   🧠 Analytics Engine   |----->|  💡 Suggestions     |
-|                   |      |                         |      |                     |
+|                   |      |          +              |      |                     |
+|                   |      |   💰 Finance Engine     |      |                     |
 +-------------------+      +-----------+-------------+      +---------------------+
                                        |
                                        v
                              +---------------------+
                              |                     |
                              |  🗄️ Database Storage  |
-                             |                     |
+                             |   (Farm, Inventory, |
+                             |    Orders, Sales)   |
                              +---------------------+
 ```
 
@@ -407,10 +409,10 @@ To ensure reliability, the system uses a robust **Task Scheduler** driven by `su
 │ • Seedling Batches   │                   │  ┌─────────────────────────────────────┐
 │ • Transplant Ready   │                   │  │   [FARMER] Confirm Order            │
 ├──────────────────────┤                   │  │  • Accept / Reject                  │
-│ Harvest Recording    │                   │  │  • Set Pickup Date                  │
-│ • Log Yield (kg)     │◄──────────────────┘  └─────────────────┬───────────────────┘
+│ Record Post-Harvest  │                   │  │  • Set Pickup Date                  │
+│ • Log Yield (bushels)│◄──────────────────┘  └─────────────────┬───────────────────┘
 │ • Quality Grade      │                                        │
-│ • Harvester Share    │                                        ▼
+│ • Track Shrinkage    │                                        ▼
 └──────────────────────┘                      ┌─────────────────────────────────────┐
          │                                    │      Order Confirmed                │
          ▼                                    │  • Buyer Notified via Email         │
@@ -433,17 +435,31 @@ To ensure reliability, the system uses a robust **Task Scheduler** driven by `su
          │                                                      │
          ▼                                                      ▼
 ┌──────────────────────┐                      ┌─────────────────────────────────────┐
-│ INVENTORY MANAGEMENT │                      │   [FARMER] Mark as Delivered        │
+│ POST-HARVEST PROC.   │                      │   [FARMER] Mark as Delivered        │
 ├──────────────────────┤                      │  • Record Payment (COD/Bank)        │
-│ Stock Tracking       │                      │  • Auto-Generate Sale Record        │
-│ • Seeds, Fertilizer  │                      └─────────────────┬───────────────────┘
+│ Processing Phases    │                      │  • Auto-Generate Sale Record        │
+│ • Threshing          │                      └─────────────────┬───────────────────┘
+│ • Drying             │                                        │
+│ • Milling            │                                        ▼
+│ Tracking Details     │                      ┌─────────────────────────────────────┐
+│ • Weight Loss %      │                      │   [BUYER] Rate & Review             │
+│ • Generated Output   │                      │  • Leave Product Review             │
+│ • Auto-Expense Gen   │                      │  • Rate Farmer (1-5 Stars)          │
+└──────────────────────┘                      └─────────────────┬───────────────────┘
+         │                                                      │
+         ▼                                                      │
+┌──────────────────────┐                                        │
+│ INVENTORY MANAGEMENT │                                        │
+├──────────────────────┤                                        │
+│ Stock Tracking       │                                        │
+│ • Seeds, Fertilizer  │                                        │
 │ • Pesticides, Tools  │                                        │
-│ WAC Calculation      │                                        ▼
-│ Low Stock Alerts     │                      ┌─────────────────────────────────────┐
-│ Expiry Tracking      │                      │   [BUYER] Rate & Review             │
-│ → Auto-Expense Gen   │                      │  • Leave Product Review             │
-└──────────────────────┘                      │  • Rate Farmer (1-5 Stars)          │
-         │                                    └─────────────────┬───────────────────┘
+│ WAC Calculation      │                                        │
+│ Low Stock Alerts     │                                        │
+│ Expiry Tracking      │                                        │
+│ → Auto-Expense Gen   │                                        │
+└──────────────────────┘                                        │
+         │                                                      │
          ▼                                                      │
 ┌──────────────────────┐                                        │
 │   MARKETPLACE SALES  │                                        │
@@ -606,10 +622,10 @@ The System Context Diagram defines the **Farm Operations Management System** as 
     |    +-------+-------+   1.5 Expenses   |               +-------+-------+|
     |            |                          |                       ^        |
     |            v                          |                       |        |
-    |     [D1] Farm DB (Fields/Labor)       v                       |        |
+    |     [D1] Farm DB (Fields/Inventory/Labor) |                       |        |
     |                                       |                       |        |
     |                                       v                       |        |
-    v                            [D4] Financial DB <----------------+        |
+    v                       [D4] Financial DB (Sales/Expenses) <----+        |
 +---------+                                 ^                                |
 | Laborer |                                 |                                |
 +---------+                                 | 3.4 Transaction Data           |
@@ -621,7 +637,7 @@ The System Context Diagram defines the **Farm Operations Management System** as 
 +---+----+                         +--------+--------+
 |        |                                  |
 | Farmer |                                  v
-|        |                          [D3] Marketplace DB
+|        |                   [D3] Marketplace DB (Orders/Products)
 +--------+                                  ^
                                             |
                                             |
@@ -634,10 +650,10 @@ The System Context Diagram defines the **Farm Operations Management System** as 
 
 **Description:**
 The Level 0 DFD explodes the system into four major functional processes:
-1.  **1.0 Manage Operations:** Handles core farming activities, labor scheduling, and crop tracking. Interacts with the `Farm DB`.
+1.  **1.0 Manage Operations:** Handles core farming activities, labor scheduling, crop tracking, and post-harvest inventory logging. Interacts with the `Farm DB`.
 2.  **2.0 Monitor Weather:** Fetches external weather data, stores it in `Weather Logs`, and provides alerts to farmers.
-3.  **3.0 Manage Marketplace:** Facilitates B2B transactions between Farmers and Buyers, storing data in `Marketplace DB`.
-4.  **4.0 Generate Reports:** Aggregates financial and operational data to produce actionable insights for the Farmer.
+3.  **3.0 Manage Marketplace:** Facilitates B2B transactions between Farmers and Buyers, handling product listings, order states, and shrinking reserved inventory. Stores data in `Marketplace DB`.
+4.  **4.0 Generate Reports:** Aggregates financial (Sales, Expenses) and operational data to produce actionable insights and profitability metrics for the Farmer.
 
 ---
 
@@ -653,6 +669,11 @@ The Level 0 DFD explodes the system into four major functional processes:
         |               |                           |    ( Update Growth )
         +-------------->|     Manage Inventory      |    (     Stage     )
         |               |                           |
+        |               +---------------------------+       <<extend>>
+        |               |                           |    ( Track Shrinkage )
+        |               |   Process Post-Harvest    | - - - - - - +
+        |               |                           |             v
+        +-------------->|                           |       ( Update Stock )
         |               +---------------------------+
         |               |                           |
         +-------------->|      Manage Laborers      |
@@ -665,6 +686,10 @@ The Level 0 DFD explodes the system into four major functional processes:
         |               |                           |
         +-------------->|     Process Orders        | < - - - - - - ( Negotiate Price )
         |               |                           |   <<extend>>
+        |               +---------------------------+
+        |               |                           |       <<include>>
+        |               |       Generate Sale       | - - - - - - > ( Record Revenue )
+        |               |                           |
         |               +---------------------------+
         |               |                           |
         +-------------->|      View Analytics       |
@@ -692,17 +717,21 @@ The Level 0 DFD explodes the system into four major functional processes:
         |               |                           |       | <<extend>>
         |               +---------------------------+       v
         |               |                           |    (  Filter by  )
-   +-------+            |       Place Order         |    (   Location  )
+        |               |   Manage Shopping Cart    |    (   Location  )
+        |               |                           |
+        |               +---------------------------+
+        |               |                           |       <<extend>>
+   +-------+            |       Place Order         | - - - - - - > ( Negotiate Price )
    | Buyer |----------->|                           |
    +-------+            +-------------+-------------+
         |               |             |             |
         |               |             + - - - - - - - - - - > ( Process Payment )
         +-------------->|             |       <<include>>
-        |               |    Track/Update Order     |
-        |               |                           | < - - - ( Cancel Order )
-        |               +---------------------------+  <<extend>>
-        |               |                           |
-        +-------------->|    View Order History     |
+        |               |    Track/Update Order     | - - - +
+        |               |                           |       | <<extend>>
+        |               +---------------------------+       v
+        |               |                           |    ( Confirm Pickup )
+        +-------------->|    View Order History     |    ( Cancel Order   )
                         |                           |
                         +---------------------------+
 ```
