@@ -101,20 +101,31 @@ class DataAnalysisController extends Controller
         ];
 
         if ($farm) {
-            $taskStats['total_tasks'] = Task::whereHas('planting.field', function ($q) use ($farm) {
-                $q->where('farm_id', $farm->id);
+            // Count tasks owned via planting->field OR direct field_id
+            $farmTaskScope = function ($query) use ($farm) {
+                $query->where(function ($q) use ($farm) {
+                    $q->whereHas('planting.field', function ($fq) use ($farm) {
+                        $fq->where('farm_id', $farm->id);
+                    })->orWhereHas('field', function ($fq) use ($farm) {
+                        $fq->where('farm_id', $farm->id);
+                    });
+                });
+            };
+
+            $taskStats['total_tasks'] = Task::where(function ($q) use ($farmTaskScope) {
+                $farmTaskScope($q);
             })->count();
 
-            $taskStats['completed_tasks'] = Task::whereHas('planting.field', function ($q) use ($farm) {
-                $q->where('farm_id', $farm->id);
+            $taskStats['completed_tasks'] = Task::where(function ($q) use ($farmTaskScope) {
+                $farmTaskScope($q);
             })->where('status', Task::STATUS_COMPLETED)->count();
 
-            $taskStats['pending_tasks'] = Task::whereHas('planting.field', function ($q) use ($farm) {
-                $q->where('farm_id', $farm->id);
+            $taskStats['pending_tasks'] = Task::where(function ($q) use ($farmTaskScope) {
+                $farmTaskScope($q);
             })->where('status', Task::STATUS_PENDING)->count();
 
-            $taskStats['overdue_tasks'] = Task::whereHas('planting.field', function ($q) use ($farm) {
-                $q->where('farm_id', $farm->id);
+            $taskStats['overdue_tasks'] = Task::where(function ($q) use ($farmTaskScope) {
+                $farmTaskScope($q);
             })->where('due_date', '<', now())
                 ->where('status', '!=', Task::STATUS_COMPLETED)
                 ->count();

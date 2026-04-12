@@ -97,6 +97,14 @@ class RiceFarmingAnalyticsController extends Controller
                 }
                 $productionStats['yield_unit'] = $yieldUnit;
 
+                // Aggregate total yield and per-hectare average for the frontend
+                $totalYield = $allHarvests->sum('yield');
+                $totalAreaPlanted = $plantings->where('status', 'harvested')->sum('area_planted');
+                $productionStats['total_yield'] = round($totalYield, 2);
+                $productionStats['average_yield_per_hectare'] = $totalAreaPlanted > 0
+                    ? round($totalYield / $totalAreaPlanted, 2)
+                    : 0;
+
                 // 2. Financial Analytics (Delegated to FinancialService)
                 // Using existing robust service
                 $financials = $this->financialService->getFarmFinancialSummary($farm->id, $period * 30);
@@ -125,18 +133,43 @@ class RiceFarmingAnalyticsController extends Controller
                 $pestReflexRisk = $this->pestPredictionService->predictRisks($farm, collect(), null);
                 $reflexActions = $this->determineReflexActions($pestReflexRisk, $weatherImpact);
 
+                // 6. Aggregate post-harvest efficiency as top-level summary
+                $phEfficiencyData = collect($productionStats['post_harvest_efficiency'])
+                    ->where('status', 'calculated');
+
+                $postHarvestSummary = null;
+                if ($phEfficiencyData->isNotEmpty()) {
+                    $avgRecovery = round($phEfficiencyData->avg('average_recovery_rate'), 2);
+                    $avgWeightLoss = round($phEfficiencyData->avg('average_weight_loss_percentage'), 2);
+                    $totalProcessingCost = $phEfficiencyData->sum('total_processing_cost');
+                    $totalProcesses = $phEfficiencyData->sum('processes_count');
+
+                    $postHarvestSummary = [
+                        'average_recovery_rate' => $avgRecovery,
+                        'average_weight_loss' => $avgWeightLoss,
+                        'total_processing_cost' => $totalProcessingCost,
+                        'total_processes' => $totalProcesses,
+                        'cost_efficiency' => [
+                            'avg_cost_per_bushel' => $totalProcesses > 0 && $totalYield > 0
+                                ? round($totalProcessingCost / $totalYield, 2)
+                                : 0,
+                        ],
+                    ];
+                }
+
                 return [
                     'production_analytics' => $productionStats,
                     'financial_analytics' => $financials,
                     'field_performance' => $fieldPerformance,
                     'weather_impact' => $weatherImpact,
                     'data_quality' => $dataQuality,
+                    'post_harvest_efficiency' => $postHarvestSummary,
                     'risk_reflex' => [
                         'pest_risks' => $pestReflexRisk,
                         'actions' => $reflexActions,
                         'score' => $this->calculateRiskScore($pestReflexRisk)
                     ],
-                    'market_performance' => $this->marketplaceService->getFarmerSales($user->id, $period * 30), // Using existing method
+                    'market_performance' => $this->marketplaceService->getFarmerSales($user->id, $period * 30),
                     'efficiency_metrics' => [
                         'nitrogen_use_efficiency' => $efficiencies,
                         'summary' => 'Research-backed PFP Analysis'

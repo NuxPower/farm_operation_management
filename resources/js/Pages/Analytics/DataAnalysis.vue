@@ -453,6 +453,62 @@
            </div>
         </div>
 
+        <!-- Post-Harvest Processing Analytics -->
+        <div v-if="analyticsData.post_harvest?.total_processes > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+           <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 class="text-lg font-bold text-gray-900">Post-Harvest Processing</h3>
+              <span class="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{{ analyticsData.post_harvest.total_processes }} processes</span>
+           </div>
+           <div class="p-6">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                 <div class="text-center p-4 bg-emerald-50 rounded-xl">
+                    <div class="text-2xl font-bold text-emerald-700">{{ analyticsData.post_harvest.average_recovery_rate }}%</div>
+                    <div class="text-xs text-gray-500 mt-1">Avg Recovery Rate</div>
+                 </div>
+                 <div class="text-center p-4 bg-amber-50 rounded-xl">
+                    <div class="text-2xl font-bold text-amber-700">{{ formatCurrency(analyticsData.post_harvest.cost_optimization?.self_avg_cost ?? 0) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Avg Self Cost/Unit</div>
+                 </div>
+                 <div class="text-center p-4 bg-blue-50 rounded-xl">
+                    <div class="text-2xl font-bold text-blue-700">{{ formatCurrency(analyticsData.post_harvest.cost_optimization?.provider_avg_cost ?? 0) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Avg Provider Cost/Unit</div>
+                 </div>
+                 <div class="text-center p-4 bg-violet-50 rounded-xl">
+                    <div class="text-2xl font-bold text-violet-700">{{ analyticsData.post_harvest.total_processes }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Total Completed</div>
+                 </div>
+              </div>
+              <div v-if="analyticsData.post_harvest.variety_performance?.length" class="space-y-3">
+                 <h4 class="text-sm font-semibold text-gray-700">Recovery by Variety</h4>
+                 <div v-for="v in analyticsData.post_harvest.variety_performance" :key="v.variety" class="flex items-center gap-3">
+                    <span class="text-sm text-gray-600 w-28 truncate" :title="v.variety">{{ v.variety }}</span>
+                    <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                       <div class="h-full rounded-full bg-emerald-500 transition-all" :style="{ width: `${Math.min(v.average_recovery_rate, 100)}%` }"></div>
+                    </div>
+                    <span class="text-xs font-medium text-gray-700 w-12 text-right">{{ v.average_recovery_rate }}%</span>
+                 </div>
+              </div>
+              <div v-if="analyticsData.post_harvest.historical_trends?.length" class="mt-6 space-y-3">
+                 <h4 class="text-sm font-semibold text-gray-700">Monthly Recovery Trend</h4>
+                 <div class="flex items-end gap-1 h-24">
+                    <div
+                      v-for="t in analyticsData.post_harvest.historical_trends"
+                      :key="t.month"
+                      class="flex-1 bg-emerald-400 rounded-t-sm hover:bg-emerald-500 transition-all relative group"
+                      :style="{ height: `${Math.min(t.average_recovery_rate, 100)}%` }"
+                    >
+                       <div class="opacity-0 group-hover:opacity-100 absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 shadow-lg">
+                          {{ t.month }}: {{ t.average_recovery_rate }}%
+                       </div>
+                    </div>
+                 </div>
+                 <div class="flex gap-1 text-[9px] text-gray-400">
+                    <span v-for="t in analyticsData.post_harvest.historical_trends" :key="'l-'+t.month" class="flex-1 text-center truncate">{{ t.month.substring(5) }}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+
         <div v-if="analyticsData.pests?.forecasts?.length" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
               <h3 class="text-lg font-bold text-gray-900">Disease & Pest Forecast</h3>
