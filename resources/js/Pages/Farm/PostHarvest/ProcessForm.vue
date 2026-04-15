@@ -16,9 +16,10 @@
               </div>
               <div>
                 <h3 class="text-lg font-semibold leading-6 text-slate-900" id="modal-title">
-                  {{ isCompletionMode ? 'Complete Process' : (processToEdit ? 'Edit Process Step' : 'Add Processing Step') }}
+                  {{ isCompletionMode ? 'Complete Process' : (processToEdit ? 'Edit Process Step' : modalTitle) }}
                 </h3>
                 <p v-if="isCompletionMode" class="text-sm text-slate-500 mt-0.5">Finalize yields and close this workflow.</p>
+                <p v-else class="text-sm text-slate-500 mt-0.5">{{ processTypeLabel }} step</p>
               </div>
             </div>
             <button @click="closeModal" class="rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
@@ -30,29 +31,24 @@
           <div class="px-6 py-6 sm:px-8 max-h-[70vh] overflow-y-auto">
             <form @submit.prevent="saveProcess" class="space-y-8">
               
-              <div class="space-y-5">
-                <div v-if="!isCompletionMode && !processToEdit">
-                  <label class="block text-sm font-medium leading-6 text-slate-900 mb-2">Process Type</label>
-                  <div class="flex rounded-lg bg-slate-100 p-1 sm:w-max">
-                    <button v-for="type in ['threshing', 'drying', 'milling']" :key="type" type="button" 
-                      @click="form.process_type = type"
-                      :class="[form.process_type === type ? 'bg-white shadow-sm ring-1 ring-slate-900/5 text-slate-900' : 'text-slate-500 hover:text-slate-700']"
-                      class="flex-1 sm:flex-none w-32 px-3 py-1.5 text-sm font-medium rounded-md capitalize transition-all duration-200">
-                      {{ type }}
-                    </button>
-                  </div>
+              <!-- Process type is now fixed — show as a read-only badge -->
+              <div v-if="!isCompletionMode && !processToEdit">
+                <label class="block text-sm font-medium leading-6 text-slate-900 mb-2">Process Type</label>
+                <div class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-100 text-slate-900 font-medium text-sm capitalize">
+                  {{ form.process_type }}
                 </div>
+              </div>
 
+              <div class="space-y-5">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label class="block text-sm font-medium leading-6 text-slate-900">Input Material</label>
                     <div class="mt-2 relative flex rounded-md shadow-sm">
                       <input type="number" step="0.01" v-model="form.input_quantity" :disabled="isCompletionMode" 
                         class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00">
-                      <select v-model="form.input_unit" :disabled="isCompletionMode" 
-                        class="relative block w-1/3 rounded-r-md border-0 bg-transparent py-2 pl-3 pr-7 text-slate-500 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 disabled:bg-slate-50">
-                        <option value="bushels">bushels</option>
-                      </select>
+                      <div class="relative flex items-center rounded-r-md border-0 bg-slate-50 py-2 pl-3 pr-4 text-slate-500 ring-1 ring-inset ring-slate-300 sm:text-sm">
+                        {{ inputUnitLabel }}
+                      </div>
                     </div>
                   </div>
 
@@ -75,10 +71,9 @@
                     <div class="mt-2 relative flex rounded-md shadow-sm">
                       <input type="number" step="0.01" v-model="form.output_quantity" required 
                         class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset ring-emerald-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6" placeholder="0.00">
-                      <select v-model="form.output_unit" required 
-                        class="relative block w-1/3 rounded-r-md border-0 bg-transparent py-2 pl-3 pr-7 text-slate-700 ring-1 ring-inset ring-emerald-300 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
-                        <option value="bushels">bushels</option>
-                      </select>
+                      <div class="relative flex items-center rounded-r-md border-0 bg-emerald-50 py-2 pl-3 pr-4 text-emerald-700 ring-1 ring-inset ring-emerald-300 sm:text-sm font-medium">
+                        {{ outputUnitLabel }}
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -198,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -207,7 +202,8 @@ const props = defineProps({
   parentProcessId: [String, Number],
   processToEdit: Object,
   isCompletionMode: Boolean,
-  defaultType: String
+  processType: String,        // Fixed process type determined by pipeline position
+  riceVarietyName: String,    // Variety name for milling output label
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -216,15 +212,45 @@ const loading = ref(false);
 const assignLaborers = ref(false);
 const saveError = ref('');
 
+// Unit label helpers based on process type
+const UNIT_MAP = {
+  threshing: { input: 'bushels', output: 'palay' },
+  drying:    { input: 'palay',   output: 'dried palay' },
+  milling:   { input: 'dried palay', output: 'rice' },
+};
+
+const inputUnitLabel = computed(() => {
+  const type = form.value.process_type || props.processType;
+  return UNIT_MAP[type]?.input || 'bushels';
+});
+
+const outputUnitLabel = computed(() => {
+  const type = form.value.process_type || props.processType;
+  if (type === 'milling' && props.riceVarietyName) {
+    return props.riceVarietyName;
+  }
+  return UNIT_MAP[type]?.output || 'palay';
+});
+
+const processTypeLabel = computed(() => {
+  const type = form.value.process_type || props.processType;
+  return type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
+});
+
+const modalTitle = computed(() => {
+  const type = form.value.process_type || props.processType;
+  return type ? `Start ${type.charAt(0).toUpperCase() + type.slice(1)}` : 'Add Processing Step';
+});
+
 const defaultForm = () => ({
   harvest_id: props.harvestId,
   parent_process_id: props.parentProcessId,
-  process_type: props.defaultType || 'threshing',
+  process_type: props.processType || 'threshing',
   process_date: new Date().toISOString().split('T')[0],
   input_quantity: null,
-  input_unit: 'bushels',
+  input_unit: UNIT_MAP[props.processType]?.input || 'bushels',
   output_quantity: null,
-  output_unit: 'bushels',
+  output_unit: UNIT_MAP[props.processType]?.output || 'palay',
   completed_date: new Date().toISOString().split('T')[0],
   status: 'pending',
   cost_type: 'self',
@@ -244,7 +270,7 @@ onMounted(() => {
       ...p,
       process_date: p.process_date ? p.process_date.split('T')[0] : form.value.process_date,
       completed_date: new Date().toISOString().split('T')[0],
-      output_unit: p.input_unit || 'bushels'
+      output_unit: UNIT_MAP[p.process_type]?.output || p.input_unit || 'palay'
     };
   }
 });
@@ -259,16 +285,19 @@ watch(() => props.isOpen, (isOpen) => {
         ...defaultForm(),
         ...p,
         harvest_id: props.harvestId,
+        process_type: props.processType || p.process_type,
         process_date: p.process_date ? p.process_date.split('T')[0] : new Date().toISOString().split('T')[0],
         completed_date: new Date().toISOString().split('T')[0],
-        output_unit: p.input_unit || 'bushels',
+        output_unit: UNIT_MAP[props.processType || p.process_type]?.output || p.input_unit || 'palay',
       };
     } else {
       form.value = defaultForm();
       form.value.harvest_id = props.harvestId;
       form.value.parent_process_id = props.parentProcessId;
-      if (props.defaultType) {
-        form.value.process_type = props.defaultType;
+      if (props.processType) {
+        form.value.process_type = props.processType;
+        form.value.input_unit = UNIT_MAP[props.processType]?.input || 'bushels';
+        form.value.output_unit = UNIT_MAP[props.processType]?.output || 'palay';
       }
     }
   }
@@ -287,7 +316,14 @@ const saveProcess = async () => {
   saveError.value = '';
   
   try {
-    const payload = { ...form.value, assign_laborers: assignLaborers.value };
+    // Set the correct units before saving
+    const processType = form.value.process_type;
+    const payload = {
+      ...form.value,
+      assign_laborers: assignLaborers.value,
+      input_unit: UNIT_MAP[processType]?.input || 'bushels',
+      output_unit: UNIT_MAP[processType]?.output || 'palay',
+    };
 
     if (props.isCompletionMode) {
       await axios.post(`/api/post-harvest/${props.processToEdit.id}/complete`, payload);

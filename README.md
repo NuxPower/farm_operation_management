@@ -185,33 +185,51 @@ All five core project objectives have been **fully achieved** with comprehensive
 
 ## 🗒️ Post-Harvest Processing Update (April 2026)
 
-- `threshing`, `drying`, and `milling` are maintained as a flexible pipeline (no enforced order by design).
-- Added processing entry to the harvest show page and explicit `Post-Harvest` navigation item:
-  - `resources/js/Pages/Farmer/Harvests/Show.vue`
-  - `resources/js/components/Navigation/Sidebar.vue`
-  - `resources/js/Pages/Farmer/Harvests/Index.vue`
-- Enhanced post-harvest pipeline user flow (threshing → drying → milling).
+### Fixed Pipeline Order
+- The post-harvest pipeline now enforces a **strict, fixed order**: **Threshing → Drying → Milling**.
+- Each step must be completed before the next can begin (pipeline validation in `PostHarvestService`).
+- The UI shows 3 fixed nodes with status indicators: completed, in-progress, pending, ready, or locked.
   - `resources/js/Pages/Farm/PostHarvest/Index.vue`
-- Fully documented and standard unit measurement implemented across the pipeline: **Bushels**.
-  - Standardized harvest default unit to bushels.
-  - Form validation correctly handles bushels input, calculating losses/recovery against accurate measurements.
-- Integrated Labor Tasks into PostHarvest Processing:
-  - Added support to instantly create labor Tasks per post-harvest process via the 'Assign Laborers' option in the `ProcessForm`.
-  - Links generated `Task` IDs directly to the `PostHarvestProcess`.
-- Marketplace product creation now automatically incorporates post-harvest inventory and handles quantity transformations accurately based on final processed form (e.g. Milled Rice):
-  - `resources/js/Pages/Marketplace/Product/Create.vue`
-  - `app/Models/RiceProduct.php`
-- Added test coverage to guarantee behavior:
-  - `tests/Feature/PostHarvestProcessTest.php`
+  - `resources/js/Pages/Farm/PostHarvest/ProcessForm.vue`
+  - `app/Services/PostHarvestService.php`
+  - `app/Http/Controllers/Farm/PostHarvestController.php`
+
+### Filipino Rice Terminology (Unit System)
+- Replaced the generic "bushels" unit throughout the post-harvest pipeline with proper Filipino rice terminology:
+  - **Harvest** → `bushels` (unchanged — standard measurement at harvest time)
+  - **After Threshing** → `palay` (unhusked rice grain)
+  - **After Drying** → `dried palay`
+  - **After Milling** → variety name (e.g., "Thai Jasmine", "IR64") — the final marketable product
+- Unit labels are now read-only and auto-determined by the pipeline step (no manual selection).
+  - `app/Models/PostHarvestProcess.php` — `getInputUnitLabel()`, `getOutputUnitLabel()`, `getOutputProductForm()`
+
+### Inventory Naming Convention
+- Updated `PostHarvestService::buildOutputInventoryName()`:
+  - Threshing output: `"{Variety} - Palay"`
+  - Drying output: `"{Variety} - Dried Palay"`
+  - **Milling output: `"{Variety}"` only** — the final milled product uses just the variety name with no suffix, as it represents the marketable form.
+
+### Logo & Branding
+- Changed sidebar header background from green gradient to **white** for contrast against the green logo.
+- Enlarged sidebar logo from `w-6 h-6` to `w-8 h-8`.
+- Changed login page logo backdrop from translucent green to **white with border** and enlarged to `h-10 w-10`.
+  - `resources/js/components/Navigation/Sidebar.vue`
+  - `resources/js/Pages/Auth/Login.vue`
+
+### Task Auto-Completion Exemption
+- Tasks created with `due_date` on the same day as `created_at` are now **exempt from auto-completion**.
+- This prevents post-harvest tasks (assigned today for today) from being immediately auto-completed by the `tasks:process-due` command.
+  - `app/Console/Commands/ProcessDueTasks.php`
+
+### Integrated Labor Tasks
+- Added support to instantly create labor Tasks per post-harvest process via the 'Assign Laborers' option in the `ProcessForm`.
+- Links generated `Task` IDs directly to the `PostHarvestProcess`.
+- Marketplace product creation handles quantity transformations based on final processed form.
 
 ### Verification commands
 
 - `php artisan test --filter=PostHarvestProcessTest`
 - `npm run build`
-
-### Result
-- All asserted tests passed.
-- Production build succeeded.
 
 | **Brevo (SMTP)** | Email Notifications (OTP, Alerts, Reports) |
 | **OpenStreetMap** | Base map tiles for field visualization |

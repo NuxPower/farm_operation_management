@@ -18,9 +18,12 @@ class ProcessDueTasks extends Command
     {
         $this->info('Processing due tasks...');
 
-        // Find tasks that are overdue and not completed
+        // Find tasks that are overdue and not completed.
+        // Exempt same-day tasks (due_date == created_at date) — these were just created
+        // and should not be auto-completed immediately (e.g. post-harvest tasks assigned today).
         $overdueTasks = Task::where('status', '!=', Task::STATUS_COMPLETED)
             ->where('due_date', '<=', now())
+            ->whereRaw('DATE(due_date) != DATE(created_at)')
             ->with(['planting.field', 'laborer', 'laborerGroup.laborers'])
             ->get();
 

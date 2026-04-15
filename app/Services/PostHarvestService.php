@@ -20,31 +20,34 @@ class PostHarvestService
      */
     public function createProcess(array $data, Harvest $harvest, int $userId): PostHarvestProcess
     {
-        // If a parent process is specified, pull input from its output
-        if (!empty($data['parent_process_id'])) {
-            $parent = PostHarvestProcess::where('id', $data['parent_process_id'])
-                ->where('harvest_id', $harvest->id)
-                ->where('status', PostHarvestProcess::STATUS_COMPLETED)
-                ->firstOrFail();
+        $processType = $data['process_type'];
 
-            $data['input_quantity'] = $data['input_quantity'] ?? $parent->output_quantity;
-            $data['input_unit'] = $data['input_unit'] ?? $parent->output_unit;
-        } else {
-            // Use the last completed process output, or fall back to harvest quantity
-            $lastProcess = $harvest->postHarvestProcesses()
+        // ── Pipeline Validation (fixed order: threshing → drying → milling) ──
+        $this->validatePipelineStep($harvest, $processType);
+
+        // ── Auto-resolve input from the previous pipeline step ──
+        $predecessor = PostHarvestProcess::getRequiredPredecessor($processType);
+
+        if ($predecessor) {
+            // Find the completed predecessor process
+            $parentProcess = $harvest->postHarvestProcesses()
+                ->where('process_type', $predecessor)
                 ->where('status', PostHarvestProcess::STATUS_COMPLETED)
-                ->latest('completed_date')
                 ->first();
 
-            if ($lastProcess) {
-                $data['input_quantity'] = $data['input_quantity'] ?? $lastProcess->output_quantity;
-                $data['input_unit'] = $data['input_unit'] ?? $lastProcess->output_unit;
-                $data['parent_process_id'] = $lastProcess->id;
-            } else {
-                $data['input_quantity'] = $data['input_quantity'] ?? $harvest->quantity;
-                $data['input_unit'] = $data['input_unit'] ?? $harvest->unit;
+            if ($parentProcess) {
+                $data['input_quantity'] = $data['input_quantity'] ?? $parentProcess->output_quantity;
+                $data['input_unit'] = $parentProcess->output_unit;
+                $data['parent_process_id'] = $parentProcess->id;
             }
+        } else {
+            // First step (threshing) — use harvest quantity
+            $data['input_quantity'] = $data['input_quantity'] ?? $harvest->quantity;
+            $data['input_unit'] = $harvest->unit;
         }
+
+        // ── Auto-set correct units based on process type ──
+        $data['input_unit'] = PostHarvestProcess::getInputUnitLabel($processType);
 
         // Calculate cost for service_per_unit
         if (($data['cost_type'] ?? 'self') === PostHarvestProcess::COST_TYPE_SERVICE_PER_UNIT) {
@@ -52,14 +55,14 @@ class PostHarvestService
             $data['cost'] = $costPerUnit * (float) $data['input_quantity'];
         }
 
-        $process = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $harvest, $userId) {
+        $process = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $harvest, $userId, $processType) {
             // Create the process first
             $process = PostHarvestProcess::create([
                 'harvest_id' => $harvest->id,
                 'planting_id' => $harvest->planting_id,
                 'user_id' => $userId,
                 'parent_process_id' => $data['parent_process_id'] ?? null,
-                'process_type' => $data['process_type'],
+                'process_type' => $processType,
                 'status' => $data['status'] ?? PostHarvestProcess::STATUS_PENDING,
                 'input_quantity' => $data['input_quantity'],
                 'input_unit' => $data['input_unit'],
@@ -77,7 +80,7 @@ class PostHarvestService
                 $processData = $data;
 
                 // Task types map exactly from process types in this case
-                $taskType = match ($data['process_type']) {
+                $taskType = match ($processType) {
                     PostHarvestProcess::TYPE_THRESHING => \App\Models\Task::TYPE_THRESHING,
                     PostHarvestProcess::TYPE_DRYING => \App\Models\Task::TYPE_DRYING,
                     PostHarvestProcess::TYPE_MILLING => \App\Models\Task::TYPE_MILLING,
@@ -89,7 +92,7 @@ class PostHarvestService
                     'field_id' => $harvest->planting->field_id,
                     'task_type' => $taskType,
                     'due_date' => $data['process_date'],
-                    'description' => "Post-harvest processing: " . ucfirst($data['process_type']) . " for harvest #{$harvest->id}",
+                    'description' => "Post-harvest processing: " . ucfirst($processType) . " for harvest #{$harvest->id}",
                     'status' => \App\Models\Task::STATUS_PENDING,
                     'quantity' => $data['input_quantity'],
                     'unit' => $data['input_unit'],
@@ -103,6 +106,41 @@ class PostHarvestService
         });
 
         return $process;
+    }
+
+    /**
+     * Validate that the pipeline step can be created (fixed order: threshing → drying → milling).
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function validatePipelineStep(Harvest $harvest, string $processType): void
+    {
+        $existingProcesses = $harvest->postHarvestProcesses()
+            ->whereNotIn('status', [PostHarvestProcess::STATUS_CANCELLED])
+            ->get();
+
+        // Check: this process type must not already exist (non-cancelled)
+        $alreadyExists = $existingProcesses->where('process_type', $processType)->isNotEmpty();
+        if ($alreadyExists) {
+            throw new \InvalidArgumentException(
+                ucfirst($processType) . ' has already been recorded for this harvest.'
+            );
+        }
+
+        // Check: predecessor must be completed
+        $requiredPredecessor = PostHarvestProcess::getRequiredPredecessor($processType);
+        if ($requiredPredecessor) {
+            $predecessorCompleted = $existingProcesses
+                ->where('process_type', $requiredPredecessor)
+                ->where('status', PostHarvestProcess::STATUS_COMPLETED)
+                ->isNotEmpty();
+
+            if (!$predecessorCompleted) {
+                throw new \InvalidArgumentException(
+                    ucfirst($requiredPredecessor) . ' must be completed before ' . $processType . ' can begin.'
+                );
+            }
+        }
     }
 
     /**
@@ -292,10 +330,18 @@ class PostHarvestService
      */
     private function buildOutputInventoryName(PostHarvestProcess $process, string $varietyName, Harvest $harvest): string
     {
+        // Milling is the final step — output is just the variety name (the marketable product)
+        if ($process->process_type === PostHarvestProcess::TYPE_MILLING) {
+            $name = $varietyName;
+            if ($harvest->quality_grade) {
+                $name .= ' (Grade ' . $harvest->quality_grade . ')';
+            }
+            return $name;
+        }
+
         $suffix = match ($process->process_type) {
-            PostHarvestProcess::TYPE_THRESHING => ' - Threshed',
-            PostHarvestProcess::TYPE_DRYING => ' - Dried',
-            PostHarvestProcess::TYPE_MILLING => ' - Milled',
+            PostHarvestProcess::TYPE_THRESHING => ' - Palay',
+            PostHarvestProcess::TYPE_DRYING => ' - Dried Palay',
             default => ' - Processed',
         };
 
@@ -341,7 +387,7 @@ class PostHarvestService
     public function getProcessingSummary(Harvest $harvest): array
     {
         $processes = $harvest->postHarvestProcesses()
-            ->orderBy('process_date')
+            ->orderBy('id')
             ->get();
 
         $completed = $processes->where('status', PostHarvestProcess::STATUS_COMPLETED);

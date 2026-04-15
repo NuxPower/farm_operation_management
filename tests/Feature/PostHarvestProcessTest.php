@@ -155,7 +155,7 @@ class PostHarvestProcessTest extends TestCase
         // Verify Output Inventory (Dried Palay) is added
         $this->assertDatabaseHas('inventory_items', [
             'user_id' => $this->farmer->id,
-            'name' => 'NSIC Rc222 - Dried (Grade A)',
+            'name' => 'NSIC Rc222 - Dried Palay (Grade A)',
             'current_stock' => 820
         ]);
 
@@ -241,8 +241,11 @@ class PostHarvestProcessTest extends TestCase
             ])
             ->assertStatus(200);
 
+        // Milled output inventory uses just the variety name (no suffix)
         $milledInventoryId = InventoryItem::where('user_id', $this->farmer->id)
-            ->where('name', 'NSIC Rc222 - Milled (Grade A)')
+            ->where('name', 'NSIC Rc222 (Grade A)')
+            ->where('category', InventoryItem::CATEGORY_PRODUCE)
+            ->whereNot('current_stock', 1000) // Exclude the original harvest inventory item (1000 stock)
             ->value('id');
 
         $this->assertNotNull($milledInventoryId, 'Expected the milled inventory item to be created after completion.');

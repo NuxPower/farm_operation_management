@@ -9,8 +9,8 @@
 
       <div class="relative z-10 w-full flex flex-col justify-between p-16 text-white">
         <div class="flex items-center space-x-3">
-          <div class="bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 p-2.5 rounded-xl">
-            <img src="@assets/logo.png" alt="Logo" class="h-8 w-8" />
+          <div class="bg-white shadow-md border border-gray-200 p-2.5 rounded-xl">
+            <img src="@assets/logo.png" alt="Logo" class="h-10 w-10" />
           </div>
           <span class="text-3xl font-bold tracking-wide font-display">ANIBUKID</span>
         </div>

@@ -428,43 +428,47 @@ class RiceFarmProfileController extends Controller
                     }
                 }
 
-                $field = Field::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'farm_id' => $farm->id,
-                        'name' => 'Main Rice Field'
-                    ],
-                    array_filter([
-                        'location' => $locationData,
-                        'field_coordinates' => $coordinates ? [
-                            'lat' => $coordinates['latitude'],
-                            'lon' => $coordinates['longitude']
-                        ] : null,
-                        'soil_type' => $request->soil_type ?? null,
-                        'soil_ph' => $request->soil_ph ?? null,
-                        'organic_matter_content' => $request->organic_matter_content ?? null,
-                        'nitrogen_level' => $request->nitrogen_level ?? null,
-                        'phosphorus_level' => $request->phosphorus_level ?? null,
-                        'potassium_level' => $request->potassium_level ?? null,
-                        'size' => $request->rice_area ?? null,
-                        'water_access' => $request->water_access ?? null,
-                        'water_source' => $request->water_source ?? null,
-                        'irrigation_type' => $request->irrigation_type ?? null,
-                        'drainage_quality' => $request->drainage_quality ?? null,
-                        'elevation' => $request->elevation ?? null,
-                        'previous_crop' => $request->previous_crop ?? null,
-                        'nickname' => $request->nickname ?? null,
-                        'planting_method' => $request->planting_method ?? null,
-                        'cropping_seasons' => $request->cropping_seasons ?? null,
-                        'target_yield' => $request->target_yield ?? null,
-                        'infrastructure_notes' => $request->infrastructure_notes ?? null,
-                        'notes' => $request->has('farming_experience')
-                            ? $this->generateFieldNotes($request)
-                            : null,
-                    ], function ($value) {
-                        return $value !== null;
-                    })
-                );
+                $fieldData = array_filter([
+                    'location' => $locationData,
+                    'field_coordinates' => $coordinates ? [
+                        'lat' => $coordinates['latitude'],
+                        'lon' => $coordinates['longitude']
+                    ] : null,
+                    'soil_type' => $request->soil_type ?? null,
+                    'soil_ph' => $request->soil_ph ?? null,
+                    'organic_matter_content' => $request->organic_matter_content ?? null,
+                    'nitrogen_level' => $request->nitrogen_level ?? null,
+                    'phosphorus_level' => $request->phosphorus_level ?? null,
+                    'potassium_level' => $request->potassium_level ?? null,
+                    'size' => $request->rice_area ?? null,
+                    'water_access' => $request->water_access ?? null,
+                    'water_source' => $request->water_source ?? null,
+                    'irrigation_type' => $request->irrigation_type ?? null,
+                    'drainage_quality' => $request->drainage_quality ?? null,
+                    'elevation' => $request->elevation ?? null,
+                    'previous_crop' => $request->previous_crop ?? null,
+                    'nickname' => $request->nickname ?? null,
+                    'planting_method' => $request->planting_method ?? null,
+                    'cropping_seasons' => $request->cropping_seasons ?? null,
+                    'target_yield' => $request->target_yield ?? null,
+                    'infrastructure_notes' => $request->infrastructure_notes ?? null,
+                    'notes' => $request->has('farming_experience')
+                        ? $this->generateFieldNotes($request)
+                        : null,
+                ], function ($value) {
+                    return $value !== null;
+                });
+
+                $field = Field::where('farm_id', $farm->id)->first();
+                
+                if ($field) {
+                    $field->update($fieldData);
+                } else {
+                    $fieldData['user_id'] = $user->id;
+                    $fieldData['farm_id'] = $farm->id;
+                    $fieldData['name'] = 'Main Rice Field';
+                    $field = Field::create($fieldData);
+                }
             }
 
             // Update user profile

@@ -33,15 +33,43 @@ class PostHarvestController extends Controller
 
         $processes = $harvest->postHarvestProcesses()
             ->with(['task', 'parentProcess'])
-            ->orderBy('process_date')
+            ->orderBy('id')
             ->get();
 
         $summary = $this->service->getProcessingSummary($harvest);
+
+        // Determine pipeline status for the frontend
+        $completedTypes = $processes
+            ->where('status', 'completed')
+            ->pluck('process_type')
+            ->toArray();
+
+        $nextStep = null;
+        foreach (PostHarvestProcess::PIPELINE_ORDER as $step) {
+            if (!in_array($step, $completedTypes)) {
+                // Check if there's an in-progress/pending one already
+                $existing = $processes->where('process_type', $step)
+                    ->whereNotIn('status', ['cancelled'])
+                    ->first();
+                $nextStep = $step;
+                break;
+            }
+        }
+
+        $riceVarietyName = $harvest->planting?->riceVariety?->name
+            ?? $harvest->planting?->crop_type
+            ?? 'Rice';
 
         return response()->json([
             'processes' => $processes,
             'summary' => $summary,
             'harvest' => $harvest->load('planting.riceVariety', 'planting.field'),
+            'pipeline_status' => [
+                'completed_types' => $completedTypes,
+                'next_step' => $nextStep,
+                'is_complete' => count($completedTypes) === count(PostHarvestProcess::PIPELINE_ORDER),
+            ],
+            'rice_variety_name' => $riceVarietyName,
         ]);
     }
 
@@ -97,7 +125,11 @@ class PostHarvestController extends Controller
             return response()->json(['message' => 'Unauthorized access to harvest'], 403);
         }
 
-        $process = $this->service->createProcess($request->all(), $harvest, $user->id);
+        try {
+            $process = $this->service->createProcess($request->all(), $harvest, $user->id);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $process->load(['harvest.planting.riceVariety', 'task', 'parentProcess']);
 

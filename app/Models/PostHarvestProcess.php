@@ -177,12 +177,75 @@ class PostHarvestProcess extends Model
     public function getOutputProductForm(): string
     {
         return match ($this->process_type) {
-            self::TYPE_THRESHING => 'Threshed Palay',
+            self::TYPE_THRESHING => 'Palay',
             self::TYPE_DRYING => 'Dried Palay',
             self::TYPE_MILLING => 'Milled Rice',
             default => 'Processed Rice',
         };
     }
+
+    /**
+     * Get the expected input unit label for this process type.
+     */
+    public static function getInputUnitLabel(string $processType): string
+    {
+        return match ($processType) {
+            self::TYPE_THRESHING => 'bushels',
+            self::TYPE_DRYING => 'palay',
+            self::TYPE_MILLING => 'dried palay',
+            default => 'bushels',
+        };
+    }
+
+    /**
+     * Get the expected output unit label for this process type.
+     */
+    public static function getOutputUnitLabel(string $processType): string
+    {
+        return match ($processType) {
+            self::TYPE_THRESHING => 'palay',
+            self::TYPE_DRYING => 'dried palay',
+            self::TYPE_MILLING => 'rice',
+            default => 'palay',
+        };
+    }
+
+    /**
+     * Get the required predecessor process type (fixed pipeline order).
+     * Returns null if this is the first step (threshing).
+     */
+    public static function getRequiredPredecessor(string $processType): ?string
+    {
+        return match ($processType) {
+            self::TYPE_THRESHING => null,
+            self::TYPE_DRYING => self::TYPE_THRESHING,
+            self::TYPE_MILLING => self::TYPE_DRYING,
+            default => null,
+        };
+    }
+
+    /**
+     * Get the next process type in the fixed pipeline.
+     * Returns null if this is the last step (milling).
+     */
+    public static function getNextStep(string $processType): ?string
+    {
+        return match ($processType) {
+            self::TYPE_THRESHING => self::TYPE_DRYING,
+            self::TYPE_DRYING => self::TYPE_MILLING,
+            self::TYPE_MILLING => null,
+            default => null,
+        };
+    }
+
+    /**
+     * Fixed pipeline order.
+     */
+    const PIPELINE_ORDER = [
+        self::TYPE_THRESHING,
+        self::TYPE_DRYING,
+        self::TYPE_MILLING,
+    ];
 
     /**
      * Check if this process can be completed (has required data)

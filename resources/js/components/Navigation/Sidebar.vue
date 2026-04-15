@@ -6,21 +6,21 @@
       :class="{ '-translate-x-full': !sidebarOpen, 'translate-x-0': sidebarOpen }"
     >
       <!-- Sidebar Header -->
-      <div class="flex items-center justify-between h-16 px-6 bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg flex-shrink-0">
+      <div class="flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 flex-shrink-0">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md transform transition-transform hover:scale-110">
-              <img src="@assets/logo.png" alt="Logo" class="w-6 h-6" />
+            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md ring-1 ring-gray-200 transform transition-transform hover:scale-110">
+              <img src="@assets/logo.png" alt="Logo" class="w-8 h-8" />
             </div>
           </div>
           <div class="ml-3">
-            <h1 class="text-white text-lg font-bold tracking-tight">ANIBUKID</h1>
-            <p class="text-green-50 text-xs font-medium">Management System</p>
+            <h1 class="text-gray-900 text-lg font-bold tracking-tight">ANIBUKID</h1>
+            <p class="text-gray-500 text-xs font-medium">Management System</p>
           </div>
         </div>
         <button
           @click="toggleSidebar"
-          class="lg:hidden text-white hover:text-green-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-600 rounded-lg p-1 transition-all"
+          class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-lg p-1 transition-all"
         >
           <XMarkIcon class="w-6 h-6" />
         </button>
