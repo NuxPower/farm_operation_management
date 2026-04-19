@@ -47,7 +47,7 @@
                       <input type="number" step="0.01" v-model="form.input_quantity" :disabled="isCompletionMode" 
                         class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00">
                       <div class="relative flex items-center rounded-r-md border-0 bg-slate-50 py-2 pl-3 pr-4 text-slate-500 ring-1 ring-inset ring-slate-300 sm:text-sm">
-                        {{ inputUnitLabel }}
+                        {{ displayUnit(inputUnitLabel) }}
                       </div>
                     </div>
                   </div>
@@ -72,7 +72,7 @@
                       <input type="number" step="0.01" v-model="form.output_quantity" required 
                         class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset ring-emerald-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6" placeholder="0.00">
                       <div class="relative flex items-center rounded-r-md border-0 bg-emerald-50 py-2 pl-3 pr-4 text-emerald-700 ring-1 ring-inset ring-emerald-300 sm:text-sm font-medium">
-                        {{ outputUnitLabel }}
+                        {{ displayUnit(outputUnitLabel) }}
                       </div>
                     </div>
                   </div>
@@ -138,14 +138,68 @@
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div v-if="form.cost_type === 'self'" class="relative flex items-start mt-4">
-                    <div class="flex h-6 items-center">
-                      <input id="assign-labor" v-model="assignLaborers" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
+              <hr class="border-slate-100" />
+
+              <!-- Laborer Assignment (optional, always visible) -->
+              <div>
+                <div class="relative flex items-start">
+                  <div class="flex h-6 items-center">
+                    <input id="assign-labor" v-model="assignLaborers" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
+                  </div>
+                  <div class="ml-3 text-sm leading-6">
+                    <label for="assign-labor" class="font-medium text-slate-900">Assign Laborers (Optional)</label>
+                    <p class="text-slate-500">Automatically generate a task to track worker hours for this process.</p>
+                  </div>
+                </div>
+
+                <div v-if="assignLaborers" class="mt-4 rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-slate-200/50 space-y-5">
+                  <!-- Laborer or Group Selection -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label class="block text-sm font-medium leading-6 text-slate-900">Laborer</label>
+                      <select v-model="form.assigned_to"
+                        class="mt-2 block w-full rounded-md border-0 px-3 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6">
+                        <option :value="null">-- Select Laborer --</option>
+                        <option v-for="laborer in laborers" :key="laborer.id" :value="laborer.id">
+                          {{ laborer.name }}
+                        </option>
+                      </select>
                     </div>
-                    <div class="ml-3 text-sm leading-6">
-                      <label for="assign-labor" class="font-medium text-slate-900">Assign Laborers</label>
-                      <p class="text-slate-500">Automatically generate a task to track worker hours for this process.</p>
+                    <div>
+                      <label class="block text-sm font-medium leading-6 text-slate-900">Or Laborer Group</label>
+                      <select v-model="form.laborer_group_id"
+                        class="mt-2 block w-full rounded-md border-0 px-3 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6">
+                        <option :value="null">-- Select Group --</option>
+                        <option v-for="group in laborerGroups" :key="group.id" :value="group.id">
+                          {{ group.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Payment Type -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label class="block text-sm font-medium leading-6 text-slate-900">Payment Type</label>
+                      <select v-model="form.payment_type"
+                        class="mt-2 block w-full rounded-md border-0 px-3 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6">
+                        <option value="wage">Wage (Fixed)</option>
+                        <option value="piece_rate">Piece Rate</option>
+                        <option value="share">Revenue Share</option>
+                      </select>
+                    </div>
+                    <div v-if="form.payment_type !== 'share'">
+                      <label class="block text-sm font-medium leading-6 text-slate-900">Wage Amount (₱)</label>
+                      <div class="mt-2 relative rounded-md shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                          <span class="text-slate-500 sm:text-sm">₱</span>
+                        </div>
+                        <input type="number" step="0.01" v-model="form.wage_amount"
+                          class="block w-full rounded-md border-0 py-2 pl-8 pr-3 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6" placeholder="0.00">
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -212,11 +266,25 @@ const loading = ref(false);
 const assignLaborers = ref(false);
 const saveError = ref('');
 
+// Laborer data
+const laborers = ref([]);
+const laborerGroups = ref([]);
+
 // Unit label helpers based on process type
 const UNIT_MAP = {
-  threshing: { input: 'bushels', output: 'palay' },
-  drying:    { input: 'palay',   output: 'dried palay' },
-  milling:   { input: 'dried palay', output: 'rice' },
+  threshing: { input: 'bushels', output: 'sacks_palay' },
+  drying:    { input: 'sacks_palay',   output: 'dried palay' },
+  milling:   { input: 'dried palay', output: 'sacks_rice' },
+};
+
+// Human-readable display labels
+const UNIT_DISPLAY_MAP = {
+  sacks_palay: 'sacks (palay)',
+  sacks_rice: 'sacks (rice)',
+};
+
+const displayUnit = (unit) => {
+  return UNIT_DISPLAY_MAP[unit] || unit;
 };
 
 const inputUnitLabel = computed(() => {
@@ -227,9 +295,9 @@ const inputUnitLabel = computed(() => {
 const outputUnitLabel = computed(() => {
   const type = form.value.process_type || props.processType;
   if (type === 'milling' && props.riceVarietyName) {
-    return props.riceVarietyName;
+    return UNIT_MAP[type]?.output || 'sacks_rice';
   }
-  return UNIT_MAP[type]?.output || 'palay';
+  return UNIT_MAP[type]?.output || 'sacks_palay';
 });
 
 const processTypeLabel = computed(() => {
@@ -250,19 +318,39 @@ const defaultForm = () => ({
   input_quantity: null,
   input_unit: UNIT_MAP[props.processType]?.input || 'bushels',
   output_quantity: null,
-  output_unit: UNIT_MAP[props.processType]?.output || 'palay',
+  output_unit: UNIT_MAP[props.processType]?.output || 'sacks_palay',
   completed_date: new Date().toISOString().split('T')[0],
   status: 'pending',
   cost_type: 'self',
   cost: null,
   cost_per_unit: null,
   service_provider: '',
-  notes: ''
+  notes: '',
+  // Laborer fields
+  assigned_to: null,
+  laborer_group_id: null,
+  payment_type: 'wage',
+  wage_amount: null,
 });
 
 const form = ref(defaultForm());
 
+// Fetch laborers and groups
+const fetchLaborers = async () => {
+  try {
+    const [laborerRes, groupRes] = await Promise.all([
+      axios.get('/api/laborers'),
+      axios.get('/api/laborers/groups'),
+    ]);
+    laborers.value = laborerRes.data.laborers || laborerRes.data || [];
+    laborerGroups.value = groupRes.data.groups || groupRes.data || [];
+  } catch (error) {
+    console.warn('Failed to fetch laborers:', error);
+  }
+};
+
 onMounted(() => {
+  fetchLaborers();
   if (props.processToEdit) {
     const p = props.processToEdit;
     form.value = {
@@ -270,7 +358,11 @@ onMounted(() => {
       ...p,
       process_date: p.process_date ? p.process_date.split('T')[0] : form.value.process_date,
       completed_date: new Date().toISOString().split('T')[0],
-      output_unit: UNIT_MAP[p.process_type]?.output || p.input_unit || 'palay'
+      output_unit: UNIT_MAP[p.process_type]?.output || p.input_unit || 'sacks_palay',
+      assigned_to: null,
+      laborer_group_id: null,
+      payment_type: 'wage',
+      wage_amount: null,
     };
   }
 });
@@ -279,6 +371,8 @@ onMounted(() => {
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     saveError.value = '';
+    assignLaborers.value = false;
+    fetchLaborers();
     if (props.processToEdit) {
       const p = props.processToEdit;
       form.value = {
@@ -288,7 +382,11 @@ watch(() => props.isOpen, (isOpen) => {
         process_type: props.processType || p.process_type,
         process_date: p.process_date ? p.process_date.split('T')[0] : new Date().toISOString().split('T')[0],
         completed_date: new Date().toISOString().split('T')[0],
-        output_unit: UNIT_MAP[props.processType || p.process_type]?.output || p.input_unit || 'palay',
+        output_unit: UNIT_MAP[props.processType || p.process_type]?.output || p.input_unit || 'sacks_palay',
+        assigned_to: null,
+        laborer_group_id: null,
+        payment_type: 'wage',
+        wage_amount: null,
       };
     } else {
       form.value = defaultForm();
@@ -297,10 +395,18 @@ watch(() => props.isOpen, (isOpen) => {
       if (props.processType) {
         form.value.process_type = props.processType;
         form.value.input_unit = UNIT_MAP[props.processType]?.input || 'bushels';
-        form.value.output_unit = UNIT_MAP[props.processType]?.output || 'palay';
+        form.value.output_unit = UNIT_MAP[props.processType]?.output || 'sacks_palay';
       }
     }
   }
+});
+
+// Clear laborer_group when laborer is selected and vice versa
+watch(() => form.value.assigned_to, (val) => {
+  if (val) form.value.laborer_group_id = null;
+});
+watch(() => form.value.laborer_group_id, (val) => {
+  if (val) form.value.assigned_to = null;
 });
 
 const closeModal = () => {
@@ -322,8 +428,16 @@ const saveProcess = async () => {
       ...form.value,
       assign_laborers: assignLaborers.value,
       input_unit: UNIT_MAP[processType]?.input || 'bushels',
-      output_unit: UNIT_MAP[processType]?.output || 'palay',
+      output_unit: UNIT_MAP[processType]?.output || 'sacks_palay',
     };
+
+    // Include laborer fields if assigning
+    if (assignLaborers.value) {
+      payload.assigned_to = form.value.assigned_to;
+      payload.laborer_group_id = form.value.laborer_group_id;
+      payload.payment_type = form.value.payment_type;
+      payload.wage_amount = form.value.wage_amount;
+    }
 
     if (props.isCompletionMode) {
       await axios.post(`/api/post-harvest/${props.processToEdit.id}/complete`, payload);

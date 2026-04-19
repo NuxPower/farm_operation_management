@@ -48,7 +48,6 @@ class HarvestTest extends TestCase
                 'harvest_date' => now()->toDateString(),
                 'quantity' => 5000,
                 'unit' => 'bushels',
-                'quality_grade' => 'A',
                 'price_per_unit' => 25,
                 'notes' => 'Bountiful harvest'
             ]);
@@ -67,7 +66,7 @@ class HarvestTest extends TestCase
         $this->assertNotNull($this->planting->fresh()->actual_harvest_date);
 
         // check inventory updated
-        $expectedName = $this->variety->name . ' (Grade A)';
+        $expectedName = $this->variety->name;
 
         $this->assertDatabaseHas('inventory_items', [
             'user_id' => $this->farmer->id,
@@ -109,7 +108,6 @@ class HarvestTest extends TestCase
                 'harvest_date' => now()->toDateString(),
                 'quantity' => $grossHarvest,
                 'unit' => 'bushels',
-                'quality_grade' => 'A',
                 'price_per_unit' => $pricePerUnit,
                 'harvester_share' => $harvesterShare,
                 'notes' => 'Harvest with share deduction'
@@ -118,7 +116,7 @@ class HarvestTest extends TestCase
         $response->assertStatus(201);
 
         // Calculate expected inventory name
-        $expectedName = $this->variety->name . ' (Grade A)';
+        $expectedName = $this->variety->name;
 
         // 1. Verify that the harvest record stores the FULL quantity
         $this->assertDatabaseHas('harvests', [

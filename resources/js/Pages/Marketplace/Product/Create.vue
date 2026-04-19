@@ -159,13 +159,20 @@
                   </div>
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">Unit <span class="text-red-500">*</span></label>
+                    <div v-if="isUnitLocked" class="flex items-center gap-2">
+                      <div class="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 font-medium">
+                        {{ displayUnitLabel(form.unit) }}
+                      </div>
+                      <span class="text-xs text-emerald-600 whitespace-nowrap">From milling</span>
+                    </div>
                     <select
+                      v-else
                       v-model="form.unit"
                       required
                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
                     >
                       <option v-for="unit in units" :key="unit" :value="unit">
-                        {{ unit.charAt(0).toUpperCase() + unit.slice(1) }}
+                        {{ displayUnitLabel(unit) }}
                       </option>
                     </select>
                   </div>
@@ -174,7 +181,7 @@
                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                    <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-                       Price per {{ form.unit.charAt(0).toUpperCase() + form.unit.slice(1) }} (₱) <span class="text-red-500">*</span>
+                       Price per {{ displayUnitLabel(form.unit) }} (₱) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                        <span class="absolute left-4 top-3.5 text-gray-400">₱</span>
@@ -477,7 +484,7 @@ const form = reactive({
   notes: ''
 })
 
-const units = ['kg', 'tons', 'sacks', 'bags', 'bushels', 'pounds', 'grams']
+const units = ['kg', 'tons', 'sacks', 'sacks_palay', 'sacks_rice', 'bushels', 'pounds', 'grams']
 const qualityGrades = {
   premium: 'Premium',
   grade_a: 'Grade A',
@@ -485,9 +492,7 @@ const qualityGrades = {
   commercial: 'Commercial'
 }
 const processingMethods = {
-  threshed: 'Threshed Palay',
-  dried: 'Dried Palay',
-  milled: 'Fresh Milled Rice',
+  milled: 'White Rice',
   brown: 'Brown Rice',
   parboiled: 'Parboiled Rice',
   organic: 'Organic Rice'
@@ -512,7 +517,25 @@ const latestCompletedProcess = computed(() => {
 const formatHarvestOption = (harvest) => {
   const crop = harvest?.planting?.crop_type || 'Harvest'
   const date = harvest?.harvest_date ? new Date(harvest.harvest_date).toLocaleDateString() : 'Undated'
-  const yieldKg = harvest?.quantity ? `${Number(harvest.quantity).toLocaleString()} ${harvest.unit || 'kg'}` : ''
+  
+  // Find the latest completed post-harvest process (e.g. milling)
+  let latestOutputQuantity = harvest?.quantity
+  let latestOutputUnit = harvest?.unit || 'kg'
+  
+  if (harvest?.post_harvest_processes?.length) {
+    const completedProcesses = harvest.post_harvest_processes.filter(p => p.status === 'completed')
+    if (completedProcesses.length > 0) {
+      // Sort by latest completed date
+      completedProcesses.sort((a, b) => new Date(b.completed_date || b.process_date || 0) - new Date(a.completed_date || a.process_date || 0))
+      const latest = completedProcesses[0]
+      if (latest.output_quantity) {
+        latestOutputQuantity = latest.output_quantity
+        latestOutputUnit = latest.output_unit || 'kg'
+      }
+    }
+  }
+
+  const yieldKg = latestOutputQuantity ? `${Number(latestOutputQuantity).toLocaleString()} ${displayUnitLabel(latestOutputUnit)}` : ''
   return `${crop} • ${date}${yieldKg ? ` • ${yieldKg}` : ''}`
 }
 
@@ -526,6 +549,28 @@ const getProcessStageLabel = (type) => {
   return labels[type] || 'Processed Rice'
 }
 
+// Unit display helper
+const UNIT_DISPLAY_LABELS = {
+  sacks_palay: 'Sacks (Palay)',
+  sacks_rice: 'Sacks (Rice)',
+  kg: 'Kg',
+  tons: 'Tons',
+  sacks: 'Sacks',
+  bushels: 'Bushels',
+  pounds: 'Pounds',
+  grams: 'Grams',
+}
+
+const displayUnitLabel = (unit) => {
+  return UNIT_DISPLAY_LABELS[unit] || (unit ? unit.charAt(0).toUpperCase() + unit.slice(1) : '')
+}
+
+// Lock unit when milling is completed and harvest is linked
+const isUnitLocked = computed(() => {
+  if (!form.harvest_id || !latestCompletedProcess.value) return false
+  return latestCompletedProcess.value.process_type === 'milling'
+})
+
 const applyProcessingSuggestions = () => {
   if (!latestCompletedProcess.value || !processingSummary.value?.summary?.final_quantity) {
     return
@@ -533,7 +578,10 @@ const applyProcessingSuggestions = () => {
 
   form.quantity_available = Number(processingSummary.value.summary.final_quantity)
 
-  if (processingSummary.value.summary.final_unit && units.includes(processingSummary.value.summary.final_unit)) {
+  // Lock unit to the milling output unit type when milling is completed
+  if (latestCompletedProcess.value.process_type === 'milling') {
+    form.unit = 'sacks_rice'
+  } else if (processingSummary.value.summary.final_unit && units.includes(processingSummary.value.summary.final_unit)) {
     form.unit = processingSummary.value.summary.final_unit
   }
 
@@ -621,10 +669,7 @@ watch(() => form.harvest_id, async (newId) => {
        }
     }
 
-    // 5. Auto-fill Price if available
-    if (harvest.price_per_unit) {
-       form.price_per_unit = Number(harvest.price_per_unit)
-    }
+    // Note: Price is NOT auto-filled from harvest — it's set here in the product form
   }
 
   await loadProcessingSummary(newId)
@@ -752,6 +797,18 @@ const submit = async () => {
     const result = await marketplaceStore.createRiceProduct(payload)
     console.log('Product created, result:', result)
     resetFormErrors(formError)
+    
+    // Backfill harvest price_per_unit if linked — enables deferred harvester share expense calculation
+    if (form.harvest_id && form.price_per_unit) {
+      try {
+        await axios.put(`/api/harvests/${form.harvest_id}`, {
+          price_per_unit: Number(form.price_per_unit),
+        })
+        console.log('Backfilled harvest price_per_unit:', form.price_per_unit)
+      } catch (backfillError) {
+        console.warn('Failed to backfill harvest price:', backfillError)
+      }
+    }
     
     // Small delay to ensure state is updated before navigation
     await new Promise(resolve => setTimeout(resolve, 100))

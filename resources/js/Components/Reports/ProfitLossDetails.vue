@@ -117,12 +117,22 @@ const loadData = async () => {
     const days = props.period === 'all' ? 3650 : parseInt(props.period)
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
+    const startDateStr = startDate.toISOString().split('T')[0]
+    const endDateStr = new Date().toISOString().split('T')[0]
 
     const [summaryRes, plantingsRes] = await Promise.all([
       axios.get('/api/reports/profit-loss', {
-        params: { start_date: startDate.toISOString().split('T')[0] }
+        params: { 
+          start_date: startDateStr,
+          end_date: endDateStr
+        }
       }),
-      axios.get('/api/reports/profit-loss/by-planting')
+      axios.get('/api/reports/profit-loss/by-planting', {
+        params: {
+          start_date: startDateStr,
+          end_date: endDateStr
+        }
+      })
     ])
 
     expensesByCategory.value = summaryRes.data.expenses_by_category || {}

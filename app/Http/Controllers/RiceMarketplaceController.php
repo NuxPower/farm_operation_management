@@ -136,8 +136,6 @@ class RiceMarketplaceController extends Controller
             $products->getCollection()->transform(function ($product) {
                 $product->quality_score = $product->getQualityScore();
                 $product->freshness_indicator = $product->getFreshnessIndicator();
-                $product->average_rating = $product->average_rating;
-                $product->reviews_count = $product->reviews_count;
                 $product->can_pre_order = $product->canBePreOrdered();
                 return $product;
             });
@@ -193,8 +191,6 @@ class RiceMarketplaceController extends Controller
             // Add calculated fields
             $product->quality_score = $product->getQualityScore();
             $product->freshness_indicator = $product->getFreshnessIndicator();
-            $product->average_rating = $product->average_rating;
-            $product->reviews_count = $product->reviews_count;
             $product->can_pre_order = $product->canBePreOrdered();
 
             // Get estimated delivery time if user location is available
@@ -239,7 +235,7 @@ class RiceMarketplaceController extends Controller
             'name' => ['required', 'string', 'max:255', new \App\Rules\NoEmoji],
             'description' => ['required', 'string', 'max:2000', new \App\Rules\NoEmoji],
             'quantity_available' => 'required|numeric|min:0',
-            'unit' => 'required|string|in:kg,tons,sacks,bushels,pounds,grams',
+            'unit' => 'required|string|in:kg,tons,sacks,bushels,pounds,grams,sacks_rice,sacks_palay',
             'price_per_unit' => 'required|numeric|min:0',
             'quality_grade' => 'required|string|in:premium,grade_a,grade_b,commercial',
             'moisture_content' => 'nullable|numeric|between:5,25',
@@ -337,7 +333,7 @@ class RiceMarketplaceController extends Controller
                 'inventory_item_id' => 'nullable|exists:inventory_items,id',
                 'description' => 'string|max:2000',
                 'quantity_available' => 'numeric|min:0',
-                'unit' => 'string|in:kg,tons,sacks,bushels,pounds,grams',
+                'unit' => 'string|in:kg,tons,sacks,bushels,pounds,grams,sacks_rice,sacks_palay',
                 'price_per_unit' => 'numeric|min:0',
                 'quality_grade' => 'string|in:premium,grade_a,grade_b,commercial',
                 'moisture_content' => 'nullable|numeric|between:5,25',

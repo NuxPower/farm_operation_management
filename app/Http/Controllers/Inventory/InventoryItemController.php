@@ -481,8 +481,12 @@ class InventoryItemController extends Controller
 
         $query = InventoryItem::where('user_id', $user->id);
 
-        // Corrected to use current_stock
-        $lowStockItems = $query->whereRaw('current_stock <= minimum_stock')
+        // Exclude produce items — these are harvested/post-harvest outputs,
+        // not restockable supplies. Only warn about seeds, fertilizer,
+        // pesticide, and equipment running low.
+        $lowStockItems = $query
+            ->whereNotIn('category', [InventoryItem::CATEGORY_PRODUCE])
+            ->whereRaw('current_stock <= minimum_stock')
             ->orderBy('name')
             ->get();
 

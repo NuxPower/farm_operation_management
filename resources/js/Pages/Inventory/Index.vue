@@ -56,8 +56,8 @@
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4">
-        <div class="flex-1 relative">
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <div class="flex-1 relative w-full">
           <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
           <input
             v-model="searchQuery"
@@ -75,6 +75,10 @@
           <option value="tools">Tools</option>
           <option value="produce">Produce</option>
         </select>
+        <label class="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors whitespace-nowrap w-full md:w-auto">
+          <input type="checkbox" v-model="hideEmptyProduce" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+          <span class="text-sm font-medium text-gray-700">Hide 0-stock produce</span>
+        </label>
       </div>
 
       <div v-if="loading" class="text-center py-20">
@@ -104,14 +108,14 @@
             </div>
             <div class="text-right pl-2">
               <div class="text-lg font-bold text-emerald-700">{{ formatCurrency(item.unit_price) }}</div>
-              <div class="text-xs text-gray-400">/ {{ item.unit }}</div>
+              <div class="text-xs text-gray-400">/ {{ displayUnit(item.unit) }}</div>
             </div>
           </div>
 
           <div class="px-5 pb-4">
             <div class="flex justify-between items-end mb-1">
               <span class="text-sm font-medium" :class="getStockColor(item, 'text')">
-                {{ item.current_stock || 0 }} {{ item.unit }}
+                {{ item.current_stock || 0 }} {{ displayUnit(item.unit) }}
               </span>
               <span class="text-xs text-gray-400">Min: {{ item.minimum_stock || 0 }}</span>
             </div>
@@ -167,6 +171,7 @@ const loading = computed(() => store.loading)
 
 const searchQuery = ref('')
 const categoryFilter = ref('')
+const hideEmptyProduce = ref(true)
 
 // Statistics
 const totalItems = computed(() => items.value.length)
@@ -181,6 +186,11 @@ const outOfStockItems = computed(() => items.value.filter(i => Number(i.current_
 // Filter Logic
 const filteredItems = computed(() => {
   return items.value.filter(item => {
+    // Hide 0-stock produce if toggle is active
+    if (hideEmptyProduce.value && item.category === 'produce' && Number(item.current_stock || 0) <= 0) {
+      return false
+    }
+
     const search = searchQuery.value.toLowerCase()
     const matchesSearch = !search || 
       item.name?.toLowerCase().includes(search) || 
@@ -223,6 +233,15 @@ const exportPdf = () => {
   pdfExport.exportInventoryReport(filteredItems.value, {
     title: 'Inventory Report'
   })
+}
+
+const displayUnit = (unit) => {
+  if (!unit) return ''
+  const displayLabels = {
+    'sacks_palay': 'sacks (palay)',
+    'sacks_rice': 'sacks (rice)',
+  }
+  return displayLabels[unit] || unit
 }
 
 // Visual Helpers

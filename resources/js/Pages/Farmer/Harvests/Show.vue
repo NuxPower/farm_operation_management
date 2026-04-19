@@ -59,14 +59,10 @@
             <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
               <span class="text-2xl mr-2">🌾</span> Yield Summary
             </h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
               <div class="text-center p-4 bg-green-50 rounded-lg">
                 <p class="text-3xl font-bold text-green-600">{{ harvest.quantity || harvest.yield || 0 }}</p>
                 <p class="text-sm text-gray-600 mt-1">{{ harvest.unit || 'kg' }} Harvested</p>
-              </div>
-              <div class="text-center p-4 bg-blue-50 rounded-lg">
-                <p class="text-3xl font-bold text-blue-600">{{ harvest.quality_grade || 'N/A' }}</p>
-                <p class="text-sm text-gray-600 mt-1">Quality Grade</p>
               </div>
               <div class="text-center p-4 bg-purple-50 rounded-lg">
                 <p class="text-3xl font-bold text-purple-600">{{ formatCurrency(harvest.price_per_unit || 0) }}</p>

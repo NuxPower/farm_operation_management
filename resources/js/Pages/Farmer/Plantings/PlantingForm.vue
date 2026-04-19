@@ -372,19 +372,14 @@
                 class="block w-full rounded-l-xl border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 focus:z-10 sm:text-sm font-medium h-12 px-4"
                 :class="{ 'border-red-500': form.errors.seed_rate }"
               />
-              <select
-                v-model="form.data.seed_unit"
-                class="inline-flex items-center rounded-r-xl border border-l-0 border-gray-300 bg-gray-50 text-gray-700 sm:text-sm font-medium focus:border-emerald-500 focus:ring-emerald-500 px-4"
-              >
-                 <option v-for="unit in availableUnits" :key="unit.value" :value="unit.value">
-                   {{ unit.label }}
-                 </option>
-              </select>
+              <div class="inline-flex items-center rounded-r-xl border border-l-0 border-gray-300 bg-emerald-50 text-emerald-700 sm:text-sm font-semibold px-4 whitespace-nowrap">
+                Packets
+              </div>
             </div>
             <p v-if="form.errors.seed_rate" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.seed_rate }}</p>
             <transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
               <p v-if="selectedInventoryItem && sourceType === 'direct'" class="mt-2 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-lg inline-block border border-emerald-100">
-                <span class="font-bold">✓</span> Stock Available: {{ selectedInventoryItem.current_stock }} {{ selectedInventoryItem.unit || 'kg' }}
+                <span class="font-bold">✓</span> Stock Available: {{ selectedInventoryItem.current_stock }} {{ selectedInventoryItem.unit || 'packets' }}
               </p>
               <p v-else-if="form.data.seed_planting_id && sourceType === 'nursery'" class="mt-2 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-lg inline-block border border-emerald-100">
                 <span class="font-bold">✓</span> Available from Seedbed: {{ selectedSeedPlanting?.quantity }}
@@ -605,7 +600,7 @@ const getInitialFormData = () => {
     expected_harvest_date: formatDateForInput(props.planting?.expected_harvest_date) || null,
     planting_method: props.planting?.planting_method || 'transplanting',
     seed_rate: props.planting?.seed_rate || null,
-    seed_unit: props.planting?.seed_unit || 'kg',
+    seed_unit: 'packets',
     area_planted: props.planting?.area_planted || null,
     season: defaultSeason,
     status: defaultStatus,
@@ -621,37 +616,7 @@ const form = ref({
   processing: false,
 })
 
-// Unit Configuration
-const unitConfig = {
-  seeds: [
-    { value: 'kg', label: 'kg' },
-    { value: 'bags', label: 'Bags' },
-    { value: 'sacks', label: 'Sacks' },
-    { value: 'packets', label: 'Packets' },
-    { value: 'pounds', label: 'lbs' }
-  ],
-  nursery: [
-    { value: 'pieces', label: 'Pcs' },
-    { value: 'trays', label: 'Trays' },
-    { value: 'bundles', label: 'Bundles' },
-    { value: 'seedlings', label: 'Seedlings' },
-    { value: 'sacks', label: 'Sacks' },
-    { value: 'bags', label: 'Bags' }
-  ],
-  default: [
-    { value: 'kg', label: 'kg' },
-    { value: 'pieces', label: 'Pcs' },
-    { value: 'bags', label: 'Bags' }
-  ]
-}
-
-const availableUnits = computed(() => {
-  if (sourceType.value === 'nursery') {
-    return unitConfig.nursery
-  }
-  // If inventory item selected, ideally filter by its category, but general seed units work
-  return unitConfig.seeds
-})
+// seed_unit is always 'packets' — locked in the UI
 
 // Get selected inventory item
 const selectedInventoryItem = computed(() => {
@@ -744,12 +709,7 @@ watch(() => form.value.data.inventory_item_id, (newId) => {
       }
     }
 
-    // Auto-set unit from inventory item if possible
-    if (item.unit) {
-       // Check if item.unit is in our list, if not, maybe add it or just use it?
-       // For now, let's just set it, assuming it matches one of our values or is valid
-       form.value.data.seed_unit = item.unit;
-    }
+    // seed_unit is always 'packets' — not auto-changed from inventory item
   }
 });
 

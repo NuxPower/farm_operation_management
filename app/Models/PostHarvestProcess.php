@@ -191,7 +191,7 @@ class PostHarvestProcess extends Model
     {
         return match ($processType) {
             self::TYPE_THRESHING => 'bushels',
-            self::TYPE_DRYING => 'palay',
+            self::TYPE_DRYING => 'sacks_palay',
             self::TYPE_MILLING => 'dried palay',
             default => 'bushels',
         };
@@ -203,10 +203,22 @@ class PostHarvestProcess extends Model
     public static function getOutputUnitLabel(string $processType): string
     {
         return match ($processType) {
-            self::TYPE_THRESHING => 'palay',
+            self::TYPE_THRESHING => 'sacks_palay',
             self::TYPE_DRYING => 'dried palay',
-            self::TYPE_MILLING => 'rice',
-            default => 'palay',
+            self::TYPE_MILLING => 'sacks_rice',
+            default => 'sacks_palay',
+        };
+    }
+
+    /**
+     * Get human-readable display label for a unit identifier.
+     */
+    public static function humanReadableUnit(string $unit): string
+    {
+        return match ($unit) {
+            'sacks_palay' => 'sacks',
+            'sacks_rice' => 'sacks',
+            default => $unit,
         };
     }
 

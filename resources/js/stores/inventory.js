@@ -26,12 +26,18 @@ export const useInventoryStore = defineStore('inventory', {
     lowStockItems: (state) => {
       try {
         if (!Array.isArray(state.items)) return [];
+        // Exclude 'produce' category — these are harvested/processed rice items
+        // that come from harvest or post-harvest operations and are not restockable supplies.
+        const nonProduceCategories = ['seeds', 'fertilizer', 'pesticide', 'equipment'];
         return state.items.filter(item => {
+          if (!item) return false;
+          // Skip produce/harvest items — they are outputs, not supply items
+          if (!nonProduceCategories.includes(item.category)) return false;
           // Normalize properties to handle both potential formats
           const qty = item.current_stock !== undefined ? parseFloat(item.current_stock) : (item.quantity !== undefined ? parseFloat(item.quantity) : 0);
           const min = item.minimum_stock !== undefined ? parseFloat(item.minimum_stock) : (item.min_stock !== undefined ? parseFloat(item.min_stock) : 0);
 
-          return item && qty <= min;
+          return qty <= min;
         });
       } catch (error) {
         console.warn('Error in lowStockItems getter:', error);

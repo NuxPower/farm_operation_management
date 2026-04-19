@@ -94,7 +94,7 @@
           </div>
           <h2 class="text-2xl font-bold text-gray-900 mb-2">No harvests logged</h2>
           <p class="text-sm text-gray-600 mb-8 max-w-md mx-auto">
-            Log your first harvest to track yield, quality, and financial performance.
+            Log your first harvest to track yield and financial performance.
           </p>
           <button
             @click="openCreateModal"
@@ -137,13 +137,6 @@
                       </div>
                     </div>
                   </div>
-                  <span
-                    v-if="harvest.quality_grade"
-                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
-                    :class="qualityClass(harvest.quality_grade)"
-                  >
-                    Grade {{ harvest.quality_grade }}
-                  </span>
                 </div>
 
                 <!-- Crop Variety -->
@@ -359,15 +352,6 @@ const formatDate = (value) => {
 
 // formatCurrency removed in favor of imported util
 
-const qualityClass = (grade) => {
-  const classes = {
-    A: 'bg-green-100 text-green-800',
-    B: 'bg-blue-100 text-blue-800',
-    C: 'bg-yellow-100 text-yellow-800',
-    D: 'bg-red-100 text-red-800',
-  }
-  return classes[grade] || 'bg-gray-100 text-gray-800'
-}
 
 // --- Lifecycle ---
 onMounted(() => {

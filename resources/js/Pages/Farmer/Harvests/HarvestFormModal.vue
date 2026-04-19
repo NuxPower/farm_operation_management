@@ -94,11 +94,10 @@
             </div>
             <div>
               <h3 class="text-lg font-semibold text-gray-900">Harvest Details</h3>
-              <p class="text-xs text-gray-600">Date and quality information</p>
+              <p class="text-xs text-gray-600">Date information</p>
             </div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div>
               <label for="harvest_date" class="block text-sm font-semibold text-gray-700 mb-2">
                 Harvest Date *
               </label>
@@ -111,25 +110,6 @@
                 :class="{ 'border-red-500 ring-2 ring-red-200': form.errors.harvest_date }"
               />
               <p v-if="form.errors.harvest_date" class="mt-1 text-xs text-red-600">{{ form.errors.harvest_date }}</p>
-            </div>
-            <div>
-              <label for="quality_grade" class="block text-sm font-semibold text-gray-700 mb-2">
-                Quality Grade
-              </label>
-              <select
-                id="quality_grade"
-                v-model="form.data.quality_grade"
-                class="w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm bg-white focus:border-green-500 focus:ring-2 focus:ring-green-500 transition"
-                :class="{ 'border-red-500 ring-2 ring-red-200': form.errors.quality_grade }"
-              >
-                <option value="">Select grade (optional)</option>
-                <option value="A" class="font-semibold">Grade A (Premium)</option>
-                <option value="B">Grade B (Good)</option>
-                <option value="C">Grade C (Standard)</option>
-                <option value="D">Grade D (Sub-standard)</option>
-              </select>
-              <p v-if="form.errors.quality_grade" class="mt-1 text-xs text-red-600">{{ form.errors.quality_grade }}</p>
-            </div>
           </div>
         </section>
 
@@ -237,71 +217,13 @@
           </div>
         </section>
         
-        <!-- Pricing -->
-        <section class="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200 shadow-sm">
-          <div class="flex items-center mb-4">
-            <div class="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center mr-3">
-              <svg class="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900">Pricing (Optional)</h3>
-              <p class="text-xs text-gray-600">Track value and calculate total revenue</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="price_per_unit" class="block text-sm font-semibold text-gray-700 mb-2">
-                Price per Unit
-              </label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 text-sm">₱</span>
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  id="price_per_unit"
-                  v-model.number="form.data.price_per_unit"
-                  class="w-full rounded-lg border border-gray-300 pl-8 pr-4 py-3 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition"
-                  :class="{ 'border-red-500 ring-2 ring-red-200': form.errors.price_per_unit }"
-                  placeholder="20.50"
-                />
-              </div>
-              <p v-if="form.errors.price_per_unit" class="mt-1 text-xs text-red-600">{{ form.errors.price_per_unit }}</p>
-            </div>
-            <div>
-              <label for="total_value" class="block text-sm font-semibold text-gray-700 mb-2">
-                Total Value
-                <span v-if="form.data.quantity && form.data.price_per_unit" class="text-xs font-normal text-green-600 ml-1">
-                  (Auto-calculated)
-                </span>
-              </label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-gray-500 text-sm">₱</span>
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  id="total_value"
-                  v-model.number="form.data.total_value"
-                  :readonly="form.data.quantity && form.data.price_per_unit"
-                  class="w-full rounded-lg border border-gray-300 pl-8 pr-4 py-3 shadow-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 transition"
-                  :class="{ 
-                    'border-red-500 ring-2 ring-red-200': form.errors.total_value,
-                    'bg-gray-50 cursor-not-allowed': form.data.quantity && form.data.price_per_unit
-                  }"
-                  placeholder="Auto-calculated if price given"
-                />
-              </div>
-              <p v-if="form.errors.total_value" class="mt-1 text-xs text-red-600">{{ form.errors.total_value }}</p>
-            </div>
-          </div>
-        </section>
+        <!-- Pricing note -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <p class="text-sm text-blue-800">
+            <span class="font-medium">💡 Pricing:</span> Price per unit is set when you add the milled rice to 
+            <span class="font-semibold">My Products</span> in the marketplace.
+          </p>
+        </div>
         
         <!-- Notes -->
         <section class="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -439,9 +361,6 @@ const getInitialFormData = () => ({
   harvest_date: formatDateForInput(props.harvest?.harvest_date),
   quantity: props.harvest?.quantity || '',
   unit: props.harvest?.unit || 'bushels',
-  quality_grade: props.harvest?.quality_grade || '',
-  price_per_unit: props.harvest?.price_per_unit || '',
-  total_value: props.harvest?.total_value || '',
   notes: props.harvest?.notes || '',
   harvester_share: props.harvest?.harvester_share || '',
   harvester_share_percentage: props.harvest?.harvester_share_percentage ?? DEFAULT_HARVESTER_SHARE_PERCENTAGE,
@@ -511,13 +430,6 @@ const applyTaskSharePercentage = (plantingId) => {
   }
 }
 
-// Auto-calculate total_value
-watch(() => [form.value.data.quantity, form.value.data.price_per_unit], ([qty, price]) => {
-  if (qty && price) {
-    form.value.data.total_value = (parseFloat(qty) * parseFloat(price)).toFixed(2)
-  }
-})
-
 // Auto-calculate harvester share
 watch(() => [form.value.data.quantity, form.value.data.harvester_share_percentage], ([qty, pct]) => {
    if (qty && pct) {
@@ -538,7 +450,6 @@ const submitForm = async () => {
   const isValid = validateForm(form.value.data, {
     notes: [rules.maxLength(2000), rules.noEmoji],
     quantity: [rules.required, rules.numeric, rules.minValue(0)],
-    price_per_unit: [rules.numeric, rules.minValue(0)],
     harvester_share: [rules.numeric, rules.minValue(0)],
     harvester_share_percentage: [rules.numeric, rules.minValue(0)]
   })
@@ -556,17 +467,12 @@ const submitForm = async () => {
   const payload = { ...form.value.data }
   
   // Convert empty strings to null for optional fields
-  if (payload.quality_grade === '') payload.quality_grade = null
-  if (payload.price_per_unit === '') payload.price_per_unit = null
-  if (payload.total_value === '') payload.total_value = null
   if (payload.notes === '') payload.notes = null
   if (payload.harvester_share === '') payload.harvester_share = null
   if (payload.harvester_share_percentage === '') payload.harvester_share_percentage = null
   
   // Ensure numeric fields are numbers
   if (payload.quantity) payload.quantity = parseFloat(payload.quantity)
-  if (payload.price_per_unit) payload.price_per_unit = parseFloat(payload.price_per_unit)
-  if (payload.total_value) payload.total_value = parseFloat(payload.total_value)
   
   // Ensure planting_id is a number
   if (payload.planting_id) payload.planting_id = Number(payload.planting_id)

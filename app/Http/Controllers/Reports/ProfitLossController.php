@@ -60,20 +60,8 @@ class ProfitLossController extends Controller
         ]);
     }
 
-    /**
-     * Get profit/loss by planting cycle
-     */
     public function byPlanting(Request $request): JsonResponse
     {
-        // This specific crop-level profitability might be available in FinancialService (getCropProfitability?)
-        // Or we can leave it if FinancialService doesn't support "by planting" list specifically.
-        // The plan said "Replace raw queries".
-        // FinancialService has getCropProfitabilityAnalysis($farmId, $days)
-
-        // Use existing logic if Service doesn't cover this specific granular view, 
-        // OR migrate this logic to Service if we want cleanliness.
-        // For now, let's delegate to Service's crop profitability if it matches.
-
         $user = Auth::user();
         $farm = $user->farm;
 
@@ -81,14 +69,14 @@ class ProfitLossController extends Controller
             return response()->json(['message' => 'No farm found'], 404);
         }
 
-        // Using FinancialService generic analysis
-        // Note: This might change the output format slightly compared to original.
-        // If exact compatibility is needed, we would add 'getPlantingProfitability' to Service.
-        // For now, let's stick to the Service call to remove raw queries.
+        $startDate = $request->start_date ? Carbon::parse($request->start_date) : now()->subYear();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date) : now();
+        
+        // Calculate days for the service call, or modify service to accept dates
+        $days = $startDate->diffInDays($endDate);
 
-        // Use FinancialService to get specific planting profitability if available
-        // logic moved to FinancialService to keep controller clean
-        $plantings = $this->financialService->getPlantingProfitability($farm->id, 365);
+        // Using FinancialService generic analysis
+        $plantings = $this->financialService->getPlantingProfitability($farm->id, $days);
 
         return response()->json([
             'plantings' => $plantings,

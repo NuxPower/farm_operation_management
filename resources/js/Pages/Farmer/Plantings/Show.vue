@@ -215,7 +215,7 @@
                 </div>
                 <div class="sm:col-span-1">
                   <dt class="text-sm font-medium text-gray-500">Seed Quantity</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ planting.seed_rate || 'N/A' }} kg</dd>
+                  <dd class="mt-1 text-sm text-gray-900">{{ planting.seed_rate || 'N/A' }} {{ planting.seed_unit || 'packets' }}</dd>
                 </div>
               </dl>
               

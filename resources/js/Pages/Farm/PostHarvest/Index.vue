@@ -83,7 +83,7 @@
               </svg>
             </span>
             <span class="mt-2 text-sm font-medium text-gray-900">Harvest</span>
-            <span class="text-xs text-gray-500">{{ harvest?.quantity }} {{ harvest?.unit }}</span>
+            <span class="text-xs text-gray-500">{{ harvest?.quantity }} {{ displayUnit(harvest?.unit) }}</span>
           </div>
 
           <!-- Fixed pipeline steps: Threshing → Drying → Milling -->
@@ -105,7 +105,7 @@
             <span class="mt-2 text-sm font-medium capitalize" :class="getStepStatus(stepType) === 'locked' ? 'text-gray-400' : 'text-gray-900'">{{ stepType }}</span>
             
             <template v-if="getStepStatus(stepType) === 'completed'">
-              <span class="text-xs text-emerald-600 font-medium">{{ getStepProcess(stepType)?.output_quantity }} {{ getStepProcess(stepType)?.output_unit }}</span>
+              <span class="text-xs text-emerald-600 font-medium">{{ getStepProcess(stepType)?.output_quantity }} {{ displayUnit(getStepProcess(stepType)?.output_unit) }}</span>
               <span class="text-xs text-gray-500">Loss: {{ getStepProcess(stepType)?.weight_loss_percentage }}%</span>
             </template>
             <template v-else-if="getStepStatus(stepType) === 'cancelled'">
@@ -171,10 +171,10 @@
             <div class="mt-2 sm:flex sm:justify-between">
               <div class="sm:flex">
                 <p class="flex items-center text-sm text-gray-500 mr-6">
-                  Input: <span class="font-medium text-gray-900 ml-1">{{ process.input_quantity }} {{ process.input_unit }}</span>
+                  Input: <span class="font-medium text-gray-900 ml-1">{{ process.input_quantity }} {{ displayUnit(process.input_unit) }}</span>
                 </p>
                 <p v-if="process.status === 'completed'" class="flex items-center text-sm text-gray-500 mr-6">
-                  Output: <span class="font-medium text-gray-900 ml-1">{{ process.output_quantity }} {{ process.output_unit }}</span>
+                  Output: <span class="font-medium text-gray-900 ml-1">{{ process.output_quantity }} {{ displayUnit(process.output_unit) }}</span>
                 </p>
                 <p v-if="process.cost > 0" class="flex items-center text-sm text-gray-500">
                   Cost: <span class="font-medium text-gray-900 ml-1">₱{{ formatNumber(process.cost) }}</span>
@@ -352,5 +352,13 @@ const formatNumber = (num) => {
 const formatDate = (dateString) => {
   if (!dateString) return '';
   return new Date(dateString).toLocaleDateString();
+};
+
+const displayUnit = (unit) => {
+  const map = {
+    sacks_palay: 'sacks (palay)',
+    sacks_rice: 'sacks (rice)',
+  };
+  return map[unit] || unit;
 };
 </script>

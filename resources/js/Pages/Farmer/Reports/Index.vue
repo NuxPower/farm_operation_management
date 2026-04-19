@@ -265,6 +265,22 @@ const monthKey = (date) => {
   return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
 };
 
+const dayKey = (date) => {
+  const parsed = date ? new Date(date) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+};
+
+const dayLabelFromKey = (key) => {
+  if (!key) return '';
+  const [year, month, day] = key.split('-').map(Number);
+  if (!year || !month || !day) return '';
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 const monthLabelFromKey = (key) => {
   if (!key) return '';
   const [year, month] = key.split('-').map(Number);
@@ -331,18 +347,21 @@ const loadReportData = async () => {
   loadError.value = '';
 
   try {
+    const { filters, weatherDays } = computePeriodFilters(selectedPeriod.value);
+    
+    // Map date filters for marketplace orders which uses from_date/to_date
+    const orderFilters = {
+      from_date: filters.date_from,
+      to_date: filters.date_to
+    };
+
     await Promise.all([
       farmStore.fetchFarmProfile(),
       farmStore.fetchFields(),
-      farmStore.fetchHarvests()
-    ]);
-
-    const { filters, weatherDays } = computePeriodFilters(selectedPeriod.value);
-
-    await Promise.all([
+      farmStore.fetchHarvests(filters),
       farmStore.fetchSales(filters),
       farmStore.fetchExpenses(filters),
-      marketplaceStore.fetchFarmerOrders() // Fetch marketplace orders for revenue
+      marketplaceStore.fetchFarmerOrders(orderFilters)
     ]);
 
     const farmId = farmStore.farmProfile?.id;
@@ -588,31 +607,53 @@ const expenseChartData = computed(() => {
 });
 
 // Weather Correlation Data
-const weatherByMonth = computed(() => {
+// Determine if we should show daily (≤30d) or monthly (>30d) granularity
+const usesDailyGranularity = computed(() => {
+  const days = selectedPeriod.value === 'all' ? Infinity : parseInt(selectedPeriod.value, 10);
+  return Number.isFinite(days) && days <= 30;
+});
+
+// Aggregate weather readings by day (cumulative rainfall per day, avg temp)
+const weatherByDay = computed(() => {
   const map = new Map();
   weatherHistoryRecords.value.forEach((record) => {
-    const key = monthKey(record?.recorded_at);
+    const key = dayKey(record?.recorded_at);
     if (!key) return;
-
     const rainfall = Number(record?.rainfall) || 0;
     const temperature = Number(record?.temperature) || 0;
     const entry = map.get(key) || { rainfall: 0, temperature: 0, count: 0 };
-
     entry.rainfall += rainfall;
     entry.temperature += temperature;
     entry.count += 1;
-
     map.set(key, entry);
   });
   return map;
 });
 
+// Aggregate weather readings by month (cumulative rainfall per month, avg temp)
+const weatherByMonth = computed(() => {
+  const map = new Map();
+  weatherHistoryRecords.value.forEach((record) => {
+    const key = monthKey(record?.recorded_at);
+    if (!key) return;
+    const rainfall = Number(record?.rainfall) || 0;
+    const temperature = Number(record?.temperature) || 0;
+    const entry = map.get(key) || { rainfall: 0, temperature: 0, count: 0 };
+    entry.rainfall += rainfall;
+    entry.temperature += temperature;
+    entry.count += 1;
+    map.set(key, entry);
+  });
+  return map;
+});
+
+// Avg Rainfall stat card: show daily average rainfall (total / unique days)
 const averageRainfall = computed(() => {
-  if (!weatherHistoryRecords.value.length) {
-    return '0.0';
-  }
-  const total = weatherHistoryRecords.value.reduce((sum, record) => sum + (Number(record?.rainfall) || 0), 0);
-  return (total / weatherHistoryRecords.value.length).toFixed(1);
+  if (!weatherHistoryRecords.value.length) return '0.0';
+  // Sum all rainfall and divide by the number of unique days
+  const uniqueDays = weatherByDay.value.size || 1;
+  const total = Array.from(weatherByDay.value.values()).reduce((sum, day) => sum + day.rainfall, 0);
+  return (total / uniqueDays).toFixed(1);
 });
 
 const averageTemperature = computed(() => {
@@ -623,57 +664,92 @@ const averageTemperature = computed(() => {
   return (total / weatherHistoryRecords.value.length).toFixed(1);
 });
 
+// Climate Impact: % of days with per-day rainfall 2–20mm and temp 20–35°C
+// (realistic thresholds for rice-growing conditions on a daily basis)
 const weatherImpact = computed(() => {
-  if (!weatherHistoryRecords.value.length) {
-    return '0';
-  }
-  const favorable = weatherHistoryRecords.value.filter((record) => {
-    const rainfall = Number(record?.rainfall);
-    const temperature = Number(record?.temperature);
-    if (Number.isNaN(rainfall) || Number.isNaN(temperature)) {
-      return false;
-    }
-    return rainfall >= 60 && rainfall <= 140 && temperature >= 20 && temperature <= 35;
+  if (!weatherByDay.value.size) return '0';
+  const favorable = Array.from(weatherByDay.value.values()).filter((day) => {
+    const dailyRain = day.rainfall;
+    const avgTemp = day.count > 0 ? day.temperature / day.count : 0;
+    return dailyRain >= 2 && dailyRain <= 20 && avgTemp >= 20 && avgTemp <= 35;
   }).length;
-
-  return ((favorable / weatherHistoryRecords.value.length) * 100).toFixed(0);
+  return ((favorable / weatherByDay.value.size) * 100).toFixed(0);
 });
 
 const yieldByMonth = computed(() => aggregateByMonth(harvests.value, 'harvest_date', 'yield'));
+const yieldByDay = computed(() => aggregateByMonth(harvests.value, 'harvest_date', 'yield')); // kept for symmetry, yields are rare enough to keep monthly
 
 const weatherCorrelationData = computed(() => {
+  if (usesDailyGranularity.value) {
+    // ── Daily view (Last 30 Days) ──
+    const keys = new Set(weatherByDay.value.keys());
+    const orderedKeys = Array.from(keys).sort();
+    if (!orderedKeys.length) return { labels: [], datasets: [] };
+
+    const labels = orderedKeys.map(dayLabelFromKey);
+    const rainfallData = orderedKeys.map((key) => {
+      const entry = weatherByDay.value.get(key);
+      return entry ? Number(entry.rainfall.toFixed(1)) : 0;
+    });
+    // For daily view, harvests are rare – use running monthly yield matched to day's month
+    const yieldData = orderedKeys.map((key) => {
+      const mKey = key.slice(0, 7); // derive month key from day key
+      return Number((yieldByMonth.value.get(mKey) || 0).toFixed(1));
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Daily Rainfall (mm)',
+          data: rainfallData,
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.15)',
+          tension: 0.2,
+          yAxisID: 'y',
+          fill: true
+        },
+        {
+          label: `Yield (${predominantUnit.value})`,
+          data: yieldData,
+          borderColor: 'rgb(34, 197, 94)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.2,
+          yAxisID: 'y1'
+        }
+      ]
+    };
+  }
+
+  // ── Monthly view (Last 3 Months / Last Year / All) ──
   const keys = new Set([
     ...weatherByMonth.value.keys(),
     ...yieldByMonth.value.keys()
   ]);
-
   const orderedKeys = Array.from(keys).sort();
-
-  if (!orderedKeys.length) {
-    return { labels: [], datasets: [] };
-  }
+  if (!orderedKeys.length) return { labels: [], datasets: [] };
 
   const labels = orderedKeys.map(monthLabelFromKey);
+  // Monthly cumulative rainfall (sum of all readings in that month)
   const rainfallData = orderedKeys.map((key) => {
     const entry = weatherByMonth.value.get(key);
-    if (!entry || entry.count === 0) return 0;
-    return Number((entry.rainfall / entry.count).toFixed(1));
+    return entry ? Number(entry.rainfall.toFixed(1)) : 0;
   });
   const yieldData = orderedKeys.map((key) => {
-    const totalYield = yieldByMonth.value.get(key) || 0;
-    return Number(totalYield.toFixed(1));
+    return Number((yieldByMonth.value.get(key) || 0).toFixed(1));
   });
 
   return {
     labels,
     datasets: [
       {
-        label: 'Avg Rainfall (mm)',
+        label: 'Monthly Rainfall (mm)',
         data: rainfallData,
         borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        backgroundColor: 'rgba(59, 130, 246, 0.15)',
         tension: 0.2,
-        yAxisID: 'y'
+        yAxisID: 'y',
+        fill: true
       },
       {
         label: `Yield (${predominantUnit.value})`,

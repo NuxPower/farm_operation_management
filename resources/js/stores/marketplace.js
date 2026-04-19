@@ -498,10 +498,10 @@ export const useMarketplaceStore = defineStore('marketplace', {
     },
 
     // Farmer order actions
-    async fetchFarmerOrders() {
+    async fetchFarmerOrders(filters = {}) {
       this.loading = true;
       try {
-        const response = await axios.get('/api/rice-marketplace/farmer/orders');
+        const response = await axios.get('/api/rice-marketplace/farmer/orders', { params: filters });
         const payload = response.data?.orders;
         // Handle paginated response - extract data array
         const items = payload?.data || payload || [];

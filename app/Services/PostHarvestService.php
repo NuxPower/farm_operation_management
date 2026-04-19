@@ -36,12 +36,19 @@ class PostHarvestService
                 ->first();
 
             if ($parentProcess) {
+                // If input_quantity is provided, it must not exceed parent's actual output
+                if (isset($data['input_quantity']) && $data['input_quantity'] > $parentProcess->output_quantity) {
+                    throw new \InvalidArgumentException('Input quantity cannot exceed the output quantity of the previous process (' . $parentProcess->output_quantity . ').');
+                }
                 $data['input_quantity'] = $data['input_quantity'] ?? $parentProcess->output_quantity;
                 $data['input_unit'] = $parentProcess->output_unit;
                 $data['parent_process_id'] = $parentProcess->id;
             }
         } else {
             // First step (threshing) — use harvest quantity
+            if (isset($data['input_quantity']) && $data['input_quantity'] > $harvest->quantity) {
+                throw new \InvalidArgumentException('Input quantity cannot exceed the available harvest quantity (' . $harvest->quantity . ').');
+            }
             $data['input_quantity'] = $data['input_quantity'] ?? $harvest->quantity;
             $data['input_unit'] = $harvest->unit;
         }
@@ -87,6 +94,8 @@ class PostHarvestService
                     default => \App\Models\Task::TYPE_MAINTENANCE,
                 };
 
+                $paymentType = $data['payment_type'] ?? \App\Models\Task::PAYMENT_TYPE_WAGE;
+
                 $task = \App\Models\Task::create([
                     'planting_id' => $harvest->planting_id,
                     'field_id' => $harvest->planting->field_id,
@@ -96,7 +105,10 @@ class PostHarvestService
                     'status' => \App\Models\Task::STATUS_PENDING,
                     'quantity' => $data['input_quantity'],
                     'unit' => $data['input_unit'],
-                    'payment_type' => \App\Models\Task::PAYMENT_TYPE_WAGE, // Default to wage for now
+                    'payment_type' => $paymentType,
+                    'assigned_to' => $data['assigned_to'] ?? null,
+                    'laborer_group_id' => $data['laborer_group_id'] ?? null,
+                    'wage_amount' => $data['wage_amount'] ?? null,
                 ]);
 
                 $process->update(['task_id' => $task->id]);
@@ -160,6 +172,10 @@ class PostHarvestService
             $outputQty = (float) $completionData['output_quantity'];
             $outputUnit = $completionData['output_unit'] ?? $process->input_unit;
             $inputQty = (float) $process->input_quantity;
+
+            if ($outputQty > $inputQty) {
+                throw new \InvalidArgumentException('Output quantity (' . $outputQty . ') cannot exceed input quantity (' . $inputQty . ').');
+            }
 
             // Calculate weight loss percentage
             $weightLoss = $inputQty > 0

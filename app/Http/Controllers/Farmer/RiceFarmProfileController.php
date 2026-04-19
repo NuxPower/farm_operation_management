@@ -460,15 +460,12 @@ class RiceFarmProfileController extends Controller
                 });
 
                 $field = Field::where('farm_id', $farm->id)->first();
-                
+
                 if ($field) {
                     $field->update($fieldData);
-                } else {
-                    $fieldData['user_id'] = $user->id;
-                    $fieldData['farm_id'] = $farm->id;
-                    $fieldData['name'] = 'Main Rice Field';
-                    $field = Field::create($fieldData);
                 }
+                // If no field exists, do NOT create one here.
+                // Field creation should be done explicitly through the fields endpoint.
             }
 
             // Update user profile

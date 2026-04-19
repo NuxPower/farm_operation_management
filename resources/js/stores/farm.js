@@ -457,11 +457,11 @@ export const useFarmStore = defineStore('farm', {
     },
 
     // --- HARVEST ACTIONS ---
-    async fetchHarvests() {
+    async fetchHarvests(params = {}) {
       this.loading = true;
       this.error = null;
       try {
-        const response = await harvestsAPI.getAll();
+        const response = await harvestsAPI.getAll(params);
         this.harvests = response.data.harvests || [];
         return response.data;
       } catch (error) {

@@ -24,7 +24,18 @@ class HarvestController extends Controller
             $q->where('user_id', $user->id);
         });
 
-        $harvests = $query->with(['planting.field', 'planting.riceVariety'])->get();
+        // Apply date range filters
+        if ($request->has('date_from')) {
+            $query->whereDate('harvest_date', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to')) {
+            $query->whereDate('harvest_date', '<=', $request->date_to);
+        }
+
+        $harvests = $query->with(['planting.field', 'planting.riceVariety', 'postHarvestProcesses'])
+            ->orderBy('harvest_date', 'desc')
+            ->get();
 
         return response()->json([
             'harvests' => $harvests
@@ -41,7 +52,6 @@ class HarvestController extends Controller
             'harvest_date' => 'required|date',
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string|in:bushels',
-            'quality_grade' => 'nullable|string|in:A,B,C,D',
             'price_per_unit' => 'nullable|numeric|min:0',
             'total_value' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -66,15 +76,6 @@ class HarvestController extends Controller
             ], 403);
         }
 
-        // Map quality_grade to quality enum for backward compatibility
-        $qualityMap = [
-            'A' => 'excellent',
-            'B' => 'good',
-            'C' => 'average',
-            'D' => 'poor',
-        ];
-        $quality = $request->quality_grade ? ($qualityMap[$request->quality_grade] ?? 'average') : 'average';
-
         DB::beginTransaction();
         try {
             $harvest = Harvest::create([
@@ -83,8 +84,7 @@ class HarvestController extends Controller
                 'quantity' => $request->quantity,
                 'yield' => $request->quantity, // Also set yield for backward compatibility
                 'unit' => $request->unit,
-                'quality' => $quality, // Set quality enum for backward compatibility
-                'quality_grade' => $request->quality_grade,
+                'quality' => 'average', // Default quality for backward compatibility
                 'price_per_unit' => $request->price_per_unit,
                 'total_value' => $request->total_value,
                 'notes' => $request->notes,
@@ -153,7 +153,6 @@ class HarvestController extends Controller
             'harvest_date' => 'sometimes|required|date',
             'quantity' => 'sometimes|required|numeric|min:0',
             'unit' => 'sometimes|required|string|in:bushels',
-            'quality_grade' => 'nullable|string|in:A,B,C,D',
             'price_per_unit' => 'nullable|numeric|min:0',
             'total_value' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -170,7 +169,6 @@ class HarvestController extends Controller
             'harvest_date',
             'quantity',
             'unit',
-            'quality_grade',
             'price_per_unit',
             'total_value',
             'notes',
@@ -181,19 +179,6 @@ class HarvestController extends Controller
         // Map quantity to yield if provided for backward compatibility
         if (isset($updateData['quantity'])) {
             $updateData['yield'] = $updateData['quantity'];
-        }
-
-        // Map quality_grade to quality enum for backward compatibility
-        if (isset($updateData['quality_grade'])) {
-            $qualityMap = [
-                'A' => 'excellent',
-                'B' => 'good',
-                'C' => 'average',
-                'D' => 'poor',
-            ];
-            $updateData['quality'] = $updateData['quality_grade']
-                ? ($qualityMap[$updateData['quality_grade']] ?? 'average')
-                : 'average';
         }
 
         $harvest->update($updateData);
@@ -241,11 +226,6 @@ class HarvestController extends Controller
 
         // Determine the product name from rice variety or crop type
         $productName = $planting->riceVariety?->name ?? $planting->crop_type ?? 'Rice';
-
-        // If quality grade is provided, append it to the name
-        if ($harvest->quality_grade) {
-            $productName .= ' (Grade ' . $harvest->quality_grade . ')';
-        }
 
         // Find or create inventory item for this product
         $inventoryItem = InventoryItem::firstOrCreate(

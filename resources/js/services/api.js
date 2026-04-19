@@ -270,7 +270,7 @@ export const tasksAPI = {
 
 // Harvests API
 export const harvestsAPI = {
-  getAll: () => api.get('/harvests'),
+  getAll: (params = {}) => api.get('/harvests', { params }),
   getById: (id) => api.get(`/harvests/${id}`),
   create: (harvestData) => api.post('/harvests', harvestData),
   update: (id, harvestData) => api.put(`/harvests/${id}`, harvestData),

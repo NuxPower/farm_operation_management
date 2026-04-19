@@ -109,6 +109,10 @@ class PostHarvestController extends Controller
             'notes' => 'nullable|string',
             'task_id' => 'nullable|exists:tasks,id',
             'assign_laborers' => 'nullable|boolean',
+            'assigned_to' => 'nullable|exists:laborers,id',
+            'laborer_group_id' => 'nullable|exists:laborer_groups,id',
+            'payment_type' => ['nullable', 'string', Rule::in(['wage', 'share', 'piece_rate'])],
+            'wage_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -222,7 +226,7 @@ class PostHarvestController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'output_quantity' => 'required|numeric|min:0',
+            'output_quantity' => ['required', 'numeric', 'min:0', 'max:' . $process->input_quantity],
             'output_unit' => 'nullable|string',
             'completed_date' => 'nullable|date',
             'cost' => 'nullable|numeric|min:0',
@@ -238,7 +242,11 @@ class PostHarvestController extends Controller
             ], 422);
         }
 
-        $completedProcess = $this->service->completeProcess($process, $request->all());
+        try {
+            $completedProcess = $this->service->completeProcess($process, $request->all());
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $completedProcess->load(['harvest.planting.riceVariety', 'harvest.planting.field', 'task']);
 

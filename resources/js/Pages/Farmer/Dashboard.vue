@@ -664,13 +664,16 @@
       if (inventoryStore.lowStockItems && Array.isArray(inventoryStore.lowStockItems)) {
         return inventoryStore.lowStockItems;
       }
-      // Fallback
+      // Fallback: only non-produce supply items should trigger low stock warnings
       if (inventoryStore.items && Array.isArray(inventoryStore.items)) {
+        const supplyCategories = ['seeds', 'fertilizer', 'pesticide', 'equipment'];
         return inventoryStore.items.filter(item => {
+           if (!item) return false;
+           // Produce items are harvest/post-harvest outputs — not restockable supplies
+           if (!supplyCategories.includes(item.category)) return false;
            const currentStock = item.current_stock ?? item.quantity ?? 0;
            const minStock = item.minimum_stock ?? item.min_stock ?? 0;
-           return item &&
-           typeof currentStock === 'number' &&
+           return typeof currentStock === 'number' &&
            typeof minStock === 'number' &&
            currentStock <= minStock;
         });
