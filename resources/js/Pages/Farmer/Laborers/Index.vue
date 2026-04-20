@@ -41,6 +41,45 @@
         </div>
       </div>
 
+      <!-- Filter Bar -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
+        <div class="flex-1 relative w-full">
+          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search name or specialization…"
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+          />
+        </div>
+        <select v-model="skillFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm">
+          <option value="">All Skill Levels</option>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+          <option value="expert">Expert</option>
+        </select>
+        <select v-model="statusFilter" class="w-full md:w-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-sm">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="on_leave">On Leave</option>
+        </select>
+        <button
+          @click="exportCsv"
+          class="whitespace-nowrap flex items-center gap-1.5 text-sm text-emerald-700 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition-colors"
+        >
+          ↓ Export CSV
+        </button>
+        <button
+          v-if="searchQuery || skillFilter || statusFilter"
+          @click="clearFilters"
+          class="whitespace-nowrap text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50"
+        >
+          ✕ Clear
+        </button>
+      </div>
+
       <div>
       <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
         <div class="flex">
@@ -99,9 +138,16 @@
           </button>
         </div>
 
+        <div v-else-if="filteredLaborers.length === 0 && laborers.length > 0" class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100">
+          <div class="text-5xl mb-4">👷</div>
+          <h2 class="text-xl font-bold text-gray-900 mb-2">No laborers match your filters</h2>
+          <p class="text-sm text-gray-500 mb-6">Try adjusting or clearing the filters above.</p>
+          <button @click="clearFilters" class="text-sm text-blue-700 hover:underline font-medium">Clear filters</button>
+        </div>
+
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
-            v-for="laborer in laborers"
+            v-for="laborer in filteredLaborers"
             :key="laborer.id"
             class="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden relative"
           >
@@ -239,7 +285,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
@@ -250,6 +296,31 @@ const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const laborers = ref([])
+
+// Filters
+const searchQuery = ref('')
+const skillFilter = ref('')
+const statusFilter = ref('')
+
+const filteredLaborers = computed(() => {
+  const search = searchQuery.value.toLowerCase().trim()
+  return laborers.value.filter(l => {
+    if (search) {
+      const name = (l.name || '').toLowerCase()
+      const spec = (l.specialization || '').toLowerCase()
+      if (!name.includes(search) && !spec.includes(search)) return false
+    }
+    if (skillFilter.value && l.skill_level !== skillFilter.value) return false
+    if (statusFilter.value && l.status !== statusFilter.value) return false
+    return true
+  })
+})
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  skillFilter.value = ''
+  statusFilter.value = ''
+}
 
 // Confirmation State
 const showConfirmModal = ref(false)
@@ -268,6 +339,32 @@ const fetchLaborers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// CSV export (client-side from fetched data)
+const exportCsv = () => {
+  const rows = [
+    ['Name', 'Phone', 'Email', 'Skill Level', 'Specialization', 'Status', 'Rate Type', 'Rate', 'Hire Date'],
+    ...filteredLaborers.value.map(l => [
+      l.name ?? '',
+      l.phone ?? '',
+      l.email ?? '',
+      l.skill_level ?? '',
+      l.specialization ?? '',
+      l.status ?? '',
+      l.rate_type ?? '',
+      l.rate ?? '',
+      l.hire_date ?? ''
+    ])
+  ]
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `laborers_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 const goToCreate = () => {

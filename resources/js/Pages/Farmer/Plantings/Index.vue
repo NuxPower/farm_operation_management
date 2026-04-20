@@ -32,7 +32,95 @@
         </div>
       </div>
 
-      <div>
+      <!-- Filter Bar -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
+        <!-- Search -->
+        <div class="flex-1 relative w-full">
+          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by field name or variety…"
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
+          />
+        </div>
+
+        <!-- Status Filter -->
+        <select
+          v-model="filters.status"
+          class="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm"
+        >
+          <option value="">Active Only</option>
+          <option value="all">All Statuses</option>
+          <option value="planned">Planned</option>
+          <option value="planted">Planted</option>
+          <option value="growing">Growing</option>
+          <option value="ready">Ready to Harvest</option>
+          <option value="harvested">Harvested</option>
+          <option value="failed">Failed</option>
+        </select>
+
+        <!-- Field Filter -->
+        <select
+          v-model="filters.field"
+          class="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm"
+        >
+          <option value="">All Fields</option>
+          <option v-for="field in fields" :key="field.id" :value="field.id">
+            {{ field.name }}
+          </option>
+        </select>
+
+        <!-- Clear Filters -->
+        <button
+          v-if="searchQuery || filters.status || filters.field || filters.variety"
+          @click="clearFilters"
+          class="whitespace-nowrap text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50"
+        >
+          ✕ Clear
+        </button>
+      </div>
+
+      <!-- Badge counts + Date range row -->
+      <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-6">
+        <!-- Status badge counts -->
+        <div class="flex flex-wrap gap-2 flex-1">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+            🌱 {{ statusCounts.active }} active
+          </span>
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+            ✅ {{ statusCounts.harvested }} harvested
+          </span>
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+            ❌ {{ statusCounts.failed }} failed
+          </span>
+          <span v-if="dueSoonCount > 0" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">
+            ⏰ {{ dueSoonCount }} due soon
+          </span>
+        </div>
+        <!-- Date range -->
+        <div class="flex items-center gap-2 text-sm">
+          <label class="text-gray-500 shrink-0">Planted:</label>
+          <input
+            v-model="dateFrom"
+            type="date"
+            class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+          />
+          <span class="text-gray-400">–</span>
+          <input
+            v-model="dateTo"
+            type="date"
+            class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+          />
+          <button
+            v-if="dateFrom || dateTo"
+            @click="dateFrom = ''; dateTo = ''"
+            class="text-xs text-gray-400 hover:text-red-500"
+          >✕</button>
+        </div>
+      </div>
+
+      <!-- Error -->
       <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
         <div class="flex">
           <div class="flex-shrink-0">
@@ -46,42 +134,14 @@
               @click="refreshPlantings"
               class="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
             >
-              <option :value="null">All Varieties</option>
-              <option 
-                v-for="option in varietyOptions" 
-                :key="option.key" 
-                :value="option"
-              >
-                {{ option.label }}
-              </option>
-            </button>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Field</label>
-            <select 
-              v-model="filters.field" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="">All Fields</option>
-              <option v-for="field in fields" :key="field.id" :value="field.id">
-                {{ field.name }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="flex items-end">
-            <button 
-              @click="clearFilters"
-              class="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
-            >
-              Clear Filters
+              Try again
             </button>
           </div>
         </div>
       </div>
 
-      <div v-else-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Loading Skeleton -->
+      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="n in 6"
           :key="n"
@@ -98,6 +158,7 @@
       </div>
 
       <div v-else>
+        <!-- No plantings at all -->
         <div v-if="plantings.length === 0" class="bg-white rounded-lg shadow p-12 text-center">
           <div class="text-5xl mb-4">🌱</div>
           <h2 class="text-lg font-semibold text-gray-900 mb-2">No plantings found</h2>
@@ -112,14 +173,26 @@
           </button>
         </div>
 
+        <!-- Filters returned no results -->
+        <div
+          v-else-if="filteredPlantings.length === 0"
+          class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100"
+        >
+          <div class="text-5xl mb-4">🌱</div>
+          <h2 class="text-xl font-bold text-gray-900 mb-2">No plantings match your filters</h2>
+          <p class="text-sm text-gray-500 mb-6">Try adjusting or clearing the filters above.</p>
+          <button @click="clearFilters" class="text-sm text-green-700 hover:underline font-medium">Clear filters</button>
+        </div>
+
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
             v-for="planting in filteredPlantings"
             :key="planting.id"
             class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+            :class="{ 'ring-2 ring-amber-400': isDueSoon(planting) }"
           >
             <div class="h-full flex flex-col">
-              <div class="flex items-start justify-between mb-4 pt-6 px-6">
+          <div class="flex items-start justify-between mb-4 pt-6 px-6">
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900">
                     {{ planting.crop_type || 'Planting' }}
@@ -128,12 +201,15 @@
                     On Field: {{ planting.field?.name || 'N/A' }}
                   </p>
                 </div>
-                <span
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  :class="statusClass(planting.status)"
-                >
-                  {{ formatStatus(planting.status) }}
-                </span>
+                <div class="flex flex-col items-end gap-1">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    :class="statusClass(planting.status)"
+                  >
+                    {{ formatStatus(planting.status) }}
+                  </span>
+                  <span v-if="isDueSoon(planting)" class="text-xs font-semibold text-amber-600">⏰ Harvest soon!</span>
+                </div>
               </div>
 
               <dl class="grid grid-cols-2 gap-y-2 text-sm text-gray-600 mb-4 px-6">
@@ -193,7 +269,7 @@
           </article>
         </div>
       </div>
-      </div>
+
       <!-- Confirmation Modal -->
       <ConfirmationModal
         :show="showConfirmModal"
@@ -217,179 +293,175 @@ import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
 const router = useRouter()
 const farmStore = useFarmStore()
 
-const loading = ref(false);
+const loading = ref(false)
+const error = ref(null)
+
 const filters = ref({
   status: '',
   variety: null,
   field: ''
-});
-const error = ref(null);
+})
+
+const searchQuery = ref('')
+const dateFrom = ref('')
+const dateTo = ref('')
+
+// --- Badge counts (across ALL plantings, not filtered) ---
+const statusCounts = computed(() => ({
+  active: plantings.value.filter(p => !['harvested', 'failed'].includes(p.status)).length,
+  harvested: plantings.value.filter(p => p.status === 'harvested').length,
+  failed: plantings.value.filter(p => p.status === 'failed').length
+}))
+
+const isDueSoon = (planting) => {
+  if (!planting.expected_harvest_date) return false
+  if (['harvested', 'failed'].includes(planting.status)) return false
+  const days = (new Date(planting.expected_harvest_date) - new Date()) / 86400000
+  return days >= 0 && days <= 7
+}
+
+const dueSoonCount = computed(() =>
+  filteredPlantings.value.filter(isDueSoon).length
+)
 
 // Confirmation State
 const showConfirmModal = ref(false)
 const plantingToDelete = ref(null)
 
-const plantings = computed(() => farmStore.plantings);
-const fields = computed(() => farmStore.fields);
+const plantings = computed(() => farmStore.plantings)
+const fields = computed(() => farmStore.fields)
+
 const varietyOptions = computed(() => {
-  const options = [];
-  const seen = new Set();
+  const options = []
+  const seen = new Set()
 
   plantings.value.forEach((planting) => {
     if (planting?.rice_variety) {
-      const varietyId = planting.rice_variety.id ?? planting.rice_variety_id;
+      const varietyId = planting.rice_variety.id ?? planting.rice_variety_id
       if (varietyId) {
-        const key = `variety-${varietyId}`;
+        const key = `variety-${varietyId}`
         if (!seen.has(key)) {
           options.push({
             key,
             label: planting.rice_variety.name || planting.crop_type || 'Rice Variety',
             type: 'variety',
             id: varietyId,
-          });
-          seen.add(key);
+          })
+          seen.add(key)
         }
       }
     } else if (planting?.rice_variety_id) {
-      const key = `variety-${planting.rice_variety_id}`;
+      const key = `variety-${planting.rice_variety_id}`
       if (!seen.has(key)) {
         options.push({
           key,
           label: planting.crop_type || `Variety #${planting.rice_variety_id}`,
           type: 'variety',
           id: planting.rice_variety_id,
-        });
-        seen.add(key);
+        })
+        seen.add(key)
       }
     }
 
     if (planting?.crop_type) {
-      const normalized = planting.crop_type.trim();
-      const key = `crop-${normalized.toLowerCase()}`;
+      const normalized = planting.crop_type.trim()
+      const key = `crop-${normalized.toLowerCase()}`
       if (!seen.has(key)) {
         options.push({
           key,
           label: normalized,
           type: 'crop',
           value: normalized.toLowerCase(),
-        });
-        seen.add(key);
+        })
+        seen.add(key)
       }
     }
-  });
+  })
 
-  return options.sort((a, b) => a.label.localeCompare(b.label));
-});
+  return options.sort((a, b) => a.label.localeCompare(b.label))
+})
 
 const filteredPlantings = computed(() => {
-  let filtered = plantings.value;
+  let filtered = plantings.value
 
-  // Default filter: hide harvested and failed unless explicitly requested
+  // Status filter — 'all' shows everything, '' hides harvested/failed, specific value filters exactly
   if (!filters.value.status) {
-    filtered = filtered.filter(p => !['harvested', 'failed'].includes(p.status));
-  } else {
-    filtered = filtered.filter(p => p.status === filters.value.status);
+    filtered = filtered.filter(p => !['harvested', 'failed'].includes(p.status))
+  } else if (filters.value.status !== 'all') {
+    filtered = filtered.filter(p => p.status === filters.value.status)
   }
 
+  // Variety filter
   if (filters.value.variety) {
-    const { type, id, value } = filters.value.variety;
+    const { type, id, value } = filters.value.variety
     filtered = filtered.filter((planting) => {
       if (type === 'variety') {
-        const plantingVarietyId = planting.rice_variety_id ?? planting.rice_variety?.id;
-        return plantingVarietyId && Number(plantingVarietyId) === Number(id);
+        const plantingVarietyId = planting.rice_variety_id ?? planting.rice_variety?.id
+        return plantingVarietyId && Number(plantingVarietyId) === Number(id)
       }
-      const cropType = planting.crop_type ? planting.crop_type.toLowerCase() : '';
-      return cropType === (value || '');
-    });
+      const cropType = planting.crop_type ? planting.crop_type.toLowerCase() : ''
+      return cropType === (value || '')
+    })
   }
 
+  // Field filter
   if (filters.value.field) {
-    filtered = filtered.filter(p => p.field_id === parseInt(filters.value.field));
+    filtered = filtered.filter(p => p.field_id === parseInt(filters.value.field))
   }
 
-  return filtered;
-});
+  // Date range filter (by planting_date)
+  if (dateFrom.value) {
+    filtered = filtered.filter(p => p.planting_date && p.planting_date >= dateFrom.value)
+  }
+  if (dateTo.value) {
+    filtered = filtered.filter(p => p.planting_date && p.planting_date <= dateTo.value)
+  }
 
-const getStatusClass = (status) => {
-  const classes = {
-    planned: 'bg-indigo-100 text-indigo-800',
-    planted: 'bg-blue-100 text-blue-800',
-    growing: 'bg-green-100 text-green-800',
-    ready: 'bg-yellow-100 text-yellow-800',
-    harvested: 'bg-gray-100 text-gray-800',
-    failed: 'bg-red-100 text-red-800'
-  };
-  return classes[status] || 'bg-gray-100 text-gray-800';
-};
+  // Search — matches field name or variety/crop type
+  const search = searchQuery.value.toLowerCase().trim()
+  if (search) {
+    filtered = filtered.filter(p => {
+      const fieldName = (p.field?.name || '').toLowerCase()
+      const variety = (p.rice_variety?.name || p.crop_type || '').toLowerCase()
+      return fieldName.includes(search) || variety.includes(search)
+    })
+  }
 
-const getProgressPercentage = (planting) => {
-  const statusProgress = {
-    planned: 0,
-    planted: 20,
-    growing: 60,
-    ready: 90,
-    harvested: 100,
-    failed: 0
-  };
-  return statusProgress[planting.status] || 0;
-};
-const getProgressColor = (status) => {
-  const colors = {
-    planned: 'bg-indigo-500',
-    planted: 'bg-blue-500',
-    growing: 'bg-green-500',
-    ready: 'bg-yellow-500',
-    harvested: 'bg-gray-500',
-    failed: 'bg-red-500'
-  };
-  return colors[status] || 'bg-gray-500';
-};
-
-// detailed formatDate implementation provided later
-
-const formatLabel = (value) => {
-  if (!value) return 'Not set';
-  return value
-    .toString()
-    .split('_')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-};
-
+  return filtered
+})
 
 const clearFilters = () => {
-  filters.value = {
-    status: '',
-    variety: null,
-    field: ''
-  };
-};
+  filters.value = { status: '', variety: null, field: '' }
+  searchQuery.value = ''
+  dateFrom.value = ''
+  dateTo.value = ''
+}
 
 const viewPlanting = (planting) => {
-  router.push(`/plantings/${planting.id}`);
-};
+  router.push(`/plantings/${planting.id}`)
+}
 
 const editPlanting = (planting) => {
-  router.push(`/plantings/${planting.id}/edit`);
-};
+  router.push(`/plantings/${planting.id}/edit`)
+}
 
 const refreshPlantings = async () => {
-  loading.value = true;
-  error.value = null;
+  loading.value = true
+  error.value = null
   try {
-    await farmStore.fetchPlantings();
+    await farmStore.fetchPlantings()
   } catch (err) {
-    console.error('Failed to load plantings:', err);
-    error.value = err.userMessage || err.response?.data?.message || 'Unable to load plantings.';
+    console.error('Failed to load plantings:', err)
+    error.value = err.userMessage || err.response?.data?.message || 'Unable to load plantings.'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 // --- Navigation ---
 const goToCreate = () => {
-  router.push('/plantings/create');
-};
+  router.push('/plantings/create')
+}
 
 const goToDetails = (id) => {
   router.push(`/plantings/${id}`)
@@ -401,22 +473,22 @@ const goToEdit = (id) => {
 
 // --- CRUD Actions ---
 const confirmDelete = (planting) => {
-  plantingToDelete.value = planting;
-  showConfirmModal.value = true;
-};
+  plantingToDelete.value = planting
+  showConfirmModal.value = true
+}
 
 const deletePlanting = async () => {
-  if (!plantingToDelete.value) return;
-  showConfirmModal.value = false;
-  
+  if (!plantingToDelete.value) return
+  showConfirmModal.value = false
+
   try {
-    await farmStore.deletePlanting(plantingToDelete.value.id);
-    plantingToDelete.value = null;
-  } catch (err) { 
-    console.error('Failed to delete planting:', err);
-    error.value = err.userMessage || err.response?.data?.message || 'Unable to delete planting.';
+    await farmStore.deletePlanting(plantingToDelete.value.id)
+    plantingToDelete.value = null
+  } catch (err) {
+    console.error('Failed to delete planting:', err)
+    error.value = err.userMessage || err.response?.data?.message || 'Unable to delete planting.'
   }
-};
+}
 
 // --- Formatters ---
 const formatDate = (value) => {
@@ -449,6 +521,15 @@ const statusClass = (status) => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
+const formatLabel = (value) => {
+  if (!value) return 'Not set'
+  return value
+    .toString()
+    .split('_')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 // --- Lifecycle ---
 onMounted(() => {
   if (!plantings.value.length) {
@@ -457,7 +538,6 @@ onMounted(() => {
     loading.value = false
   }
   // Also fetch fields in the background if they aren't loaded
-  // as they are needed for the create/edit forms
   if (!farmStore.fields.length) {
     farmStore.fetchFields().catch(err => console.warn('BG fetch fields failed', err))
   }

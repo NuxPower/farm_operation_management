@@ -32,6 +32,41 @@
         </div>
       </div>
 
+      <!-- Filter Bar -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
+        <!-- Field/Name Search -->
+        <div class="flex-1 relative w-full">
+          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by field name…"
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
+          />
+        </div>
+
+        <!-- Processing Status Filter -->
+        <select
+          v-model="processingFilter"
+          class="w-full md:w-52 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm"
+        >
+          <option value="">All Status</option>
+          <option value="unprocessed">Unprocessed</option>
+          <option value="threshed">Threshed</option>
+          <option value="dried">Dried</option>
+          <option value="milled">Milled</option>
+        </select>
+
+        <!-- Clear Filters -->
+        <button
+          v-if="searchQuery || processingFilter"
+          @click="clearFilters"
+          class="whitespace-nowrap text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50"
+        >
+          ✕ Clear
+        </button>
+      </div>
+
       <div>
       <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
         <div class="flex">
@@ -86,6 +121,7 @@
       </div>
 
       <div v-else>
+        <!-- No harvests at all -->
         <div v-if="harvests.length === 0" class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100">
           <div class="inline-flex items-center justify-center h-20 w-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl mb-6">
             <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,9 +143,20 @@
           </button>
         </div>
 
+        <!-- Filters returned no results -->
+        <div
+          v-else-if="filteredHarvests.length === 0"
+          class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100"
+        >
+          <div class="text-5xl mb-4">🌾</div>
+          <h2 class="text-xl font-bold text-gray-900 mb-2">No harvests match your filters</h2>
+          <p class="text-sm text-gray-500 mb-6">Try adjusting or clearing the filters above.</p>
+          <button @click="clearFilters" class="text-sm text-green-700 hover:underline font-medium">Clear filters</button>
+        </div>
+
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
-            v-for="harvest in harvests"
+            v-for="harvest in filteredHarvests"
             :key="harvest.id"
             class="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden"
           >
@@ -286,7 +333,56 @@ const selectedHarvest = ref(null)
 const showConfirmModal = ref(false)
 const harvestToDelete = ref(null)
 
+// Filters
+const searchQuery = ref('')
+const processingFilter = ref('')
+
 const harvests = computed(() => farmStore.harvests || [])
+
+/**
+ * Derive the processing status of a harvest from its postHarvestProcesses.
+ * Returns: 'unprocessed' | 'threshed' | 'dried' | 'milled'
+ */
+const getProcessingStatus = (harvest) => {
+  const processes = harvest.post_harvest_processes || harvest.postHarvestProcesses || []
+  const completed = processes.filter(p => p.status === 'completed')
+  if (!completed.length) return 'unprocessed'
+  // Choose the most advanced step
+  const order = ['threshing', 'drying', 'milling']
+  let best = 'unprocessed'
+  completed.forEach(p => {
+    const idx = order.indexOf(p.process_type)
+    if (idx === 0 && best === 'unprocessed') best = 'threshed'
+    if (idx === 1 && best !== 'milled') best = 'dried'
+    if (idx === 2) best = 'milled'
+  })
+  return best
+}
+
+const filteredHarvests = computed(() => {
+  return harvests.value.filter(harvest => {
+    // Field name search
+    const search = searchQuery.value.toLowerCase().trim()
+    if (search) {
+      const fieldName = (harvest.planting?.field?.name || '').toLowerCase()
+      const variety = (harvest.planting?.riceVariety?.name || harvest.planting?.crop_type || '').toLowerCase()
+      if (!fieldName.includes(search) && !variety.includes(search)) return false
+    }
+
+    // Processing status filter
+    if (processingFilter.value) {
+      const status = getProcessingStatus(harvest)
+      if (status !== processingFilter.value) return false
+    }
+
+    return true
+  })
+})
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  processingFilter.value = ''
+}
 
 // --- Modal Controls ---
 const openCreateModal = () => {

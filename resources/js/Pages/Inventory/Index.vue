@@ -79,6 +79,10 @@
           <input type="checkbox" v-model="hideEmptyProduce" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
           <span class="text-sm font-medium text-gray-700">Hide 0-stock produce</span>
         </label>
+        <label class="flex items-center gap-2 cursor-pointer bg-amber-50 px-3 py-2 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap w-full md:w-auto">
+          <input type="checkbox" v-model="milledOnly" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4" />
+          <span class="text-sm font-medium text-amber-800">🌾 Milled Rice (Bugas) only</span>
+        </label>
       </div>
 
       <div v-if="loading" class="text-center py-20">
@@ -172,6 +176,7 @@ const loading = computed(() => store.loading)
 const searchQuery = ref('')
 const categoryFilter = ref('')
 const hideEmptyProduce = ref(true)
+const milledOnly = ref(false)
 
 // Statistics
 const totalItems = computed(() => items.value.length)
@@ -189,6 +194,12 @@ const filteredItems = computed(() => {
     // Hide 0-stock produce if toggle is active
     if (hideEmptyProduce.value && item.category === 'produce' && Number(item.current_stock || 0) <= 0) {
       return false
+    }
+
+    // Show only milled rice (bugas) — items with sacks_rice unit, or whose name contains 'Milled'
+    if (milledOnly.value) {
+      const isMilled = item.unit === 'sacks_rice' || item.name?.toLowerCase().includes('milled')
+      if (!isMilled) return false
     }
 
     const search = searchQuery.value.toLowerCase()

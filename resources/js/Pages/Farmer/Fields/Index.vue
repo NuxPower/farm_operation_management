@@ -41,7 +41,40 @@
         </div>
       </div>
 
-      <div>
+      <!-- Filter Bar -->
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
+        <div class="flex-1 relative w-full">
+          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by field name or location…"
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
+          />
+        </div>
+        <select v-model="soilFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
+          <option value="">All Soil Types</option>
+          <option v-for="soil in soilOptions" :key="soil" :value="soil">{{ soil }}</option>
+        </select>
+        <select v-model="statusFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="fallow">Fallow</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+        <select v-model="cropFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
+          <option value="">All Crops</option>
+          <option v-for="crop in cropOptions" :key="crop" :value="crop">{{ crop }}</option>
+        </select>
+        <button
+          v-if="searchQuery || soilFilter || statusFilter || cropFilter"
+          @click="clearFilters"
+          class="whitespace-nowrap text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50"
+        >
+          ✕ Clear
+        </button>
+      </div>
+
       <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
         <div class="flex">
           <div class="flex-shrink-0">
@@ -99,9 +132,16 @@
           </button>
         </div>
 
+        <div v-else-if="filteredFields.length === 0 && fields.length > 0" class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100">
+          <div class="text-5xl mb-4">🌾</div>
+          <h2 class="text-xl font-bold text-gray-900 mb-2">No fields match your filters</h2>
+          <p class="text-sm text-gray-500 mb-6">Try adjusting or clearing the filters above.</p>
+          <button @click="clearFilters" class="text-sm text-green-700 hover:underline font-medium">Clear filters</button>
+        </div>
+
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
-            v-for="field in fields"
+            v-for="field in filteredFields"
             :key="field.id"
             class="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden"
           >
@@ -240,7 +280,6 @@
           </article>
         </div>
       </div>
-      </div>
     </div>
     <EditFarmModal
       :show="showEditFarmModal"
@@ -266,6 +305,42 @@ const showEditFarmModal = ref(false)
 
 const fields = computed(() => farmStore.fields || [])
 const farmProfile = computed(() => farmStore.farmProfile)
+
+// Filters
+const searchQuery = ref('')
+const soilFilter = ref('')
+const statusFilter = ref('')
+const cropFilter = ref('')
+
+const soilOptions = computed(() => [
+  ...new Set(fields.value.map(f => f.soil_type).filter(Boolean))
+].sort())
+
+const cropOptions = computed(() => [
+  ...new Set(fields.value.map(f => f.current_crop).filter(Boolean))
+].sort())
+
+const filteredFields = computed(() => {
+  const search = searchQuery.value.toLowerCase().trim()
+  return fields.value.filter(f => {
+    if (search) {
+      const name = (f.name || '').toLowerCase()
+      const loc = formatLocation(f.location || f.address).toLowerCase()
+      if (!name.includes(search) && !loc.includes(search)) return false
+    }
+    if (soilFilter.value && f.soil_type !== soilFilter.value) return false
+    if (statusFilter.value && f.status !== statusFilter.value) return false
+    if (cropFilter.value && f.current_crop !== cropFilter.value) return false
+    return true
+  })
+})
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  soilFilter.value = ''
+  statusFilter.value = ''
+  cropFilter.value = ''
+}
 
 const openEditFarmModal = () => {
   showEditFarmModal.value = true
