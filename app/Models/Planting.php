@@ -27,12 +27,16 @@ class Planting extends Model
         'notes',
         'weather_conditions',
         'seed_unit',
+        'failure_reason',
+        'failure_category',
+        'failed_at',
     ];
 
     protected $casts = [
         'planting_date' => 'datetime',
         'expected_harvest_date' => 'datetime',
         'actual_harvest_date' => 'datetime',
+        'failed_at' => 'datetime',
         'seed_rate' => 'decimal:2',
         'area_planted' => 'decimal:2',
         'weather_conditions' => 'array',
@@ -51,6 +55,27 @@ class Planting extends Model
     const STATUS_HARVESTED = 'harvested';
     const STATUS_FAILED = 'failed';
 
+    const FAILURE_CATEGORIES = [
+        'pest_disease'    => 'Pest / Disease',
+        'weather'         => 'Weather (General)',
+        'flood'           => 'Flood',
+        'drought'         => 'Drought',
+        'poor_germination'=> 'Poor Germination',
+        'other'           => 'Other',
+    ];
+
+    /** Scope: only failed plantings */
+    public function scopeFailed($query)
+    {
+        return $query->where('status', self::STATUS_FAILED);
+    }
+
+    /** Scope: active (not harvested or failed) */
+    public function scopeActive($query)
+    {
+        return $query->whereNotIn('status', [self::STATUS_HARVESTED, self::STATUS_FAILED]);
+    }
+
     /**
      * Boot the model - add validation hooks
      */
@@ -58,19 +83,20 @@ class Planting extends Model
     {
         parent::boot();
 
-        /**
-         * Validate rice_variety_id is set before saving
-         * This prevents silent failures in analytics calculations
-         */
         static::saving(function ($model) {
+            // Warn if rice_variety_id is missing
             if (!$model->rice_variety_id) {
                 \Illuminate\Support\Facades\Log::warning(
                     "Planting {$model->id} being saved without rice_variety_id",
                     ['field_id' => $model->field_id]
                 );
-                
-                // Optional: uncomment to enforce NOT NULL at application level
-                // throw new \Exception('Rice variety must be selected for a planting.');
+            }
+
+            // Auto-stamp failed_at when status first transitions to failed
+            if ($model->isDirty('status') &&
+                $model->status === self::STATUS_FAILED &&
+                empty($model->failed_at)) {
+                $model->failed_at = now();
             }
         });
     }
@@ -145,7 +171,7 @@ class Planting extends Model
     public function isOverdue(): bool
     {
         return $this->expected_harvest_date < Carbon::now() &&
-            $this->status !== self::STATUS_HARVESTED;
+            !in_array($this->status, [self::STATUS_HARVESTED, self::STATUS_FAILED]);
     }
 
     /**

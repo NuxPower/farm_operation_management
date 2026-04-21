@@ -457,25 +457,95 @@ class DataAnalysisController extends Controller
             }
         }
 
-        // 12. Executive Summary & Action Suggestions (Generated)
+        // 12. Failure Analysis (new)
+        $failureData = [
+            'total_failed'          => 0,
+            'failure_rate_pct'      => 0,
+            'total_crop_loss_value' => 0,
+            'avg_days_before_failure' => 0,
+            'by_category'           => [],
+            'by_variety'            => [],
+            'by_season'             => [],
+        ];
+
+        if ($farm) {
+            $allPlantingIds = Planting::whereHas('field', function ($q) use ($farm) {
+                $q->where('farm_id', $farm->id);
+            })->pluck('id');
+
+            $totalPlantingCount = $allPlantingIds->count();
+
+            $failedPlantings = Planting::whereHas('field', function ($q) use ($farm) {
+                $q->where('farm_id', $farm->id);
+            })->failed()->with(['expenses', 'riceVariety'])->get();
+
+            $failureData['total_failed'] = $failedPlantings->count();
+            $failureData['failure_rate_pct'] = $totalPlantingCount > 0
+                ? round(($failedPlantings->count() / $totalPlantingCount) * 100, 1)
+                : 0;
+
+            // Total crop loss (sum of crop_loss expenses tied to failed plantings)
+            $failureData['total_crop_loss_value'] = round(
+                $failedPlantings->sum(fn($p) => $p->expenses->where('category', 'crop_loss')->sum('amount')),
+                2
+            );
+
+            // Average days before failure
+            $plantingsWithDates = $failedPlantings->filter(
+                fn($p) => $p->planting_date && $p->failed_at
+            );
+            if ($plantingsWithDates->count() > 0) {
+                $totalDays = $plantingsWithDates->sum(
+                    fn($p) => $p->planting_date->diffInDays($p->failed_at)
+                );
+                $failureData['avg_days_before_failure'] = round($totalDays / $plantingsWithDates->count(), 1);
+            }
+
+            // By category
+            $failureData['by_category'] = $failedPlantings
+                ->groupBy('failure_category')
+                ->map(fn($group, $cat) => [
+                    'category' => Planting::FAILURE_CATEGORIES[$cat] ?? ($cat ?? 'Unknown'),
+                    'count'    => $group->count(),
+                ])->values();
+
+            // By variety
+            $failureData['by_variety'] = $failedPlantings
+                ->groupBy(fn($p) => $p->riceVariety->name ?? $p->crop_type ?? 'Unknown')
+                ->map(fn($group, $variety) => [
+                    'variety' => $variety,
+                    'count'   => $group->count(),
+                ])->values();
+
+            // By season
+            $failureData['by_season'] = $failedPlantings
+                ->groupBy('season')
+                ->map(fn($group, $season) => [
+                    'season' => $season ?? 'Unknown',
+                    'count'  => $group->count(),
+                ])->values();
+        }
+
+        // 13. Executive Summary & Action Suggestions (Generated)
         $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData);
-        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData);
+        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData, $failureData);
 
         return response()->json([
-            'executive_summary' => $executiveSummary,
+            'executive_summary'  => $executiveSummary,
             'action_suggestions' => $actionSuggestions,
-            'weather' => $weatherData,
-            'sales' => $salesData,
-            'expenses' => $expensesData,
-            'tasks' => $taskStats,
-            'fields' => $fieldsData,
-            'nursery' => $nurseryData,
-            'pests' => $pestsData,
-            'laborers' => $laborersData,
-            'inventory' => $inventoryData,
-            'post_harvest' => $postHarvestData,
+            'weather'            => $weatherData,
+            'sales'              => $salesData,
+            'expenses'           => $expensesData,
+            'tasks'              => $taskStats,
+            'fields'             => $fieldsData,
+            'nursery'            => $nurseryData,
+            'pests'              => $pestsData,
+            'laborers'           => $laborersData,
+            'inventory'          => $inventoryData,
+            'post_harvest'       => $postHarvestData,
+            'failure_analysis'   => $failureData,
             'financial_forecast' => $financialForecast,
-            'generated_at' => now(),
+            'generated_at'       => now(),
         ]);
     }
 
@@ -537,7 +607,7 @@ class DataAnalysisController extends Controller
     /**
      * Generate action suggestions based on analytics data
      */
-    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null, $inventory = null): array
+    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null, $inventory = null, $failureData = null): array
     {
         $suggestions = [];
 
@@ -612,6 +682,22 @@ class DataAnalysisController extends Controller
                 'priority' => 'medium',
                 'action_label' => 'View Finances',
                 'action_url' => '/reports/profit-loss',
+            ];
+        }
+
+        // Failed planting suggestion
+        if ($failureData && ($failureData['total_failed'] ?? 0) > 0) {
+            $suggestions[] = [
+                'icon'         => '💀',
+                'category'     => 'Crop Failure',
+                'message'      => sprintf(
+                    '%d planting(s) failed this season. Total crop loss: ₱%s. Review causes to prevent recurrence.',
+                    $failureData['total_failed'],
+                    number_format($failureData['total_crop_loss_value'] ?? 0, 0)
+                ),
+                'priority'     => 'high',
+                'action_label' => 'View Failed',
+                'action_url'   => '/plantings?status=failed',
             ];
         }
 

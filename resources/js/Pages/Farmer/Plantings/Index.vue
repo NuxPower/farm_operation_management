@@ -189,16 +189,23 @@
             v-for="planting in filteredPlantings"
             :key="planting.id"
             class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-            :class="{ 'ring-2 ring-amber-400': isDueSoon(planting) }"
+            :class="{
+              'ring-2 ring-amber-400': isDueSoon(planting),
+              'border-l-4 border-red-500': planting.status === 'failed'
+            }"
           >
             <div class="h-full flex flex-col">
-          <div class="flex items-start justify-between mb-4 pt-6 px-6">
+              <div class="flex items-start justify-between mb-4 pt-6 px-6">
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900">
                     {{ planting.crop_type || 'Planting' }}
                   </h3>
                   <p class="text-xs text-gray-500">
                     On Field: {{ planting.field?.name || 'N/A' }}
+                  </p>
+                  <p v-if="planting.status === 'failed' && planting.failure_reason"
+                     class="text-xs text-red-500 mt-0.5 italic">
+                    ❗ {{ planting.failure_reason }}
                   </p>
                 </div>
                 <div class="flex flex-col items-end gap-1">
@@ -209,6 +216,9 @@
                     {{ formatStatus(planting.status) }}
                   </span>
                   <span v-if="isDueSoon(planting)" class="text-xs font-semibold text-amber-600">⏰ Harvest soon!</span>
+                  <span v-if="planting.status === 'failed' && planting.failed_at" class="text-xs text-red-400">
+                    Failed {{ formatDate(planting.failed_at) }}
+                  </span>
                 </div>
               </div>
 

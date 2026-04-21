@@ -28,14 +28,39 @@
               Edit
             </button>
             <button
-              @click="confirmDelete(planting)"
+              v-if="planting.status !== 'failed' && planting.status !== 'harvested'"
+              @click="openFailModal"
               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700"
+            >
+              💀 Mark as Failed
+            </button>
+            <button
+              @click="confirmDelete(planting)"
+              class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md border border-red-300 text-red-700 bg-white hover:bg-red-50"
             >
               Delete
             </button>
           </div>
       </div>
 
+
+      <!-- Failed State Banner -->
+      <div v-if="planting && planting.status === 'failed'"
+           class="bg-red-50 border border-red-300 rounded-xl p-4 flex items-start gap-3">
+        <span class="text-2xl">💀</span>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-red-800">
+            This planting failed
+            <span v-if="planting.failed_at"> on {{ formatDate(planting.failed_at) }}</span>.
+          </p>
+          <p v-if="planting.failure_reason" class="text-sm text-red-700 mt-0.5">
+            Reason: {{ planting.failure_reason }}
+          </p>
+          <p class="text-xs text-red-500 mt-1">
+            A crop loss expense has been automatically recorded in your financials.
+          </p>
+        </div>
+      </div>
 
       <div v-if="loading" class="bg-white shadow sm:rounded-lg p-12 text-center">
         <LoadingSpinner text="Loading planting details..." />
@@ -338,10 +363,68 @@
     </div>
 
   </div>
+
+  <!-- Mark as Failed Modal -->
+  <div v-if="showFailModal" class="fixed z-50 inset-0 overflow-y-auto" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="showFailModal = false"></div>
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+      <div class="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="bg-red-50 px-6 pt-5 pb-4">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+              <span class="text-xl">💀</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Mark Planting as Failed</h3>
+              <p class="text-sm text-gray-500">This will cancel all tasks, update the field status, and record a crop loss expense.</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Failure Category</label>
+              <select v-model="failForm.failure_category"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                <option value="">— Select a category —</option>
+                <option value="pest_disease">Pest / Disease</option>
+                <option value="weather">Weather (General)</option>
+                <option value="flood">Flood</option>
+                <option value="drought">Drought</option>
+                <option value="poor_germination">Poor Germination</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Reason <span class="text-gray-400">(optional)</span></label>
+              <textarea
+                v-model="failForm.failure_reason"
+                rows="3"
+                placeholder="Describe what happened..."
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none resize-none"
+              ></textarea>
+            </div>
+            <p v-if="failError" class="text-sm text-red-600">{{ failError }}</p>
+          </div>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 flex flex-row-reverse gap-3">
+          <button @click="submitFail" :disabled="failLoading"
+            class="inline-flex justify-center px-5 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">
+            {{ failLoading ? 'Marking...' : 'Confirm Failure' }}
+          </button>
+          <button @click="showFailModal = false"
+            class="inline-flex justify-center px-5 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
@@ -391,6 +474,41 @@ const plantingToDelete = ref(null)
 const showAdvanceModal = ref(false)
 const advanceNotes = ref('')
 const advanceLoading = ref(false)
+
+// --- Failure Modal ---
+const showFailModal  = ref(false)
+const failLoading    = ref(false)
+const failError      = ref('')
+const failForm       = ref({ failure_category: '', failure_reason: '' })
+
+const openFailModal = () => {
+  failForm.value  = { failure_category: '', failure_reason: '' }
+  failError.value = ''
+  showFailModal.value = true
+}
+
+const submitFail = async () => {
+  if (!failForm.value.failure_category) {
+    failError.value = 'Please select a failure category.'
+    return
+  }
+  failLoading.value = true
+  failError.value   = ''
+  try {
+    await farmStore.updatePlanting(planting.value.id, {
+      status: 'failed',
+      failure_category: failForm.value.failure_category,
+      failure_reason: failForm.value.failure_reason || null,
+    })
+    showFailModal.value = false
+    await fetchPlantingData()
+  } catch (err) {
+    failError.value = err?.response?.data?.message || 'Failed to mark as failed. Try again.'
+  } finally {
+    failLoading.value = false
+  }
+}
+
 
 const fetchPlantingData = async () => {
   // Clear any previous errors

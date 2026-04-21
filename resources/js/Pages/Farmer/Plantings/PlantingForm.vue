@@ -295,6 +295,56 @@
           <p v-if="form.errors.status" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.status }}</p>
         </div>
       </div>
+
+      <!-- Failure Details (conditional: edit mode + status = failed) -->
+      <transition
+        enter-active-class="transition ease-out duration-200"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-150"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <div v-if="isEditMode && form.data.status === 'failed'" class="mt-6 p-5 bg-red-50 border border-red-200 rounded-xl">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-lg">💀</span>
+            <h4 class="text-sm font-bold text-red-800">Crop Failure Details</h4>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label for="failure_category" class="block text-sm font-bold text-gray-700 mb-2">Failure Category</label>
+              <select
+                id="failure_category"
+                v-model="form.data.failure_category"
+                class="w-full rounded-xl border-gray-300 px-4 py-3 shadow-sm bg-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all font-medium text-gray-800"
+              >
+                <option value="">— Select a category —</option>
+                <option value="pest_disease">Pest / Disease</option>
+                <option value="weather">Weather (General)</option>
+                <option value="flood">Flood</option>
+                <option value="drought">Drought</option>
+                <option value="poor_germination">Poor Germination</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="failure_reason" class="block text-sm font-bold text-gray-700 mb-2">
+                Reason <span class="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                id="failure_reason"
+                v-model="form.data.failure_reason"
+                rows="2"
+                placeholder="Describe what happened..."
+                class="w-full rounded-xl border-gray-300 px-4 py-3 shadow-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all font-medium text-gray-800 resize-none"
+              ></textarea>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-red-600">
+            ⚠️ Saving with Failed status will automatically cancel pending tasks and revert the field to fallow.
+          </p>
+        </div>
+      </transition>
     </div>
 
     <!-- Section 2: Method & Quantity -->
@@ -607,6 +657,8 @@ const getInitialFormData = () => {
     notes: props.planting?.notes || null,
     inventory_item_id: '', // Add inventory item tracking
     seed_planting_id: '', // Add seed planting source
+    failure_category: props.planting?.failure_category || '',
+    failure_reason: props.planting?.failure_reason || '',
   }
 }
 

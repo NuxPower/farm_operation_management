@@ -80,6 +80,28 @@
       </div>
     </div>
 
+    <!-- Failed Plantings Warning Banner -->
+    <div
+      v-if="stats.failed_plantings_count > 0"
+      class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-4"
+    >
+      <div class="shrink-0 text-2xl">💀</div>
+      <div class="flex-1">
+        <p class="text-sm font-semibold text-red-800">
+          {{ stats.failed_plantings_count }} planting{{ stats.failed_plantings_count > 1 ? 's' : '' }} failed this season.
+        </p>
+        <p class="text-xs text-red-600 mt-0.5">
+          Review causes and check your financial reports for the recorded crop loss entries.
+        </p>
+      </div>
+      <router-link
+        to="/plantings"
+        class="shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700"
+      >
+        View Failed
+      </router-link>
+    </div>
+
     <!-- Module Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
@@ -730,6 +752,7 @@ const loadDashboardData = async () => {
     stats.value = {
       total_fields: fieldsData.length,
       active_plantings: lifecycleData.total_plantings || 0,
+      failed_plantings_count: lifecycleData.failed_plantings || 0,
       critical_plantings: lifecycleData.critical_plantings?.length || 0,
       weather_alerts: weatherFieldData.reduce((total, field) => total + (field.alerts_count || 0), 0),
       low_stock_items: lowStockItems.length,

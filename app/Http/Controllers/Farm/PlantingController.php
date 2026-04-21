@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Farm;
 
 use App\Http\Controllers\Controller;
+use App\Models\Expense;
 use App\Models\Field;
+use App\Models\InventoryTransaction;
 use App\Models\Planting;
 use App\Models\RiceVariety;
+use App\Notifications\PlantingFailedNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class PlantingController extends Controller
@@ -245,19 +249,22 @@ class PlantingController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'field_id' => 'sometimes|required|exists:fields,id',
-            'rice_variety_id' => 'nullable|exists:rice_varieties,id',
-            'crop_type' => 'sometimes|required|string|max:255',
-            'planting_date' => 'sometimes|required|date',
+            'field_id'          => 'sometimes|required|exists:fields,id',
+            'rice_variety_id'   => 'nullable|exists:rice_varieties,id',
+            'crop_type'         => 'sometimes|required|string|max:255',
+            'planting_date'     => 'sometimes|required|date',
             'expected_harvest_date' => 'nullable|date|after_or_equal:planting_date',
-            'growth_duration' => 'nullable|integer|min:30|max:240',
-            'planting_method' => 'nullable|string|in:direct_seeding,transplanting,broadcasting',
-            'seed_rate' => 'nullable|numeric|min:0',
-            'seed_unit' => 'nullable|string|max:50',
-            'area_planted' => 'nullable|numeric|min:0',
-            'season' => 'nullable|string|in:wet,dry',
-            'status' => 'nullable|string|in:planned,planted,growing,ready,harvested,failed',
-            'notes' => 'nullable|string',
+            'growth_duration'   => 'nullable|integer|min:30|max:240',
+            'planting_method'   => 'nullable|string|in:direct_seeding,transplanting,broadcasting',
+            'seed_rate'         => 'nullable|numeric|min:0',
+            'seed_unit'         => 'nullable|string|max:50',
+            'area_planted'      => 'nullable|numeric|min:0',
+            'season'            => 'nullable|string|in:wet,dry',
+            'status'            => 'nullable|string|in:planned,planted,growing,ready,harvested,failed',
+            'notes'             => 'nullable|string',
+            // Failure fields
+            'failure_reason'    => 'nullable|string|max:500',
+            'failure_category'  => 'nullable|string|in:' . implode(',', array_keys(Planting::FAILURE_CATEGORIES)),
         ]);
 
         if ($validator->fails()) {
@@ -325,6 +332,14 @@ class PlantingController extends Controller
             $data['notes'] = $request->notes;
         }
 
+        if ($request->has('failure_reason')) {
+            $data['failure_reason'] = $request->failure_reason;
+        }
+
+        if ($request->has('failure_category')) {
+            $data['failure_category'] = $request->failure_category;
+        }
+
         $plantingDate = $planting->planting_date;
         if ($request->has('planting_date')) {
             $plantingDate = Carbon::parse($request->planting_date);
@@ -359,9 +374,77 @@ class PlantingController extends Controller
             }
         }
 
+        // --- Failure transition side-effects ---
+        $isNewFailure = $planting->status !== Planting::STATUS_FAILED
+            && ($data['status'] ?? null) === Planting::STATUS_FAILED;
+
         if (!empty($data)) {
             $planting->fill($data);
             $planting->save();
+        }
+
+        if ($isNewFailure) {
+            $cropLossAmount = 0;
+
+            DB::transaction(function () use ($planting, $user, $request, &$cropLossAmount) {
+                // 1) Cancel all pending / in-progress tasks
+                $planting->tasks()
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->update(['status' => 'cancelled']);
+
+                // 2) Cancel pending stages; mark in-progress as skipped
+                $planting->plantingStages()
+                    ->where('status', 'pending')
+                    ->update(['status' => 'skipped']);
+                $planting->plantingStages()
+                    ->where('status', 'in_progress')
+                    ->update(['status' => 'skipped']);
+
+                // 3) Revert field to fallow only if no other active plantings on it
+                $otherActivePlantings = Planting::where('field_id', $planting->field_id)
+                    ->where('id', '!=', $planting->id)
+                    ->active()
+                    ->count();
+
+                if ($otherActivePlantings === 0) {
+                    $planting->field->update(['status' => 'fallow']);
+                }
+
+                // 4) Auto-create crop_loss expense from original seed inventory transaction
+                $seedTransaction = InventoryTransaction::where('reference_type', 'Planting')
+                    ->where('reference_id', $planting->id)
+                    ->where('transaction_type', 'out')
+                    ->first();
+
+                if ($seedTransaction && $seedTransaction->total_cost > 0) {
+                    $cropLossAmount = (float) $seedTransaction->total_cost;
+
+                    // Avoid duplicate expense if farmer un-fails and re-fails
+                    $alreadyHasCropLoss = Expense::where('planting_id', $planting->id)
+                        ->where('category', 'crop_loss')
+                        ->exists();
+
+                    if (!$alreadyHasCropLoss) {
+                        Expense::create([
+                            'user_id'     => $user->id,
+                            'planting_id' => $planting->id,
+                            'date'        => now(),
+                            'category'    => 'crop_loss',
+                            'description' => 'Crop failure write-off – seed cost (Planting #' . $planting->id . ')',
+                            'amount'      => $cropLossAmount,
+                            'notes'       => 'Auto-generated on planting failure. Reason: '
+                                . ($planting->failure_reason ?? 'Not specified'),
+                        ]);
+                    }
+                }
+            });
+
+            // Dispatch notification (outside transaction — non-critical)
+            try {
+                $user->notify(new PlantingFailedNotification($planting->fresh(), $cropLossAmount));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('PlantingFailedNotification dispatch failed: ' . $e->getMessage());
+            }
         }
 
         return response()->json([
