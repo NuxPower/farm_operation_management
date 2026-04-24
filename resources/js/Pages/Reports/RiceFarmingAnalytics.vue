@@ -476,9 +476,41 @@ const formatEfficiencyData = (label, value) => {
 };
 
 const exportReport = () => {
-  // Implement report export functionality
-  console.log('Exporting analytics report...');
-  // You could generate a PDF or CSV file here
+  if (!analyticsData.value) return;
+
+  const data = analyticsData.value;
+  let csvContent = "data:text/csv;charset=utf-8,";
+
+  // Section 1: Summary
+  csvContent += "Category,Metric,Value\n";
+  csvContent += `Production,Total Yield (kg),${data.production_analytics?.total_yield || 0}\n`;
+  csvContent += `Production,Avg Yield per Hectar (kg),${data.production_analytics?.average_yield_per_hectare || 0}\n`;
+  csvContent += `Financial,Total Revenue (PHP),${data.financial_analytics?.total_revenue || 0}\n`;
+  csvContent += `Financial,Total Expenses (PHP),${data.financial_analytics?.total_expenses || 0}\n`;
+  csvContent += `Financial,Profit Margin (%),${data.financial_analytics?.profit_margin || 0}\n`;
+  csvContent += `Efficiency,Stage Completion (%),${data.efficiency_metrics?.stage_completion_efficiency || 0}\n`;
+  csvContent += `Efficiency,Yield Efficiency (%),${data.efficiency_metrics?.yield_efficiency || 0}\n`;
+  csvContent += `Weather,Weather Suitability (%),${data.weather_impact?.average_weather_suitability || 0}\n`;
+  csvContent += `Weather,Risk Assessment,${data.weather_impact?.weather_risk_assessment || 'N/A'}\n`;
+  csvContent += "\n";
+
+  // Section 2: Field Performance
+  if (data.field_performance?.field_performance?.length) {
+    csvContent += "Field Name,Size (ha),Productivity Score (%),Avg Yield Gap (%),Yield/ha\n";
+    data.field_performance.field_performance.forEach(field => {
+      csvContent += `${field.field_name},${field.size},${field.productivity_score},${field.average_yield_gap_pct},${field.yield_per_hectare}\n`;
+    });
+    csvContent += "\n";
+  }
+
+  // Generate download
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `farm_analytics_report_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 onMounted(() => {

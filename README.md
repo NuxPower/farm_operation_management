@@ -1390,6 +1390,41 @@ Gap % = ((Y_p - Y_a) / Y_p) × 100
 ---
 
 
+### 13. Failure Analysis Module
+**Methodology:** Categorical correlation between planting failures (Pest, Weather, Flood) and environmental factors (Variety, Season) to calculate `avg_days_before_failure`.
+**Function:** Identifies key vulnerability windows within crop lifecycles to trigger preemptive risk profiling.
+**Implementation:** [`DataAnalysisController.php`](app/Http/Controllers/Analytics/DataAnalysisController.php)
+
+---
+
+### 14. Post-Harvest Cost Optimization
+**Methodology:** Decomposes total post-harvest processing costs (Threshing, Drying, Milling) into per-unit execution costs.
+**Function:** Compares unit processing cost against market sales revenue dynamically to flag mechanically or economically inefficient post-harvest workflows.
+**Implementation:** [`DataAnalysisController.php`](app/Http/Controllers/Analytics/DataAnalysisController.php)
+
+---
+
+### 15. Risk Reflex Engine
+**Methodology:** Real-time aggregation of ongoing environmental stress events (typhoons, severe droughts) and active pest infestations.
+**Function:** Emits a continuous operational farm risk factor used strictly to prioritize immediate daily adjustments rather than long-term strategic plans.
+**Implementation:** [`RiceFarmingAnalyticsController.php`](app/Http/Controllers/RiceFarmingAnalyticsController.php)
+
+---
+
+### 16. Weather Data Quality Metrics
+**Methodology:** Statistical continuity and variance checking of real-time sensor streams and third-party API data.
+**Function:** Computes a `data_quality_score` by penalizing missing or wildly fluctuating data packets to prevent faulty sensor data from skewing larger GDD and agronomic models.
+**Implementation:** [`WeatherAnalyticsService.php`](app/app/Services/WeatherAnalyticsService.php)
+
+---
+
+### 17. Performance Benchmarking
+**Methodology:** Comparative scoring system measuring current Key Performance Indicators against historical peak performance windows and predefined regional success standards.
+**Function:** Calculates a normalized percentage score to produce a unified operational grade for the farm.
+**Implementation:** [`ReportService.php`](app/Services/ReportService.php)
+
+---
+
 ### Methodological Summary
 
 | Analytics Component | Approach Type |
@@ -1405,6 +1440,10 @@ Gap % = ((Y_p - Y_a) / Y_p) × 100
 | Resource Efficiency | **Benchmarking** (Input-Output ratio vs Standards) |
 | Cost Efficiency | **Benchmarking** (Comparative analysis) |
 | Seasonal Patterns | **Descriptive** (Time-series segmentation) |
+| Failure Correlative Analysis | **Descriptive** (Distributional averaging) |
+| Process Cost Optimization | **Deterministic** (Unit cost vs Price margin mapping) |
+| Risk Reflex Aggregation | **Heuristic** (Cumulative threat scoring) |
+| Sensor Data Integrity | **Statistical** (Continuity and variance bounding) |
 
 ---
 

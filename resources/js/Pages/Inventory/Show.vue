@@ -76,14 +76,7 @@
                 <span class="text-gray-600">Current Stock</span>
                 <span class="font-medium">{{ itemQuantity }} {{ item.unit }}</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  :class="getStockBarClass()"
-                  class="h-3 rounded-full transition-all duration-300"
-                  :style="{ width: `${stockPercentage}%` }"
-                ></div>
-              </div>
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <div class="flex justify-between text-sm mb-1">
                     <span class="text-gray-600">Min Stock:</span>
@@ -333,13 +326,6 @@ const totalValue = computed(() => {
   return qty * price
 })
 
-const stockPercentage = computed(() => {
-  const qty = item.value.current_stock || item.value.quantity || 0
-  const maxStock = item.value.max_stock || item.value.maximum_stock || 0
-  if (maxStock === 0) return 0
-  return Math.min((qty / maxStock) * 100, 100)
-})
-
 // Computed properties for backward compatibility
 const itemQuantity = computed(() => item.value.current_stock || item.value.quantity || 0)
 const itemMinStock = computed(() => item.value.minimum_stock || item.value.min_stock || 0)
@@ -370,13 +356,6 @@ const getTransactionBadgeClass = (type) => {
     adjustment: 'bg-blue-100 text-blue-800'
   }
   return classes[type] || 'bg-gray-100 text-gray-800'
-}
-
-const getStockBarClass = () => {
-  const percentage = stockPercentage.value
-  if (percentage < 20) return 'bg-red-600'
-  if (percentage < 50) return 'bg-yellow-600'
-  return 'bg-green-600'
 }
 
 const formatDate = (date) => {

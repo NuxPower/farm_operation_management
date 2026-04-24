@@ -8,6 +8,8 @@ use App\Services\WeatherAnalyticsService;
 use App\Services\MarketplaceService;
 use App\Services\PestPredictionService;
 use App\Models\Farm;
+use App\Models\WeatherLog;
+use App\Models\PlantingStage;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -105,18 +107,85 @@ class RiceFarmingAnalyticsController extends Controller
                     ? round($totalYield / $totalAreaPlanted, 2)
                     : 0;
 
+                // Monthly production trend for charts
+                $productionStats['monthly_production'] = $allHarvests
+                    ->sortBy('harvest_date')
+                    ->groupBy(fn($h) => Carbon::parse($h->harvest_date)->format('M Y'))
+                    ->map(fn($group, $month) => [
+                        'month'       => $month,
+                        'total_yield' => round($group->sum('yield'), 2),
+                    ])
+                    ->values()
+                    ->toArray();
+
+                // Yield breakdown by rice variety
+                $productionStats['yield_by_variety'] = $plantings
+                    ->where('status', 'harvested')
+                    ->groupBy(fn($p) => $p->riceVariety?->name ?? $p->crop_type ?? 'Unknown')
+                    ->map(function ($group, $varietyName) {
+                        $varietyHarvests = $group->flatMap(fn($p) => $p->harvests ?? collect());
+                        $varietyYield    = round($varietyHarvests->sum('yield'), 2);
+                        $varietyArea     = round($group->sum('area_planted'), 2);
+                        return [
+                            'variety_name'      => $varietyName,
+                            'total_yield'       => $varietyYield,
+                            'total_area'        => $varietyArea,
+                            'yield_per_hectare' => $varietyArea > 0 ? round($varietyYield / $varietyArea, 2) : 0,
+                        ];
+                    })
+                    ->values()
+                    ->toArray();
+
                 // 2. Financial Analytics (Delegated to FinancialService)
                 // Using existing robust service
                 $financials = $this->financialService->getFarmFinancialSummary($farm->id, $period * 30);
 
                 // 3. Field Efficiency (Delegated to RiceProductionAnalyticsService)
-                $fieldPerformance = [];
+                $rawFieldItems = [];
                 foreach ($farm->fields as $field) {
-                    $fieldPerformance[] = $this->productionService->getFieldPerformanceAnalytics($field);
+                    $perf = $this->productionService->getFieldPerformanceAnalytics($field);
+                    if (isset($perf['field_name'])) {
+                        $fieldHarvests = $field->plantings()
+                            ->with('harvests')
+                            ->where('status', 'harvested')
+                            ->get()
+                            ->flatMap(fn($p) => $p->harvests ?? collect());
+                        $fieldYield    = $fieldHarvests->sum('yield');
+                        $fieldArea     = $field->size > 0 ? $field->size : 1;
+                        $rawFieldItems[] = [
+                            'field_id'                      => $field->id,
+                            'field_name'                    => $field->name,
+                            'size'                          => round($field->size, 2),
+                            'productivity_score'            => $perf['productivity_score'] ?? 0,
+                            'average_yield_gap_pct'         => $perf['average_yield_gap_pct'] ?? 0,
+                            'average_fertilizer_efficiency' => $perf['average_fertilizer_efficiency'] ?? 0,
+                            'yield_per_hectare'             => round($fieldYield / $fieldArea, 2),
+                        ];
+                    }
                 }
+                $fieldPerformance = [
+                    'average_productivity_score' => count($rawFieldItems) > 0
+                        ? round(collect($rawFieldItems)->avg('productivity_score'), 1)
+                        : 0,
+                    'field_performance' => $rawFieldItems,
+                ];
 
                 // 4. Weather Impact (Delegated to WeatherAnalyticsService)
                 $weatherImpact = $this->weatherAnalyticsService->getFarmWeatherTrends($farm, $period * 30);
+
+                // Compute weather suitability from recent logs (temp 60% weight, humidity 40%)
+                $recentLogs     = WeatherLog::where('farm_id', $farm->id)->where('recorded_at', '>=', $startDate)->get();
+                $avgSuitability = 0;
+                if ($recentLogs->isNotEmpty()) {
+                    $avgTemp     = $recentLogs->avg('temperature');
+                    $avgHumidity = $recentLogs->avg('humidity');
+                    $tempScore   = ($avgTemp >= 22 && $avgTemp <= 28) ? 100 : (($avgTemp >= 18 && $avgTemp <= 32) ? 70 : 40);
+                    $humScore    = ($avgHumidity >= 65 && $avgHumidity <= 80) ? 100 : (($avgHumidity >= 55 && $avgHumidity <= 90) ? 70 : 40);
+                    $avgSuitability = round($tempScore * 0.6 + $humScore * 0.4, 1);
+                }
+                $riskLevel = data_get($weatherImpact, 'trend_analysis.risk_level', 'low');
+                $weatherImpact['average_weather_suitability'] = $avgSuitability;
+                $weatherImpact['weather_risk_assessment']     = ucfirst($riskLevel);
 
                 // 5. Fertilizer/Resource Efficiency (Delegated to RiceProductionAnalyticsService)
                 // Calculate average NUE (PFP) across recent plantings
@@ -157,25 +226,42 @@ class RiceFarmingAnalyticsController extends Controller
                     ];
                 }
 
+                // Stage completion efficiency
+                $plantingIds     = $plantings->pluck('id')->toArray();
+                $allStages        = PlantingStage::whereIn('planting_id', $plantingIds)->get();
+                $totalStageCount  = $allStages->count();
+                $completedCount   = $allStages->where('status', 'completed')->count();
+                $stageCompletion  = $totalStageCount > 0
+                    ? round(($completedCount / $totalStageCount) * 100, 1)
+                    : 0;
+
+                // Yield efficiency from yield gap analysis
+                $validGaps        = collect($productionStats['yield_gaps'])->where('status', 'calculated');
+                $avgYieldEff      = $validGaps->isNotEmpty()
+                    ? max(0, round(100 - $validGaps->avg('gap_percentage'), 1))
+                    : 0;
+
                 return [
                     'production_analytics' => $productionStats,
-                    'financial_analytics' => $financials,
-                    'field_performance' => $fieldPerformance,
-                    'weather_impact' => $weatherImpact,
-                    'data_quality' => $dataQuality,
+                    'financial_analytics'  => $financials,
+                    'field_performance'    => $fieldPerformance,
+                    'weather_impact'       => $weatherImpact,
+                    'data_quality'         => $dataQuality,
                     'post_harvest_efficiency' => $postHarvestSummary,
                     'risk_reflex' => [
                         'pest_risks' => $pestReflexRisk,
-                        'actions' => $reflexActions,
-                        'score' => $this->calculateRiskScore($pestReflexRisk)
+                        'actions'    => $reflexActions,
+                        'score'      => $this->calculateRiskScore($pestReflexRisk)
                     ],
                     'market_performance' => $this->marketplaceService->getFarmerSales($user->id, $period * 30),
                     'efficiency_metrics' => [
-                        'nitrogen_use_efficiency' => $efficiencies,
-                        'summary' => 'Research-backed PFP Analysis'
+                        'stage_completion_efficiency' => $stageCompletion,
+                        'yield_efficiency'            => $avgYieldEff,
+                        'nitrogen_use_efficiency'     => $efficiencies,
+                        'summary'                     => 'Research-backed PFP Analysis',
                     ],
-                    'generated_at' => now(),
-                    'period_months' => $period
+                    'generated_at'  => now(),
+                    'period_months' => $period,
                 ];
             });
 

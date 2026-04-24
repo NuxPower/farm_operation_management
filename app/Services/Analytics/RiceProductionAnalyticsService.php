@@ -186,8 +186,18 @@ class RiceProductionAnalyticsService
 
     private function isGrowthDelayed($planting, $gddSum): bool
     {
-        // Simple heuristic check: if calendar days suggest late stage but GDD is low
-        // This is complex, returning false for now as a placeholder
+        if (!$planting->planting_date) return false;
+        
+        $calendarDays = $planting->planting_date->diffInDays(now());
+        
+        // If calendar days suggest reproductive/late stage but GDD is low
+        if ($calendarDays > 120 && $gddSum < 1100) {
+            return true;
+        }
+        if ($calendarDays > 75 && $gddSum < 1100) {
+            return true;
+        }
+        
         return false;
     }
 

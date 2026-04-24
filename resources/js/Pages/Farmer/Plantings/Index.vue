@@ -34,16 +34,16 @@
 
       <!-- Filter Bar -->
       <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
-        <!-- Search -->
-        <div class="flex-1 relative w-full">
-          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search by field name or variety…"
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
-          />
-        </div>
+        <!-- Field Filter -->
+        <select
+          v-model="filters.field"
+          class="flex-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm"
+        >
+          <option value="">All Fields</option>
+          <option v-for="field in fields" :key="field.id" :value="field.id">
+            {{ field.name }}
+          </option>
+        </select>
 
         <!-- Status Filter -->
         <select
@@ -60,20 +60,20 @@
           <option value="failed">Failed</option>
         </select>
 
-        <!-- Field Filter -->
+        <!-- Variety Filter -->
         <select
-          v-model="filters.field"
+          v-model="filters.variety"
           class="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm"
         >
-          <option value="">All Fields</option>
-          <option v-for="field in fields" :key="field.id" :value="field.id">
-            {{ field.name }}
+          <option :value="null">All Varieties</option>
+          <option v-for="option in varietyOptions" :key="option.key" :value="option">
+            {{ option.label }}
           </option>
         </select>
 
         <!-- Clear Filters -->
         <button
-          v-if="searchQuery || filters.status || filters.field || filters.variety"
+          v-if="filters.status || filters.field || filters.variety"
           @click="clearFilters"
           class="whitespace-nowrap text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50"
         >
@@ -312,7 +312,7 @@ const filters = ref({
   field: ''
 })
 
-const searchQuery = ref('')
+
 const dateFrom = ref('')
 const dateTo = ref('')
 
@@ -427,22 +427,11 @@ const filteredPlantings = computed(() => {
     filtered = filtered.filter(p => p.planting_date && p.planting_date <= dateTo.value)
   }
 
-  // Search — matches field name or variety/crop type
-  const search = searchQuery.value.toLowerCase().trim()
-  if (search) {
-    filtered = filtered.filter(p => {
-      const fieldName = (p.field?.name || '').toLowerCase()
-      const variety = (p.rice_variety?.name || p.crop_type || '').toLowerCase()
-      return fieldName.includes(search) || variety.includes(search)
-    })
-  }
-
   return filtered
 })
 
 const clearFilters = () => {
   filters.value = { status: '', variety: null, field: '' }
-  searchQuery.value = ''
   dateFrom.value = ''
   dateTo.value = ''
 }

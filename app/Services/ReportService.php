@@ -537,13 +537,46 @@ class ReportService
      */
     private function identifySeasonalTrends($analysis)
     {
-        // This would analyze the seasonal data to identify patterns
-        // For now, returning a simplified structure
+        $monthlyTotals = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthObj = \Carbon\Carbon::create(null, $i, 1);
+            $monthName = $monthObj->format('F');
+            $monthlyTotals[$monthName] = [
+                'plantings' => 0,
+                'harvests'  => 0,
+                'expenses'  => 0,
+                'sales'     => 0,
+            ];
+        }
+
+        foreach ($analysis as $year => $months) {
+            foreach ($months as $data) {
+                // $data['month'] is 'Jan', 'Feb', etc. 
+                $monthName = \Carbon\Carbon::parse($data['month'] . ' 1 ' . $year)->format('F');
+                if (isset($monthlyTotals[$monthName])) {
+                    $monthlyTotals[$monthName]['plantings'] += $data['plantings'] ?? 0;
+                    $monthlyTotals[$monthName]['harvests']  += $data['harvests']['count'] ?? 0;
+                    $monthlyTotals[$monthName]['expenses']  += $data['expenses'] ?? 0;
+                    $monthlyTotals[$monthName]['sales']     += $data['sales'] ?? 0;
+                }
+            }
+        }
+
+        $getTop3 = function ($key) use ($monthlyTotals) {
+            $sorted = $monthlyTotals;
+            uasort($sorted, function ($a, $b) use ($key) {
+                return $b[$key] <=> $a[$key];
+            });
+            // Return keys of the top 3 months, only if they have > 0 values for that key
+            return array_slice(array_keys(array_filter($sorted, fn($item) => $item[$key] > 0)), 0, 3);
+        };
+
         return [
-            'peak_planting_months' => ['March', 'April', 'May'],
-            'peak_harvest_months' => ['September', 'October', 'November'],
-            'highest_expense_months' => ['April', 'May', 'June'],
-            'best_sales_months' => ['October', 'November', 'December'],
+            'peak_planting_months'   => $getTop3('plantings'),
+            'peak_harvest_months'    => $getTop3('harvests'),
+            'highest_expense_months' => $getTop3('expenses'),
+            'best_sales_months'      => $getTop3('sales'),
+            // Fallback for cases with empty data
         ];
     }
 

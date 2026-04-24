@@ -123,13 +123,6 @@
               </span>
               <span class="text-xs text-gray-400">Min: {{ item.minimum_stock || 0 }}</span>
             </div>
-            <div class="w-full bg-gray-100 rounded-full h-2">
-              <div
-                class="h-2 rounded-full transition-all duration-500"
-                :class="getStockColor(item, 'bg')"
-                :style="{ width: getStockWidth(item) }"
-              ></div>
-            </div>
           </div>
 
           <div class="mt-auto border-t border-gray-50 px-5 py-3 bg-gray-50/50 rounded-b-xl flex justify-between items-center gap-2 text-sm">
@@ -256,13 +249,7 @@ const displayUnit = (unit) => {
 }
 
 // Visual Helpers
-const getStockWidth = (item) => {
-  const stock = Number(item.current_stock || 0)
-  const min = Number(item.minimum_stock || 0)
-  // Logic: Bar is full if stock is > 3x minimum. If 0 stock, width is 0.
-  const maxScale = Math.max(min * 3, stock * 1.2, 10)
-  return `${Math.min((stock / maxScale) * 100, 100)}%`
-}
+
 
 const getStockColor = (item, type) => {
   const stock = Number(item.current_stock || 0)

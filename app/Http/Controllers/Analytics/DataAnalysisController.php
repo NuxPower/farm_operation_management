@@ -60,11 +60,15 @@ class DataAnalysisController extends Controller
         $dashboardData = $this->reportService->getDashboardAnalytics($user->id, $farm ? $farm->id : null);
         $financialSummary = $dashboardData['financial_summary'] ?? [];
 
+        $pendingOrdersCount = \App\Models\RiceOrder::whereHas('riceProduct', function ($query) use ($user) {
+            $query->where('farmer_id', $user->id);
+        })->where('status', \App\Models\RiceOrder::STATUS_PENDING)->count();
+
         // 2. Sales Data
         $salesData = [
             'total_revenue' => $financialSummary['total_revenue'] ?? 0,
             'total_orders' => $dashboardData['recent_activities'] ? count(array_filter($dashboardData['recent_activities'], fn($a) => $a['type'] === 'sale')) : 0,
-            'pending_orders' => 0, // Would need separate calculation
+            'pending_orders' => $pendingOrdersCount,
         ];
 
         // 3. Expenses Data with category breakdown
@@ -527,8 +531,9 @@ class DataAnalysisController extends Controller
         }
 
         // 13. Executive Summary & Action Suggestions (Generated)
-        $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData);
-        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData, $failureData);
+        // 13. Executive Summary & Action Suggestions (Generated)
+        $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData, $user);
+        $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData, $failureData, $user);
 
         return response()->json([
             'executive_summary'  => $executiveSummary,
@@ -552,7 +557,7 @@ class DataAnalysisController extends Controller
     /**
      * Generate an executive summary based on analytics data
      */
-    private function generateExecutiveSummary($sales, $expenses, $tasks, $pests): array
+    private function generateExecutiveSummary($sales, $expenses, $tasks, $pests, $user = null): array
     {
         $revenue = $sales['total_revenue'] ?? 0;
         $expenseTotal = $expenses['total_expenses'] ?? 0;
@@ -598,6 +603,19 @@ class DataAnalysisController extends Controller
             $text .= sprintf(' %d tasks are overdue.', $tasks['overdue_tasks']);
         }
 
+        // Add auto-cancelled order warning
+        if ($user) {
+            $autoCancelled = \App\Models\RiceOrder::whereHas('riceProduct', fn($q) => $q->where('farmer_id', $user->id))
+                ->where('status', \App\Models\RiceOrder::STATUS_CANCELLED)
+                ->where('updated_at', '>=', now()->subWeek())
+                ->where('cancellation_reason', 'like', '%auto-cancelled%')
+                ->count();
+            if ($autoCancelled > 0) {
+                $tone = 'concern';
+                $text .= sprintf(' Attention: %d orders were auto-cancelled this week due to expired pick-up deadlines.', $autoCancelled);
+            }
+        }
+
         return [
             'tone' => $tone,
             'text' => $text,
@@ -607,9 +625,62 @@ class DataAnalysisController extends Controller
     /**
      * Generate action suggestions based on analytics data
      */
-    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null, $inventory = null, $failureData = null): array
+    private function generateActionSuggestions($tasks, $sales, $expenses, $pests, $nursery, $weatherForecast = null, $inventory = null, $failureData = null, $user = null): array
     {
         $suggestions = [];
+
+        if ($user) {
+            // Pending Sales Orders
+            $pendingOrdersCount = \App\Models\RiceOrder::whereHas('riceProduct', fn($q) => $q->where('farmer_id', $user->id))
+                ->where('status', \App\Models\RiceOrder::STATUS_PENDING)
+                ->count();
+            if ($pendingOrdersCount > 0) {
+                $suggestions[] = [
+                    'icon' => '🛒',
+                    'category' => 'Sales & Orders',
+                    'message' => sprintf('You have %d pending sales order(s). Review and confirm them.', $pendingOrdersCount),
+                    'priority' => 'high',
+                    'action_label' => 'View Orders',
+                    'action_url' => '/marketplace/orders',
+                ];
+            }
+
+            // Pickup Deadline Expiring
+            $expiringPickups = \App\Models\RiceOrder::whereHas('riceProduct', fn($q) => $q->where('farmer_id', $user->id))
+                ->where('status', \App\Models\RiceOrder::STATUS_READY_FOR_PICKUP)
+                ->whereNotNull('pickup_deadline')
+                ->where('pickup_deadline', '>', now())
+                ->where('pickup_deadline', '<=', now()->addHours(24))
+                ->count();
+            if ($expiringPickups > 0) {
+                $suggestions[] = [
+                    'icon' => '⏳',
+                    'category' => 'Sales & Orders',
+                    'message' => sprintf('%d order(s) awaiting pickup will expire within 24 hours.', $expiringPickups),
+                    'priority' => 'urgent',
+                    'action_label' => 'Check Pickups',
+                    'action_url' => '/marketplace/orders',
+                ];
+            }
+
+            // Harvest Readiness
+            $readyForHarvest = \App\Models\Planting::whereHas('field.farm', fn($q) => $q->where('user_id', $user->id))
+                ->where('status', 'in_progress')
+                ->whereHas('plantingStages', function($q) {
+                    $q->where('status', 'in_progress')
+                      ->whereHas('riceGrowthStage', fn($q2) => $q2->where('name', 'like', '%ripening%')->orWhere('name', 'like', '%maturity%'));
+                })->count();
+            if ($readyForHarvest > 0) {
+                $suggestions[] = [
+                    'icon' => '🌾',
+                    'category' => 'Production',
+                    'message' => sprintf('%d planting(s) have reached maturity/ripening. Schedule a harvest.', $readyForHarvest),
+                    'priority' => 'high',
+                    'action_label' => 'Schedule Harvest',
+                    'action_url' => '/plantings',
+                ];
+            }
+        }
 
         // Weather suggestion (Priority)
         if ($weatherForecast) {
