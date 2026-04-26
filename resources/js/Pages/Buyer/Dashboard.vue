@@ -156,14 +156,14 @@
                   </svg>
                 </div>
               </div>
-              <h4 class="font-semibold text-gray-900 mb-2">{{ product.name }}</h4>
-              <p class="text-sm text-gray-600 mb-3">{{ getProductDescription(product) }}</p>
-              <div class="flex justify-between items-center">
-                <span class="text-lg font-bold text-green-600">
+              <h4 class="font-semibold text-gray-900 mb-2 break-words leading-snug text-sm md:text-base">{{ product.name }}</h4>
+              <p class="text-xs md:text-sm text-gray-600 mb-3 line-clamp-2 break-words">{{ getProductDescription(product) }}</p>
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span class="text-sm md:text-lg font-bold text-green-600 break-all">
                   {{ formatCurrency(getProductPrice(product)) }}/{{ getProductUnit(product) }}
                 </span>
-                <span class="text-sm text-gray-500">
-                  {{ getProductQuantity(product) }} available
+                <span class="text-xs text-gray-500 whitespace-nowrap">
+                  {{ getProductQuantity(product) }} avail.
                 </span>
               </div>
               <button

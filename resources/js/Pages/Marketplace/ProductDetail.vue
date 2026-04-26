@@ -31,17 +31,17 @@
       <!-- Content -->
       <div v-else>
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <nav class="text-sm text-gray-500 mb-2">
+      <div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-8">
+        <div class="min-w-0 flex-1">
+          <nav class="text-sm text-gray-500 mb-2 truncate">
             <router-link to="/marketplace" class="hover:text-gray-700">Marketplace</router-link>
             <span class="mx-2">/</span>
-            <span class="text-gray-900">{{ product.name }}</span>
+            <span class="text-gray-900 break-words">{{ product.name }}</span>
           </nav>
-          <h1 class="text-3xl font-bold text-gray-900">{{ product.name }}</h1>
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 break-words leading-tight">{{ product.name }}</h1>
           <p class="text-gray-600 mt-2">Sold by {{ product.seller_name }}</p>
         </div>
-        <div class="flex space-x-3">
+        <div class="flex flex-wrap gap-2 sm:flex-nowrap sm:flex-shrink-0">
           <button
             type="button"
             @click="toggleFavorite"
@@ -57,9 +57,9 @@
             type="button"
             @click="addToCart"
             :disabled="isAddingToCart"
-            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1 sm:flex-none bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            <span v-if="isAddingToCart" class="flex items-center gap-2">
+            <span v-if="isAddingToCart" class="flex items-center justify-center gap-2">
               <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -71,7 +71,7 @@
           <button
             type="button"
             @click="contactSeller"
-            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
           >
             Contact Seller
           </button>

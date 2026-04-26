@@ -687,7 +687,7 @@ const exportWeatherData = async () => {
      }
      
      // Trigger backend export
-     window.location.href = `/api/analytics/farm/${farmId}/export`;
+     window.location.href = `/api/weather/analytics/farm/${farmId}/export`;
      
   } catch (e) {
      console.error('Export failed', e);

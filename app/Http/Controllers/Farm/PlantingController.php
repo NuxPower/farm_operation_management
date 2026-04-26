@@ -8,6 +8,7 @@ use App\Models\Field;
 use App\Models\InventoryTransaction;
 use App\Models\Planting;
 use App\Models\RiceVariety;
+use App\Models\SeedPlanting;
 use App\Notifications\PlantingFailedNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -120,6 +121,31 @@ class PlantingController extends Controller
                         'message' => "Insufficient stock. Available: {$inventoryItem->current_stock} {$inventoryItem->unit}"
                     ], 422);
                 }
+            }
+        }
+
+        // Validate nursery seedling if selected as source
+        if ($request->filled('seed_planting_id')) {
+            $seedPlanting = SeedPlanting::find($request->seed_planting_id);
+
+            if (!$seedPlanting) {
+                return response()->json(['message' => 'Selected seedling batch not found.'], 422);
+            }
+
+            if ($seedPlanting->user_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized access to seedling batch.'], 403);
+            }
+
+            if ($seedPlanting->status !== SeedPlanting::STATUS_READY) {
+                return response()->json([
+                    'message' => 'The selected seedling batch is not ready for transplanting. Current status: ' . $seedPlanting->status
+                ], 422);
+            }
+
+            if ($seedRate > 0 && $seedPlanting->quantity < $seedRate) {
+                return response()->json([
+                    'message' => "Insufficient seedlings. Available: {$seedPlanting->quantity} {$seedPlanting->unit}"
+                ], 422);
             }
         }
 

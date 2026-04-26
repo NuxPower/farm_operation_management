@@ -67,19 +67,34 @@
                 </h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium leading-6 text-slate-700">Output Quantity</label>
+                    <label class="block text-sm font-medium leading-6" :class="validationErrors.output_quantity ? 'text-red-600' : 'text-slate-700'">
+                      Output Quantity
+                      <span v-if="validationErrors.output_quantity" class="ml-1 font-normal">— {{ validationErrors.output_quantity }}</span>
+                    </label>
                     <div class="mt-2 relative flex rounded-md shadow-sm">
-                      <input type="number" step="0.01" v-model="form.output_quantity" required 
-                        class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset ring-emerald-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6" placeholder="0.00">
-                      <div class="relative flex items-center rounded-r-md border-0 bg-emerald-50 py-2 pl-3 pr-4 text-emerald-700 ring-1 ring-inset ring-emerald-300 sm:text-sm font-medium">
+                      <input type="number" step="0.01" v-model="form.output_quantity"
+                        @input="clearError('output_quantity')"
+                        :class="validationErrors.output_quantity
+                          ? 'ring-red-400 focus:ring-red-500'
+                          : 'ring-emerald-300 focus:ring-emerald-600'"
+                        class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6" placeholder="0.00">
+                      <div :class="validationErrors.output_quantity ? 'bg-red-50 text-red-600 ring-red-400' : 'bg-emerald-50 text-emerald-700 ring-emerald-300'"
+                        class="relative flex items-center rounded-r-md border-0 py-2 pl-3 pr-4 ring-1 ring-inset sm:text-sm font-medium">
                         {{ displayUnit(outputUnitLabel) }}
                       </div>
                     </div>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium leading-6 text-slate-700">Completion Date</label>
-                    <input type="date" v-model="form.completed_date" required 
-                      class="mt-2 block w-full rounded-md border-0 px-3 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-emerald-300 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                    <label class="block text-sm font-medium leading-6" :class="validationErrors.completed_date ? 'text-red-600' : 'text-slate-700'">
+                      Completion Date
+                      <span v-if="validationErrors.completed_date" class="ml-1 font-normal">— {{ validationErrors.completed_date }}</span>
+                    </label>
+                    <input type="date" v-model="form.completed_date"
+                      @change="clearError('completed_date')"
+                      :class="validationErrors.completed_date
+                        ? 'ring-red-400 focus:ring-red-500'
+                        : 'ring-emerald-300 focus:ring-emerald-600'"
+                      class="mt-2 block w-full rounded-md border-0 px-3 py-2 text-slate-900 shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6">
                   </div>
                 </div>
               </div>
@@ -265,6 +280,7 @@ const emit = defineEmits(['close', 'saved']);
 const loading = ref(false);
 const assignLaborers = ref(false);
 const saveError = ref('');
+const validationErrors = ref({});
 
 // Laborer data
 const laborers = ref([]);
@@ -371,6 +387,7 @@ onMounted(() => {
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     saveError.value = '';
+    validationErrors.value = {};
     assignLaborers.value = false;
     fetchLaborers();
     if (props.processToEdit) {
@@ -417,9 +434,40 @@ const formatNumber = (num) => {
   return Number(num || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const clearError = (field) => {
+  if (validationErrors.value[field]) {
+    const errs = { ...validationErrors.value };
+    delete errs[field];
+    validationErrors.value = errs;
+  }
+};
+
+const validate = () => {
+  const errors = {};
+  if (props.isCompletionMode) {
+    if (!form.value.output_quantity || Number(form.value.output_quantity) <= 0) {
+      errors.output_quantity = 'Required';
+    }
+    if (!form.value.completed_date) {
+      errors.completed_date = 'Required';
+    }
+  } else {
+    if (!form.value.input_quantity || Number(form.value.input_quantity) <= 0) {
+      errors.input_quantity = 'Required';
+    }
+    if (!form.value.process_date) {
+      errors.process_date = 'Required';
+    }
+  }
+  validationErrors.value = errors;
+  return Object.keys(errors).length === 0;
+};
+
 const saveProcess = async () => {
-  loading.value = true;
   saveError.value = '';
+  if (!validate()) return;
+
+  loading.value = true;
   
   try {
     // Set the correct units before saving

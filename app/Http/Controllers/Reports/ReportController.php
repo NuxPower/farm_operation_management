@@ -7,6 +7,7 @@ use App\Services\FinancialService;
 use App\Services\InventoryService;
 use App\Services\LaborService;
 use App\Services\WeatherService;
+use App\Services\WeatherAnalyticsService;
 use App\Models\Farm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,17 +19,20 @@ class ReportController extends Controller
     protected $inventoryService;
     protected $laborService;
     protected $weatherService;
+    protected $weatherAnalyticsService;
 
     public function __construct(
         FinancialService $financialService,
         InventoryService $inventoryService,
         LaborService $laborService,
-        WeatherService $weatherService
+        WeatherService $weatherService,
+        WeatherAnalyticsService $weatherAnalyticsService
     ) {
         $this->financialService = $financialService;
         $this->inventoryService = $inventoryService;
         $this->laborService = $laborService;
         $this->weatherService = $weatherService;
+        $this->weatherAnalyticsService = $weatherAnalyticsService;
     }
 
     /**
@@ -1041,25 +1045,26 @@ class ReportController extends Controller
         })->count();
         $estimatedSunshineHours = $clearDays * 8; // Rough estimate: 8 hours per clear day
 
-        // Temperature trends (daily average)
-        $temperatureTrends = $weatherData->groupBy(function ($record) {
-            return Carbon::parse($record->recorded_at)->format('Y-m-d');
-        })->map(function ($dayRecords, $date) {
-            return [
-                'date' => $date,
-                'temperature' => round($dayRecords->avg('temperature') ?: 0, 1),
-            ];
-        })->sortBy('date')->values();
+        $analysisFarm = $farms->first();
 
-        // Rainfall distribution (daily totals from actual data)
-        $rainfallDistribution = $weatherData->groupBy(function ($record) {
-            return Carbon::parse($record->recorded_at)->format('Y-m-d');
-        })->map(function ($dayRecords, $date) {
+        // Get comprehensive trends from WeatherAnalyticsService
+        $farmTrends = $this->weatherAnalyticsService->getFarmWeatherTrends($analysisFarm, $days, 'comprehensive');
+        
+        // Temperature trends (daily average) mapped from service
+        $temperatureTrends = collect($farmTrends['trends']['temperature'] ?? [])->map(function($t) {
             return [
-                'date' => $date,
-                'rainfall' => round($dayRecords->sum('rainfall') ?: 0, 2),
+                'date' => $t['date'],
+                'temperature' => round($t['avg_temp'] ?? $t['temperature'] ?? 0, 1),
             ];
-        })->sortBy('date')->values();
+        })->values();
+
+        // Rainfall distribution (daily totals) mapped from service
+        $rainfallDistribution = collect($farmTrends['trends']['conditions'] ?? [])->map(function($c) {
+            return [
+                'date' => $c['date'],
+                'rainfall' => round($c['rainfall'] ?? 0, 2),
+            ];
+        })->values();
 
         // Determine which field to use for analysis (moved up for GDD calculation)
         $analysisField = null;
@@ -1094,6 +1099,7 @@ class ReportController extends Controller
         // If we have an active planting, start from planting date
         // Otherwise, default to 4 months ago (approximate season)
         $seasonStartDate = now()->subMonths(4);
+        $currentPlanting = null;
         if ($analysisField) {
             $currentPlanting = $analysisField->getCurrentRicePlanting();
             if ($currentPlanting) {
@@ -1266,47 +1272,41 @@ class ReportController extends Controller
         // Field chosen for analysis is now determined earlier in the GDD section
 
         if ($analysisField) {
-            // Get detailed analytics and recommendations
-            $analytics = $this->weatherService->getRiceWeatherAnalytics($analysisField->farm, $days, $analysisField);
-            $recommendations = $this->weatherService->getRiceFarmingRecommendations($analysisField->farm, $analysisField);
-
-            // Map data to frontend structure
-            if (isset($analytics['rice_analytics'])) {
-                $ra = $analytics['rice_analytics'];
-
-                // Crop Development
-                $currentPlanting = $ra['current_planting'] ?? null;
-                $impactAnalysis['crop_development']['growth_stage'] = $currentPlanting['current_stage'] ?? 'No Active Planting';
-
-                // Estimate days to maturity or days since planting
-                if ($currentPlanting) {
-                    $impactAnalysis['crop_development']['days_to_maturity'] = ($currentPlanting['days_since_planting'] ?? 0) . ' days since planting';
-                    // Derive stress level from suitability score or alerts
-                    $score = $currentPlanting['stage_weather_suitability']['score'] ?? 100;
-                    $impactAnalysis['crop_development']['stress_level'] = $score < 60 ? 'High' : ($score < 80 ? 'Moderate' : 'Low');
+            // Use advanced WeatherAnalyticsService to get deep analytical insights
+            $advancedImpact = $this->weatherAnalyticsService->analyzeWeatherImpact($analysisField->farm, $currentPlanting ? $currentPlanting->id : null, 'planting_season');
+            
+            // Map the sophisticated data to the frontend structure
+            if (isset($advancedImpact['growth_stage_analysis'])) {
+                $gsa = $advancedImpact['growth_stage_analysis'];
+                
+                $impactAnalysis['crop_development']['growth_stage'] = $gsa['stage'] ?? 'No Active Planting';
+                $impactAnalysis['crop_development']['days_to_maturity'] = $advancedImpact['planting_info']['expected_harvest_date'] ?? 'N/A';
+                
+                $score = $gsa['score'] ?? 100;
+                $impactAnalysis['crop_development']['stress_level'] = $score < 60 ? 'High' : ($score < 80 ? 'Moderate' : 'Low');
+                
+                if (!empty($gsa['recommendations'])) {
+                    $impactAnalysis['recommendations'] = array_slice($gsa['recommendations'], 0, 3);
                 }
-
-                // Field Conditions
-                // Soil Moisture - Prefer estimated from tasks/analytics, fallback to rainfall map
-                if (isset($ra['estimated_soil_moisture'])) {
-                    $impactAnalysis['field_conditions']['soil_moisture'] = ucfirst($ra['estimated_soil_moisture']);
-                } else {
-                    $impactAnalysis['field_conditions']['soil_moisture'] = $totalRainfall > 20 ? 'Saturated' : ($totalRainfall > 5 ? 'Optimal' : 'Dry');
-                }
-
-                // Workability
-                $impactAnalysis['field_conditions']['field_workability'] = $ra['flood_risk_days'] > 0 ? 'Poor (Wet)' : 'Good';
-
-                // Disease Risk
-                $impactAnalysis['field_conditions']['disease_risk'] = ($ra['disease_risk_days'] ?? 0) > 2 ? 'High' : (($ra['disease_risk_days'] ?? 0) > 0 ? 'Moderate' : 'Low');
             }
+            
+            // Determine field states from stress events array or weather summary
+            $stressEvents = $advancedImpact['stress_events'] ?? [];
+            $impactAnalysis['field_conditions']['soil_moisture'] = ($stressEvents['drought_stress_events'] ?? 0) > 0 ? 'Dry' : ($totalRainfall > 20 ? 'Saturated' : 'Optimal');
+            $impactAnalysis['field_conditions']['field_workability'] = ($stressEvents['heavy_rain_events'] ?? 0) > 0 ? 'Poor (Wet)' : 'Good';
+            $pestRisk = $this->weatherAnalyticsService->assessPestDiseaseRisk($analysisField->farm, [], ['rice_blast', 'bacterial_blight']);
+            $highestRisk = 'Low';
+            if (!empty($pestRisk['disease_risk'])) {
+                foreach ($pestRisk['disease_risk'] as $diseaseData) {
+                    if ($diseaseData['risk_level'] === 'high') { $highestRisk = 'High'; break; }
+                    if ($diseaseData['risk_level'] === 'medium' && $highestRisk === 'Low') { $highestRisk = 'Moderate'; }
+                }
+            }
+            $impactAnalysis['field_conditions']['disease_risk'] = $highestRisk;
 
-            // Recommendations
-            // Just take the top 3 recommendations
-            $impactAnalysis['recommendations'] = array_slice(array_map(function ($r) {
-                return $r['recommendation'];
-            }, $recommendations), 0, 3);
-
+            // Optional: Include Data Quality Score
+            $dataQuality = $this->weatherAnalyticsService->getDataQualityMetrics($analysisField->farm, $days);
+            $impactAnalysis['data_quality'] = $dataQuality['quality_score'] ?? 100;
             // Fallback recommendations if empty
             if (empty($impactAnalysis['recommendations'])) {
                 $impactAnalysis['recommendations'] = [

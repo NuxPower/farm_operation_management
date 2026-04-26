@@ -314,6 +314,12 @@ export const weatherAPI = {
   getAnalytics: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}`, { params }),
   getTrends: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/trends`, { params }),
   getRecommendations: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/recommendations`, { params }),
+  getDataQuality: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/data-quality`, { params }),
+  getImpactAnalysis: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/impact`, { params }),
+  getYieldPredictions: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/yield`, { params }),
+  getRiskAssessment: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/risk`, { params }),
+  getIrrigationRecommendations: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/irrigation`, { params }),
+  getPestDiseaseRisk: (farmId, params = {}) => api.get(`/analytics/farm/${farmId}/pest-risk`, { params }),
 };
 
 // Rice Marketplace API

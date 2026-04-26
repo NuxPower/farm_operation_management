@@ -908,6 +908,18 @@ const submitForm = async () => {
     calculateExpectedHarvestDate()
   }
 
+  // Validate that a seedling batch is selected when using nursery source
+  if (sourceType.value === 'nursery' && !form.value.data.seed_planting_id) {
+    form.value.errors.seed_planting_id = 'Please select a ready seedling batch to use for transplanting.'
+    if (readySeedPlantings.value.length === 0) {
+      form.value.errors.general = 'No ready seedlings are available. Go to the Seedbed module to sow and mark seedlings as ready before planting.'
+    } else {
+      form.value.errors.general = 'Please select a seedling batch before submitting.'
+    }
+    form.value.processing = false
+    return
+  }
+
   // Validate seed quantity against inventory stock
   if (form.value.data.inventory_item_id && form.value.data.seed_rate) {
     const item = inventoryStore.riceSeeds.find(i => i.id == form.value.data.inventory_item_id);

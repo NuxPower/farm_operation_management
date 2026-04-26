@@ -15,7 +15,7 @@
             class="relative p-2 text-gray-500 hover:text-gray-700 transition-colors bg-white rounded-lg border border-gray-300"
           >
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 11-4 0v-6m4 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 4h13M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
             </svg>
             <span 
               v-if="marketplaceStore.cartItemsCount > 0"
@@ -127,8 +127,8 @@
 
             <!-- Product Info -->
             <div class="mb-4">
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ product.name }}</h3>
-              <p class="text-sm text-gray-600 mb-2">{{ product.description || 'Premium rice variety' }}</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-2 break-words leading-snug">{{ product.name }}</h3>
+              <p class="text-sm text-gray-600 mb-2 line-clamp-2 break-words">{{ product.description || 'Premium rice variety' }}</p>
               
               <!-- Farmer Info -->
               <div class="flex items-center text-sm text-gray-500 mb-2">
@@ -147,15 +147,13 @@
             </div>
 
             <!-- Price and Availability -->
-            <div class="flex justify-between items-center mb-4">
-              <div>
-                <span class="text-xl font-bold text-green-600">
-                  {{ formatCurrency(product.price_per_unit) }}/{{ product.unit || 'kg' }}
-                </span>
-              </div>
-              <div class="text-sm text-gray-500">
+            <div class="flex flex-wrap justify-between items-baseline gap-x-2 gap-y-1 mb-4">
+              <span class="text-lg font-bold text-green-600 break-all">
+                {{ formatCurrency(product.price_per_unit) }}/{{ product.unit || 'kg' }}
+              </span>
+              <span class="text-sm text-gray-500 whitespace-nowrap">
                 {{ product.quantity_available || 0 }} {{ product.unit || 'kg' }} available
-              </div>
+              </span>
             </div>
 
             <!-- Actions -->

@@ -106,23 +106,23 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get weather impact analysis on crop performance
      */
-    public function getWeatherImpactAnalysis(Request $request, $fieldId)
+    public function getWeatherImpactAnalysis(Request $request, $farmId)
     {
         $request->validate([
             'planting_id' => 'nullable|exists:plantings,id',
             'analysis_period' => 'in:planting_season,growth_stages,full_cycle',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $plantingId = $request->planting_id;
         $analysisPeriod = $request->analysis_period ?? 'planting_season';
 
-        $impact = $this->weatherAnalyticsService->analyzeWeatherImpact($field->farm, $plantingId, $analysisPeriod);
+        $impact = $this->weatherAnalyticsService->analyzeWeatherImpact($farm, $plantingId, $analysisPeriod);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'impact_analysis' => $impact,
             'analysis_period' => $analysisPeriod,
         ]);
@@ -131,23 +131,23 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get weather-based yield predictions
      */
-    public function getYieldPredictions(Request $request, $fieldId)
+    public function getYieldPredictions(Request $request, $farmId)
     {
         $request->validate([
             'planting_id' => 'required|exists:plantings,id',
             'prediction_model' => 'in:simple,advanced,ml_based',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $plantingId = $request->planting_id;
         $predictionModel = $request->prediction_model ?? 'simple';
 
-        $predictions = $this->weatherAnalyticsService->predictYield($field->farm, $plantingId, $predictionModel);
+        $predictions = $this->weatherAnalyticsService->predictYield($farm, $plantingId, $predictionModel);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'yield_predictions' => $predictions,
             'prediction_model' => $predictionModel,
         ]);
@@ -182,7 +182,7 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get weather risk assessment
      */
-    public function getWeatherRiskAssessment(Request $request, $fieldId)
+    public function getWeatherRiskAssessment(Request $request, $farmId)
     {
         $request->validate([
             'risk_types' => 'array',
@@ -190,16 +190,16 @@ class WeatherAnalyticsController extends Controller
             'assessment_period' => 'in:current,short_term,long_term',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $riskTypes = $request->risk_types ?? ['drought', 'flood', 'heat_stress', 'cold_stress'];
         $assessmentPeriod = $request->assessment_period ?? 'current';
 
-        $riskAssessment = $this->weatherAnalyticsService->assessWeatherRisks($field->farm, $riskTypes, $assessmentPeriod);
+        $riskAssessment = $this->weatherAnalyticsService->assessWeatherRisks($farm, $riskTypes, $assessmentPeriod);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'risk_assessment' => $riskAssessment,
             'risk_types' => $riskTypes,
             'assessment_period' => $assessmentPeriod,
@@ -209,23 +209,23 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get irrigation recommendations based on weather data
      */
-    public function getIrrigationRecommendations(Request $request, $fieldId)
+    public function getIrrigationRecommendations(Request $request, $farmId)
     {
         $request->validate([
             'soil_moisture_level' => 'nullable|numeric|min:0|max:100',
             'crop_stage' => 'nullable|string|max:50',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $soilMoistureLevel = $request->soil_moisture_level;
         $cropStage = $request->crop_stage;
 
-        $recommendations = $this->weatherAnalyticsService->getIrrigationRecommendations($field->farm, $soilMoistureLevel, $cropStage);
+        $recommendations = $this->weatherAnalyticsService->getIrrigationRecommendations($farm, $soilMoistureLevel, $cropStage);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'irrigation_recommendations' => $recommendations,
             'soil_moisture_level' => $soilMoistureLevel,
             'crop_stage' => $cropStage,
@@ -235,7 +235,7 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get weather-based pest and disease risk
      */
-    public function getPestDiseaseRisk(Request $request, $fieldId)
+    public function getPestDiseaseRisk(Request $request, $farmId)
     {
         $request->validate([
             'pest_types' => 'array',
@@ -244,16 +244,16 @@ class WeatherAnalyticsController extends Controller
             'disease_types.*' => 'in:rice_blast,bacterial_blight,sheath_blight,tungro',
         ]);
 
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $pestTypes = $request->pest_types ?? ['brown_planthopper', 'stem_borer'];
         $diseaseTypes = $request->disease_types ?? ['rice_blast', 'bacterial_blight'];
 
-        $riskAssessment = $this->weatherAnalyticsService->assessPestDiseaseRisk($field->farm, $pestTypes, $diseaseTypes);
+        $riskAssessment = $this->weatherAnalyticsService->assessPestDiseaseRisk($farm, $pestTypes, $diseaseTypes);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'pest_disease_risk' => $riskAssessment,
             'pest_types' => $pestTypes,
             'disease_types' => $diseaseTypes,
@@ -384,17 +384,17 @@ class WeatherAnalyticsController extends Controller
     /**
      * Get weather data quality metrics
      */
-    public function getDataQualityMetrics(Request $request, $fieldId)
+    public function getDataQualityMetrics(Request $request, $farmId)
     {
-        $field = Field::findOrFail($fieldId);
-        $this->authorize('view', $field);
+        $farm = Farm::findOrFail($farmId);
+        $this->authorize('view', $farm);
 
         $periodDays = $request->period_days ?? 30;
 
-        $qualityMetrics = $this->weatherAnalyticsService->getDataQualityMetrics($field->farm, $periodDays);
+        $qualityMetrics = $this->weatherAnalyticsService->getDataQualityMetrics($farm, $periodDays);
 
         return response()->json([
-            'field' => $field,
+            'farm' => $farm,
             'data_quality' => $qualityMetrics,
             'period_days' => $periodDays,
         ]);

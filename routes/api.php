@@ -130,6 +130,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/recommendations', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getPlantingRecommendations']);
             Route::get('/climate-impact', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getClimateChangeImpact']);
             Route::get('/export', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'exportAnalyticsReport']);
+            
+            // Advanced field-specific/farm-level analytics
+            Route::get('/data-quality', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getDataQualityMetrics']);
+            Route::get('/impact', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getWeatherImpactAnalysis']);
+            Route::get('/yield', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getYieldPredictions']);
+            Route::get('/risk', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getWeatherRiskAssessment']);
+            Route::get('/irrigation', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getIrrigationRecommendations']);
+            Route::get('/pest-risk', [\App\Http\Controllers\Weather\WeatherAnalyticsController::class, 'getPestDiseaseRisk']);
         });
     });
 

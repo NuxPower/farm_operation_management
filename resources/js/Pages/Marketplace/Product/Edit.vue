@@ -348,7 +348,6 @@ const form = reactive({
   name: '',
   description: '',
   quantity_available: '',
-  quantity_available: '',
   unit: 'kg',
   price_per_unit: '',
   quality_grade: 'premium',
@@ -362,7 +361,7 @@ const form = reactive({
   notes: ''
 })
 
-const units = ['kg', 'tons', 'sacks', 'bushels', 'pounds', 'grams']
+const units = ['kg', 'tons', 'sacks', 'sacks_rice', 'sacks_palay', 'bushels', 'pounds', 'grams']
 const qualityGrades = {
   premium: 'Premium',
   grade_a: 'Grade A',

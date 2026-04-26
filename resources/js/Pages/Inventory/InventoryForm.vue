@@ -233,7 +233,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, watch, computed } from 'vue'
+import { reactive, ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useFormValidation } from '@/composables/useFormValidation'
 
 const props = defineProps({
@@ -264,6 +264,7 @@ const emit = defineEmits(['submit', 'cancel'])
 // Local error state to handle prop updates
 const formError = ref('')
 const formFieldErrors = ref({})
+const formMounted = ref(false) // Guard: prevent unit auto-switch during initial edit hydration
 const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()
 
 // Watch for error props
@@ -300,6 +301,8 @@ onMounted(() => {
       description: props.item.description || ''
     })
   }
+  // Allow the unit watcher to fire only after initial hydration is complete
+  nextTick(() => { formMounted.value = true })
 })
 
 const submitForm = () => {
@@ -393,8 +396,10 @@ const availableUnits = computed(() => {
 
 // Auto-select first valid unit when category changes
 watch(() => form.category, (newCategory) => {
+  // Skip during initial edit hydration so we don't override the saved unit value
+  if (!formMounted.value) return
   if (!newCategory) return
-  
+
   const validUnits = availableUnits.value.map(u => u.value)
   // If current unit is not valid for new category, select the first valid one
   if (!validUnits.includes(form.unit)) {

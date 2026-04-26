@@ -295,6 +295,16 @@
                     {{ weatherImpact.field_conditions.disease_risk }}
                   </span>
                 </div>
+                <!-- Data Quality Score Added From Open Question -->
+                <div class="flex justify-between text-sm mt-3 pt-3 border-t border-gray-100">
+                  <span class="text-gray-600">Data Reliability Score</span>
+                  <span 
+                    class="font-medium"
+                    :class="weatherImpact.data_quality >= 80 ? 'text-green-600' : 'text-yellow-600'"
+                  >
+                    {{ weatherImpact.data_quality }}%
+                  </span>
+                </div>
               </div>
             </div>
             <div>
@@ -351,7 +361,8 @@ const weatherImpact = ref({
     field_workability: 'Unknown',
     disease_risk: 'Low'
   },
-  recommendations: []
+  recommendations: [],
+  data_quality: 100
 })
 
 
