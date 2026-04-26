@@ -319,8 +319,18 @@ All five core project objectives have been **fully achieved** with comprehensive
 To ensure reliability, the system uses a robust **Task Scheduler** driven by `supervisord`.
 - **Heartbeat Mechanism:** The scheduler runs `php artisan schedule:run` **every minute** to check for pending tasks.
 - **Automated Tasks:**
-  - **Hourly:** Weather monitoring, Order expiration checks, Scheduled reports.
-  - **Daily:** Inventory expiry checks (8:00 AM), Pre-order notifications (9:00 AM).
+
+| Command | Schedule | Description |
+|---------|----------|-------------|
+| `orders:cancel-expired-pickups` | Every hour | Auto-cancels orders past their 3-day pickup deadline; releases reserved stock back to listing; notifies buyer and farmer via email and in-app notification |
+| `orders:send-deadline-warnings` | Daily at 8:00 AM | Sends email warning to farmers 24 hours before a buyer's pickup deadline expires |
+| `orders:auto-confirm` | (on demand) | Auto-confirms shipped orders after 7-day waiting period |
+| `inventory:check-expiry` | Daily at 8:00 AM | Checks inventory items approaching expiry and sends alerts |
+| `pre-orders:send-notifications` | Daily at 9:00 AM | Notifies buyers when pre-ordered products become available |
+| `reports:send-scheduled` | Every hour | Sends scheduled financial/crop reports to subscribed users |
+| `weather:monitor` | Every hour | Checks active fields for critical weather conditions and triggers agronomic alerts |
+| `tasks:process-due` | Daily at 10:00 AM | Auto-completes overdue tasks and generates associated labor wage/expense records |
+
 - **Redundancy:** If a task is missed due to a brief server hiccup, the scheduler retries in the next minute slot where applicable.
 
 ---
@@ -342,29 +352,13 @@ To ensure reliability, the system uses a robust **Task Scheduler** driven by `su
                           │                      │                      │
                           ▼                      ▼                      ▼
                ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
-               │   Login (Email)  │   │  Register New    │   │   Browse as      │
-               │                  │   │     Account      │   │     Guest        │
+               │Login(Email/Phone)│   │  Register New    │   │   Browse as      │
+               │                  │   │  Buyer Account   │   │     Guest        │
                └────────┬─────────┘   └────────┬─────────┘   └────────┬─────────┘
                         │                      │                      │
                         │                      ▼                      │
-                        │           ┌──────────────────┐              │
-                        │           │  Select Role:    │              │
-                        │           │ Farmer or Buyer  │              │
-                        │           └────────┬─────────┘              │
-                        │                    │                        │
-                        │         ┌──────────┴──────────┐             │
-                        │         │                     │             │
-                        │         ▼                     ▼             │
-                        │  ┌─────────────┐      ┌─────────────┐       │
-                        │  │   Farmer    │      │    Buyer    │       │
-                        │  │ Registration│      │ Registration│       │
-                        │  └──────┬──────┘      └──────┬──────┘       │
-                        │         │                    │              │
-                        │         └─────────┬──────────┘              │
-                        │                   │                         │
-                        │                   ▼                         │
                         │         ┌──────────────────┐                │
-                        │         │  Email OTP       │                │
+                        │         │  Email/SMS OTP   │                │
                         │         │  Verification    │                │
                         │         └────────┬─────────┘                │
                         │                  │                          │
@@ -552,7 +546,7 @@ This comprehensive User Flow Diagram illustrates the complete start-to-finish jo
 
 **Authentication & Onboarding:**
 - Users begin at the landing page and can login, register, or browse as guests.
-- Registration requires role selection (Farmer/Buyer) and email OTP verification.
+- Registration is currently for Buyer accounts and requires email or SMS OTP verification.
 - **Secure Verification Flow:**
   - Verification codes expire after **30 minutes** to prevent brute-force or stale code usage.
   - Unverified users attempting to login are **automatically redirected** to the verification page with credentials pre-filled.
@@ -922,6 +916,22 @@ The system automatically generates prioritized suggestions based on specific tri
   - Price negotiation flow
   - Order state machine (Pending → Confirmed → Ready → Picked Up)
   - Pessimistic locking to prevent overselling
+
+#### 🕐 Auto-Cancel Expired Pickups (3-Day Rule)
+When a farmer marks an order **"Ready for Pickup"**, a **3-day pickup deadline** is automatically set on the order (`pickup_deadline = now() + 3 days`). If the buyer does not pick up the order within this window:
+
+1. **Stock Released:** The reserved quantity is automatically restored to the farmer's product listing (`RiceProduct::releaseQuantity()`).
+2. **Order Cancelled:** The order status changes to `cancelled`.
+3. **Farmer Notified:** In-app notification and email alert are sent informing the farmer that the order was auto-cancelled and stock has been restored.
+4. **Buyer Notified:** In-app notification and email alert are sent informing the buyer their order was cancelled due to an expired pickup deadline.
+
+| Detail | Value |
+|--------|-------|
+| **Trigger** | Order status is `ready_for_pickup` and `pickup_deadline` is in the past |
+| **Pickup Window** | 3 days from the time farmer marks "Ready for Pickup" |
+| **Check Frequency** | Every hour (via `orders:cancel-expired-pickups` artisan command) |
+| **Warning** | Farmer receives a 24-hour advance email warning via `orders:send-deadline-warnings` (runs daily at 8:00 AM) |
+| **Key Files** | [`AutoCancelExpiredPickups.php`](app/Console/Commands/AutoCancelExpiredPickups.php), [`SendPickupDeadlineWarnings.php`](app/Console/Commands/SendPickupDeadlineWarnings.php), [`RiceOrder.php`](app/Models/RiceOrder.php) |
 
 ### 8. Financial Reporting
 - **Models:** `Expense`, `Sale`

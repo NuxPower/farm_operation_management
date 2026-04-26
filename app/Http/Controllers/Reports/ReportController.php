@@ -1050,21 +1050,25 @@ class ReportController extends Controller
         // Get comprehensive trends from WeatherAnalyticsService
         $farmTrends = $this->weatherAnalyticsService->getFarmWeatherTrends($analysisFarm, $days, 'comprehensive');
         
-        // Temperature trends (daily average) mapped from service
-        $temperatureTrends = collect($farmTrends['trends']['temperature'] ?? [])->map(function($t) {
+        // Temperature trends (daily average) - grouped from raw weather logs for chart accuracy
+        $temperatureTrends = $weatherData->groupBy(function ($record) {
+            return Carbon::parse($record->recorded_at)->format('Y-m-d');
+        })->map(function ($dayRecords, $date) {
             return [
-                'date' => $t['date'],
-                'temperature' => round($t['avg_temp'] ?? $t['temperature'] ?? 0, 1),
+                'date' => $date,
+                'temperature' => round($dayRecords->avg('temperature') ?: 0, 1),
             ];
-        })->values();
+        })->sortBy('date')->values();
 
-        // Rainfall distribution (daily totals) mapped from service
-        $rainfallDistribution = collect($farmTrends['trends']['conditions'] ?? [])->map(function($c) {
+        // Rainfall distribution (daily totals from raw weather logs)
+        $rainfallDistribution = $weatherData->groupBy(function ($record) {
+            return Carbon::parse($record->recorded_at)->format('Y-m-d');
+        })->map(function ($dayRecords, $date) {
             return [
-                'date' => $c['date'],
-                'rainfall' => round($c['rainfall'] ?? 0, 2),
+                'date' => $date,
+                'rainfall' => round($dayRecords->sum('rainfall') ?: 0, 2),
             ];
-        })->values();
+        })->sortBy('date')->values();
 
         // Determine which field to use for analysis (moved up for GDD calculation)
         $analysisField = null;
@@ -1279,27 +1283,34 @@ class ReportController extends Controller
             if (isset($advancedImpact['growth_stage_analysis'])) {
                 $gsa = $advancedImpact['growth_stage_analysis'];
                 
-                $impactAnalysis['crop_development']['growth_stage'] = $gsa['stage'] ?? 'No Active Planting';
+                // Correct key is 'current_stage', not 'stage'
+                $impactAnalysis['crop_development']['growth_stage'] = $gsa['current_stage'] ?? 'No Active Planting';
                 $impactAnalysis['crop_development']['days_to_maturity'] = $advancedImpact['planting_info']['expected_harvest_date'] ?? 'N/A';
                 
-                $score = $gsa['score'] ?? 100;
-                $impactAnalysis['crop_development']['stress_level'] = $score < 60 ? 'High' : ($score < 80 ? 'Moderate' : 'Low');
+                // No 'score' key in growth_stage_analysis — derive stress from stress_events count
+                $stressEventsArr = $advancedImpact['stress_events']['stress_events'] ?? [];
+                $stressCount = count($stressEventsArr);
+                $impactAnalysis['crop_development']['stress_level'] = $stressCount > 3 ? 'High' : ($stressCount > 0 ? 'Moderate' : 'Low');
                 
                 if (!empty($gsa['recommendations'])) {
                     $impactAnalysis['recommendations'] = array_slice($gsa['recommendations'], 0, 3);
                 }
             }
-            
-            // Determine field states from stress events array or weather summary
-            $stressEvents = $advancedImpact['stress_events'] ?? [];
-            $impactAnalysis['field_conditions']['soil_moisture'] = ($stressEvents['drought_stress_events'] ?? 0) > 0 ? 'Dry' : ($totalRainfall > 20 ? 'Saturated' : 'Optimal');
-            $impactAnalysis['field_conditions']['field_workability'] = ($stressEvents['heavy_rain_events'] ?? 0) > 0 ? 'Poor (Wet)' : 'Good';
+                       // Determine field states from stress events — correct key is 'stress_events' (array of event objects)
+            $stressEventsArr = $advancedImpact['stress_events']['stress_events'] ?? [];
+            $hasDrought = count(array_filter($stressEventsArr, fn($e) => ($e['type'] ?? '') === 'drought_stress')) > 0;
+            $hasHeavyRain = count(array_filter($stressEventsArr, fn($e) => ($e['type'] ?? '') === 'flooding_stress')) > 0;
+            $impactAnalysis['field_conditions']['soil_moisture'] = $hasDrought ? 'Dry' : ($totalRainfall > 20 ? 'Saturated' : 'Optimal');
+            $impactAnalysis['field_conditions']['field_workability'] = $hasHeavyRain ? 'Poor (Wet)' : 'Good';
+
+            // Bug 5 fix: correct key is 'disease_risks' (plural), risk level is at ['overall_risk']['level']
             $pestRisk = $this->weatherAnalyticsService->assessPestDiseaseRisk($analysisField->farm, [], ['rice_blast', 'bacterial_blight']);
             $highestRisk = 'Low';
-            if (!empty($pestRisk['disease_risk'])) {
-                foreach ($pestRisk['disease_risk'] as $diseaseData) {
-                    if ($diseaseData['risk_level'] === 'high') { $highestRisk = 'High'; break; }
-                    if ($diseaseData['risk_level'] === 'medium' && $highestRisk === 'Low') { $highestRisk = 'Moderate'; }
+            if (!empty($pestRisk['disease_risks'])) {
+                foreach ($pestRisk['disease_risks'] as $diseaseData) {
+                    $level = $diseaseData['overall_risk']['level'] ?? 'low';
+                    if ($level === 'high') { $highestRisk = 'High'; break; }
+                    if ($level === 'medium' && $highestRisk === 'Low') { $highestRisk = 'Moderate'; }
                 }
             }
             $impactAnalysis['field_conditions']['disease_risk'] = $highestRisk;
