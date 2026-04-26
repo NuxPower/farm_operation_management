@@ -359,15 +359,7 @@
 
 
 
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-          <input
-            v-model="orderForm.payment_method"
-            type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="e.g., Cash on Delivery, Bank Transfer"
-          />
-        </div>
+
 
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
@@ -427,15 +419,7 @@
           <p class="text-xs text-gray-500 mt-1">Choose when you'd like to pick up your order</p>
         </div>
 
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-          <input
-            v-model="orderForm.payment_method"
-            type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="e.g., Cash on Delivery, Bank Transfer"
-          />
-        </div>
+
 
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
@@ -469,7 +453,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { riceMarketplaceAPI, authAPI } from '@/services/api'
 import { formatCurrency, formatUnit } from '@/utils/format'

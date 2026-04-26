@@ -161,11 +161,11 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right">
                     <div class="text-sm font-medium text-gray-900">{{ formatQuantity(product.quantity_available) }}</div>
-                    <div class="text-xs text-gray-500 uppercase">{{ product.unit || 'units' }}</div>
+                    <div class="text-xs text-gray-500 uppercase">{{ formatUnit(product.unit) || 'units' }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right">
                     <div class="text-sm font-bold text-gray-900">{{ formatCurrency(product.price_per_unit) }}</div>
-                    <div class="text-xs text-gray-500">per {{ product.unit || 'unit' }}</div>
+                    <div class="text-xs text-gray-500">per {{ formatUnit(product.unit) || 'unit' }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-700 flex items-center gap-1.5">
@@ -230,7 +230,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAuthStore } from '@/stores/auth'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()

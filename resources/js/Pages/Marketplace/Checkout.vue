@@ -82,30 +82,7 @@
             </div>
           </div>
 
-          <!-- Payment Method -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
-            <div class="space-y-4">
-              <div class="flex items-center">
-                <input id="payment_cod" name="payment_method" type="radio" value="cod" v-model="form.payment_method" class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300">
-                <label for="payment_cod" class="ml-3 block text-sm font-medium text-gray-700">
-                  Cash on Delivery (COD)
-                </label>
-              </div>
-              <div class="flex items-center">
-                <input id="payment_bank" name="payment_method" type="radio" value="bank_transfer" v-model="form.payment_method" class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300">
-                <label for="payment_bank" class="ml-3 block text-sm font-medium text-gray-700">
-                  Bank Transfer
-                </label>
-              </div>
-              <div class="flex items-center">
-                <input id="payment_gcash" name="payment_method" type="radio" value="gcash" v-model="form.payment_method" class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300">
-                <label for="payment_gcash" class="ml-3 block text-sm font-medium text-gray-700">
-                  GCash
-                </label>
-              </div>
-            </div>
-          </div>
+
           
           <!-- Notes -->
            <div class="bg-white rounded-lg shadow p-6">

@@ -147,10 +147,10 @@
             <!-- Price and Availability -->
             <div class="flex flex-wrap justify-between items-baseline gap-x-2 gap-y-1 mb-4">
               <span class="text-lg font-bold text-green-600 break-all">
-                {{ formatCurrency(product.price_per_unit) }}/{{ product.unit || 'kg' }}
+                {{ formatCurrency(product.price_per_unit) }}/{{ formatUnit(product.unit) || 'kg' }}
               </span>
               <span class="text-sm text-gray-500 whitespace-nowrap">
-                {{ product.quantity_available || 0 }} {{ product.unit || 'kg' }} available
+                {{ product.quantity_available || 0 }} {{ formatUnit(product.unit) || 'kg' }} available
               </span>
             </div>
 
@@ -326,7 +326,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMarketplaceStore } from '@/stores/marketplace';
 import { useAuthStore } from '@/stores/auth';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, formatUnit } from '@/utils/format';
 
 const router = useRouter();
 const marketplaceStore = useMarketplaceStore();
@@ -427,7 +427,7 @@ const confirmAddToCart = async () => {
       // Use await to handle potential asynchronous store actions (e.g. backend sync)
       await marketplaceStore.addToCart(selectedProduct.value, selectedQuantity.value);
       showQuantityModal.value = false;
-      showToast(`Added ${selectedQuantity.value} ${selectedProduct.value.unit || 'kg'} of ${selectedProduct.value.name} to cart!`, 'success');
+      showToast(`Added ${selectedQuantity.value} ${formatUnit(selectedProduct.value.unit) || 'kg'} of ${selectedProduct.value.name} to cart!`, 'success');
     } catch (err) {
       console.error('Failed to add to cart:', err);
       showToast(err.message || 'Failed to add item to cart. Please try again.', 'error');

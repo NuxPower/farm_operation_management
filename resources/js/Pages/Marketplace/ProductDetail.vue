@@ -168,7 +168,7 @@
           <!-- Price and Purchase -->
           <div class="bg-white rounded-lg shadow-md p-6">
             <div class="text-3xl font-bold text-green-600 mb-2">{{ formatCurrency(product.price) }}</div>
-            <div class="text-gray-600 mb-4">{{ product.unit }}</div>
+            <div class="text-gray-600 mb-4">{{ formatUnit(product.unit) }}</div>
             
             <div class="space-y-4">
               <div>
@@ -311,7 +311,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 import api, { riceMarketplaceAPI } from '@/services/api'
 
 const route = useRoute()

@@ -253,7 +253,7 @@
                    </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                   <span class="text-sm font-medium text-gray-900">{{ formatCurrency(product.price_per_unit) }}/{{ product.unit }}</span>
+                   <span class="text-sm font-medium text-gray-900">{{ formatCurrency(product.price_per_unit) }}/{{ formatUnit(product.unit) }}</span>
                    <span
                       class="px-2 py-1 text-xs font-semibold rounded-full"
                       :class="product.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
@@ -368,7 +368,7 @@
                    <span class="text-sm font-medium text-gray-800">{{ item.name }}</span>
                 </div>
                 <div class="text-sm">
-                  <span class="font-bold text-red-600">{{ item.current_stock ?? item.quantity }} {{ item.unit }}</span>
+                  <span class="font-bold text-red-600">{{ item.current_stock ?? item.quantity }} {{ formatUnit(item.unit) }}</span>
                   <span class="text-gray-500 text-xs ml-1">(Min: {{ item.minimum_stock ?? item.min_stock }})</span>
                 </div>
               </div>
@@ -488,7 +488,7 @@
   import { useWeatherStore } from '@/stores/weather';
   import { dashboardAPI } from '@/services/api';
   import CurrentWeather from '@/Components/Weather/CurrentWeather.vue';
-  import { formatCurrency } from '@/utils/format';
+  import { formatCurrency, formatUnit } from '@/utils/format';
 
   const router = useRouter();
   const authStore = useAuthStore();
