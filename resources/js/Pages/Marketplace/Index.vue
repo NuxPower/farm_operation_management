@@ -69,9 +69,7 @@
               <option value="">All Varieties</option>
               <option value="IR64">IR64</option>
               <option value="Jasmine">Jasmine Rice</option>
-              <option value="Basmati">Basmati Rice</option>
               <option value="Arborio">Arborio Rice</option>
-              <option value="Brown Rice">Brown Rice</option>
               <option value="Sticky Rice">Sticky Rice</option>
               <option value="Wild Rice">Wild Rice</option>
             </select>

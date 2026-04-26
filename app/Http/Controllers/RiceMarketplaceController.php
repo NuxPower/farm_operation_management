@@ -152,8 +152,6 @@ class RiceMarketplaceController extends Controller
                     ],
                     'processing_methods' => [
                         RiceProduct::PROCESSING_MILLED => 'Milled',
-                        RiceProduct::PROCESSING_BROWN => 'Brown Rice',
-                        RiceProduct::PROCESSING_PARBOILED => 'Parboiled',
                         RiceProduct::PROCESSING_ORGANIC => 'Organic',
                     ],
                     'production_statuses' => [

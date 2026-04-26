@@ -114,8 +114,6 @@ class RiceProduct extends Model
      * Processing method constants
      */
     const PROCESSING_MILLED = 'milled';
-    const PROCESSING_BROWN = 'brown';
-    const PROCESSING_PARBOILED = 'parboiled';
     const PROCESSING_ORGANIC = 'organic';
 
     /**

@@ -170,7 +170,7 @@
             <div class="mb-2 md:mb-3 hidden md:block">
               <p class="text-sm text-gray-600">
                 <span v-if="product.production_status === 'available'">
-                  Stock: {{ product.quantity_available }} {{ product.unit }}
+                  Stock: {{ product.quantity_available }} {{ formatUnit(product.unit) }}
                 </span>
                 <span v-else>
                   Pre-order now
@@ -181,7 +181,7 @@
             <!-- Price -->
             <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-3 md:mb-4">
               <span class="text-sm md:text-lg font-bold text-green-600">
-                {{ formatCurrency(product.price_per_unit) }}/{{ product.unit }}
+                {{ formatCurrency(product.price_per_unit) }}/{{ formatUnit(product.unit) }}
               </span>
               <div v-if="product.average_rating > 0" class="flex items-center hidden md:flex">
                 <span class="text-yellow-400 text-sm">★</span>
@@ -239,7 +239,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const router = useRouter()
 

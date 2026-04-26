@@ -185,7 +185,7 @@
               <div class="text-3xl font-bold text-green-600">
                 {{ formatCurrency(product.price_per_unit) }}
               </div>
-              <div class="text-gray-600">per {{ product.unit }}</div>
+              <div class="text-gray-600">per {{ formatUnit(product.unit) }}</div>
             </div>
 
             <!-- Available From (for pre-orders) -->
@@ -198,7 +198,7 @@
             <div class="mb-4">
               <p class="text-sm text-gray-600">
                 <span v-if="product.production_status === 'available'">
-                  Stock: <span class="font-medium">{{ product.quantity_available }} {{ product.unit }}</span>
+                  Stock: <span class="font-medium">{{ product.quantity_available }} {{ formatUnit(product.unit) }}</span>
                 </span>
                 <span v-else class="font-medium">
                   Pre-order now and get notified when available
@@ -472,7 +472,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { riceMarketplaceAPI, authAPI } from '@/services/api'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 import axios from 'axios'
 
 const route = useRoute()

@@ -77,7 +77,7 @@
                   </span>
                 </div>
                 <div class="text-sm text-gray-600 space-y-1">
-                  <p>Quantity: {{ order.quantity }} {{ order.rice_product?.unit || 'kg' }} • {{ formatCurrency(order.total_amount) }}</p>
+                  <p>Quantity: {{ order.quantity }} {{ formatUnit(order.rice_product?.unit) || 'kg' }} • {{ formatCurrency(order.total_amount) }}</p>
                   <p>Seller: {{ order.rice_product?.farmer?.name || 'N/A' }}</p>
                   <p>Ordered: {{ formatDate(order.order_date) }}</p>
                 </div>
@@ -227,7 +227,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import api from '@/services/api'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const marketplaceStore = useMarketplaceStore()
 const loading = ref(true)

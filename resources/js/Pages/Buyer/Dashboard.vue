@@ -223,7 +223,7 @@
                     Order #{{ order.id.toString().slice(-6) }}
                   </h4>
                   <p class="text-sm text-gray-500">
-                    {{ order.quantity || 1 }} {{ order.rice_product?.unit || 'kg' }} - {{ order.rice_product?.name || 'Product' }}
+                    {{ order.quantity || 1 }} {{ formatUnit(order.rice_product?.unit) || 'kg' }} - {{ order.rice_product?.name || 'Product' }}
                   </p>
                   <p class="text-xs text-gray-400">
                     {{ formatDate(order.created_at) }}
@@ -271,7 +271,7 @@ import { useRouter } from 'vue-router';
 import api, { riceMarketplaceAPI, riceVarietiesAPI, cartAPI, notificationsAPI } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { useMarketplaceStore } from '@/stores/marketplace';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, formatUnit } from '@/utils/format';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -365,7 +365,7 @@ const getProductQuantity = (product) => {
 };
 
 const getProductUnit = (product) => {
-  return product.unit ?? product.unit_type ?? 'unit';
+  return formatUnit(product.unit ?? product.unit_type ?? 'unit');
 };
 
 const getProductDescription = (product) => {

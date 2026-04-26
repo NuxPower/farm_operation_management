@@ -14,9 +14,7 @@ export const useInventoryStore = defineStore('inventory', {
     riceVarietals: [
       { value: 'IR64', label: 'IR64' },
       { value: 'Jasmine', label: 'Jasmine Rice' },
-      { value: 'Basmati', label: 'Basmati Rice' },
       { value: 'Arborio', label: 'Arborio Rice' },
-      { value: 'Brown Rice', label: 'Brown Rice' },
     ],
     loading: false,
     error: null,

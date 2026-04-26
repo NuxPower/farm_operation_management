@@ -52,7 +52,7 @@
                 {{ item.farmer?.name || 'Farmer' }}
               </p>
               <p class="text-sm sm:text-lg font-medium text-green-600">
-                {{ formatCurrency(item.price || 0) }}/{{ item.unit || 'kg' }}
+                {{ formatCurrency(item.price || 0) }}/{{ formatUnit(item.unit) || 'kg' }}
               </p>
             </div>
             <div class="flex flex-col items-end gap-1 sm:gap-2">
@@ -166,7 +166,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()

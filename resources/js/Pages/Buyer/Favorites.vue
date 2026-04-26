@@ -97,7 +97,7 @@
               <span class="text-sm md:text-lg font-bold text-green-600">
                 {{ formatCurrency(item.rice_product?.price_per_unit || 0) }}
               </span>
-              <span class="text-xs md:text-sm text-gray-500">per {{ item.rice_product?.unit || 'kg' }}</span>
+              <span class="text-xs md:text-sm text-gray-500">per {{ formatUnit(item.rice_product?.unit) || 'kg' }}</span>
             </div>
 
             <!-- Stock Status -->
@@ -106,7 +106,7 @@
                 v-if="item.rice_product?.quantity_available > 0"
                 class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"
               >
-                {{ item.rice_product.quantity_available }} {{ item.rice_product.unit }} available
+                {{ item.rice_product.quantity_available }} {{ formatUnit(item.rice_product.unit) }} available
               </span>
               <span 
                 v-else
@@ -152,7 +152,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import api from '@/services/api'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const router = useRouter()
 const marketplaceStore = useMarketplaceStore()

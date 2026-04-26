@@ -370,8 +370,6 @@ const qualityGrades = {
 }
 const processingMethods = {
   milled: 'Milled',
-  brown: 'Brown Rice',
-  parboiled: 'Parboiled',
   organic: 'Organic'
 }
 

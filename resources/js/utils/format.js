@@ -49,6 +49,17 @@ export const formatDate = (value, options = {}) => {
   }).format(date);
 };
 
+export const formatUnit = (unit) => {
+  if (!unit) return '';
+  const u = String(unit).toLowerCase();
+  
+  if (u === 'sacks_rice' || u === 'sacks_seed' || u === 'sack') return 'sack';
+  if (u === 'kgs' || u === 'kg') return 'kg';
+  if (u === 'tons') return 'ton';
+  
+  return unit.replace(/_/g, ' ');
+};
+
 
 
 

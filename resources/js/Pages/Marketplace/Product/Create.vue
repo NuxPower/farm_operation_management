@@ -493,8 +493,6 @@ const qualityGrades = {
 }
 const processingMethods = {
   milled: 'White Rice',
-  brown: 'Brown Rice',
-  parboiled: 'Parboiled Rice',
   organic: 'Organic Rice'
 }
 
