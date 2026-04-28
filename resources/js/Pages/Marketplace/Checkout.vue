@@ -118,10 +118,7 @@
                   <span class="text-gray-600">Shipping</span>
                   <span class="text-gray-900">{{ formatCurrency(shippingCost) }}</span>
                 </div>
-                <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">Tax (8%)</span>
-                  <span class="text-gray-900">{{ formatCurrency(taxAmount) }}</span>
-                </div>
+
                 <div class="border-t border-gray-200 pt-2 flex justify-between text-lg font-semibold">
                   <span class="text-gray-900">Total</span>
                   <span class="text-gray-900">{{ formatCurrency(totalAmount) }}</span>
@@ -216,12 +213,8 @@ const shippingCost = computed(() => {
   return 0; // Free shipping for pickup
 });
 
-const taxAmount = computed(() => {
-  return marketplaceStore.cartTotal * 0.08;
-});
-
 const totalAmount = computed(() => {
-  return marketplaceStore.cartTotal + shippingCost.value + taxAmount.value;
+  return marketplaceStore.cartTotal + shippingCost.value;
 });
 
 const confirmOrder = () => {
