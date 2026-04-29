@@ -81,6 +81,38 @@
         </button>
       </div>
 
+      <!-- View Toggle (only when failed filter active or all statuses) -->
+      <div
+        v-if="filters.status === 'failed' || filters.status === 'all'"
+        class="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm mb-2"
+        style="width: fit-content;"
+      >
+        <button
+          @click="viewMode = 'cards'"
+          :class="viewMode === 'cards'
+            ? 'bg-green-600 text-white'
+            : 'text-gray-600 hover:bg-gray-100'"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          Cards
+        </button>
+        <button
+          @click="viewMode = 'table'"
+          :class="viewMode === 'table'
+            ? 'bg-green-600 text-white'
+            : 'text-gray-600 hover:bg-gray-100'"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18" />
+          </svg>
+          Failure Table
+        </button>
+      </div>
+
       <!-- Badge counts + Date range row -->
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-6">
         <!-- Status badge counts -->
@@ -184,6 +216,74 @@
           <button @click="clearFilters" class="text-sm text-green-700 hover:underline font-medium">Clear filters</button>
         </div>
 
+        <!-- Table View (failure history) -->
+        <div v-else-if="viewMode === 'table'" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-700">Failure History</h2>
+            <span class="text-xs text-gray-400">{{ filteredPlantings.length }} record{{ filteredPlantings.length !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Field</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Variety</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Planted</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Failed On</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-100">
+                <tr
+                  v-for="planting in filteredPlantings"
+                  :key="planting.id"
+                  class="hover:bg-red-50 transition-colors"
+                >
+                  <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ planting.field?.name || 'N/A' }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ planting.rice_variety?.name || planting.crop_type || 'N/A' }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ formatDate(planting.planting_date) }}</td>
+                  <td class="px-4 py-3 text-sm text-red-600 whitespace-nowrap font-medium">
+                    {{ planting.failed_at ? formatDate(planting.failed_at) : '—' }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span v-if="planting.failure_category"
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      {{ formatStatus(planting.failure_category) }}
+                    </span>
+                    <span v-else class="text-xs text-gray-400">—</span>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-gray-600 max-w-xs">
+                    <span v-if="planting.failure_reason" class="line-clamp-2" :title="planting.failure_reason">
+                      {{ planting.failure_reason }}
+                    </span>
+                    <span v-else class="text-xs text-gray-400 italic">No reason given</span>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        @click="goToDetails(planting.id)"
+                        class="text-xs font-medium text-green-700 hover:underline"
+                      >View</button>
+                      <button
+                        @click="confirmDelete(planting)"
+                        class="text-xs font-medium text-red-600 hover:underline"
+                      >Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="filteredPlantings.length === 0">
+                  <td colspan="7" class="px-4 py-10 text-center text-sm text-gray-400">
+                    No failed plantings found.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Card View -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
             v-for="planting in filteredPlantings"
@@ -280,6 +380,7 @@
         </div>
       </div>
 
+
       <!-- Confirmation Modal -->
       <ConfirmationModal
         :show="showConfirmModal"
@@ -295,7 +396,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
@@ -310,6 +411,18 @@ const filters = ref({
   status: '',
   variety: null,
   field: ''
+})
+
+// View mode — 'cards' | 'table'
+const viewMode = ref('cards')
+
+// Auto-switch to table when filtering by failed, back to cards otherwise
+watch(() => filters.value.status, (newStatus) => {
+  if (newStatus === 'failed') {
+    viewMode.value = 'table'
+  } else {
+    viewMode.value = 'cards'
+  }
 })
 
 

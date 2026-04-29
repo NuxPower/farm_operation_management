@@ -300,7 +300,76 @@
         </div>
       </div>
 
-      <!-- Recommendations -->
+      <!-- Crop Failure Insights -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+          <h2 class="text-lg font-semibold text-gray-900">Crop Failure Insights</h2>
+          <span v-if="analytics.failure_analysis?.total_failed > 0"
+            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+            {{ analytics.failure_analysis.total_failed }} failed
+          </span>
+        </div>
+        <div class="p-6">
+          <!-- Empty state -->
+          <div v-if="!analytics.failure_analysis?.total_failed"
+            class="flex flex-col items-center justify-center py-8 text-center">
+            <span class="text-4xl mb-3">🌾</span>
+            <p class="text-sm font-medium text-gray-700">No crop failures recorded</p>
+            <p class="text-xs text-gray-400 mt-1">No failed plantings in the selected period.</p>
+          </div>
+
+          <!-- Failure data -->
+          <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left: Key Stats -->
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="p-4 bg-red-50 rounded-lg border border-red-100 text-center">
+                  <p class="text-2xl font-bold text-red-600">{{ analytics.failure_analysis.failure_rate_pct }}%</p>
+                  <p class="text-xs text-gray-500 mt-1">Failure Rate</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
+                  <p class="text-2xl font-bold text-gray-700">{{ analytics.failure_analysis.total_failed }}</p>
+                  <p class="text-xs text-gray-500 mt-1">Failed Plantings</p>
+                </div>
+                <div class="p-4 bg-orange-50 rounded-lg border border-orange-100 text-center">
+                  <p class="text-2xl font-bold text-orange-600">{{ analytics.failure_analysis.avg_days_before_failure }}</p>
+                  <p class="text-xs text-gray-500 mt-1">Avg Days Before Failure</p>
+                </div>
+                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-100 text-center">
+                  <p class="text-sm font-bold text-yellow-700 leading-tight">
+                    {{ analytics.failure_analysis.by_category?.[0]?.category || '—' }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">Top Failure Cause</p>
+                </div>
+              </div>
+              <!-- By category list -->
+              <div v-if="analytics.failure_analysis.by_category?.length" class="space-y-2">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Breakdown by Category</p>
+                <div
+                  v-for="cat in analytics.failure_analysis.by_category"
+                  :key="cat.category"
+                  class="flex items-center justify-between text-sm"
+                >
+                  <span class="text-gray-700">{{ cat.category }}</span>
+                  <span class="font-semibold text-red-600">{{ cat.count }} planting{{ cat.count !== 1 ? 's' : '' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Pie Chart -->
+            <div class="flex flex-col items-center justify-center">
+              <div class="w-48 h-48 mb-4">
+                <PieChart
+                  :data="failureCategoryChartData"
+                  :options="{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }"
+                />
+              </div>
+              <p class="text-xs text-gray-400">Failure categories distribution</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-semibold text-gray-900">Recommendations</h2>
@@ -423,6 +492,23 @@ const loadAnalytics = async () => {
     loading.value = false;
   }
 };
+
+// Failure category pie chart data
+const FAILURE_CATEGORY_COLORS = [
+  '#ef4444', '#f97316', '#eab308', '#8b5cf6', '#06b6d4', '#6b7280'
+];
+
+const failureCategoryChartData = computed(() => {
+  const cats = analytics.value?.failure_analysis?.by_category || [];
+  return {
+    labels: cats.map(c => c.category),
+    datasets: [{
+      data: cats.map(c => c.count),
+      backgroundColor: cats.map((_, i) => FAILURE_CATEGORY_COLORS[i % FAILURE_CATEGORY_COLORS.length]),
+      borderWidth: 0,
+    }],
+  };
+});
 
 const formatProductionChartData = (monthlyProduction) => {
   return {

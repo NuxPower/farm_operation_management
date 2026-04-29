@@ -50,8 +50,11 @@
         <span class="text-2xl">💀</span>
         <div class="flex-1">
           <p class="text-sm font-semibold text-red-800">
-            This planting failed
+            This planting was marked as failed
             <span v-if="planting.failed_at"> on {{ formatDate(planting.failed_at) }}</span>.
+          </p>
+          <p v-if="planting.failure_category" class="text-sm text-red-700 mt-0.5">
+            Category: {{ formatStatus(planting.failure_category) }}
           </p>
           <p v-if="planting.failure_reason" class="text-sm text-red-700 mt-0.5">
             Reason: {{ planting.failure_reason }}
@@ -59,6 +62,20 @@
           <p class="text-xs text-red-500 mt-1">
             A crop loss expense has been automatically recorded in your financials.
           </p>
+        </div>
+        <div class="flex flex-col gap-2 shrink-0">
+          <button
+            @click="openEditFailModal"
+            class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-red-300 text-red-700 bg-white hover:bg-red-50 transition-colors"
+          >
+            ✏️ Edit Details
+          </button>
+          <button
+            @click="showUnfailModal = true"
+            class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-orange-300 text-orange-700 bg-white hover:bg-orange-50 transition-colors"
+          >
+            ↩ Un-Fail
+          </button>
         </div>
       </div>
 
@@ -421,6 +438,44 @@
     </div>
   </div>
 
+  <!-- Un-Fail Confirmation Modal -->
+  <div v-if="showUnfailModal" class="fixed z-50 inset-0 overflow-y-auto" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="showUnfailModal = false"></div>
+      <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+      <div class="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+        <div class="bg-orange-50 px-6 pt-5 pb-4">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+              <span class="text-xl">↩</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Revert Planting to Growing</h3>
+              <p class="text-sm text-gray-500">This will undo the failure and restore the planting.</p>
+            </div>
+          </div>
+          <ul class="text-sm text-gray-600 space-y-1 mt-3 bg-white border border-orange-200 rounded-lg p-3">
+            <li>✅ Planting status → <strong>Growing</strong></li>
+            <li>✅ Field status → <strong>Active</strong></li>
+            <li>✅ Growth stages restored to last active stage</li>
+            <li>✅ Crop loss expense will be <strong>voided</strong></li>
+          </ul>
+          <p v-if="unfailError" class="text-sm text-red-600 mt-2">{{ unfailError }}</p>
+        </div>
+        <div class="bg-gray-50 px-6 py-3 flex flex-row-reverse gap-3">
+          <button @click="submitUnfail" :disabled="unfailLoading"
+            class="inline-flex justify-center px-5 py-2 text-sm font-medium rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50">
+            {{ unfailLoading ? 'Reverting...' : 'Confirm Revert' }}
+          </button>
+          <button @click="showUnfailModal = false"
+            class="inline-flex justify-center px-5 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 <script setup>
@@ -481,8 +536,19 @@ const failLoading    = ref(false)
 const failError      = ref('')
 const failForm       = ref({ failure_category: '', failure_reason: '' })
 
+// Open for new failure (empty form)
 const openFailModal = () => {
   failForm.value  = { failure_category: '', failure_reason: '' }
+  failError.value = ''
+  showFailModal.value = true
+}
+
+// Open for editing existing failure details (pre-filled)
+const openEditFailModal = () => {
+  failForm.value = {
+    failure_category: planting.value?.failure_category || '',
+    failure_reason:   planting.value?.failure_reason   || '',
+  }
   failError.value = ''
   showFailModal.value = true
 }
@@ -506,6 +572,25 @@ const submitFail = async () => {
     failError.value = err?.response?.data?.message || 'Failed to mark as failed. Try again.'
   } finally {
     failLoading.value = false
+  }
+}
+
+// --- Un-Fail Modal ---
+const showUnfailModal = ref(false)
+const unfailLoading   = ref(false)
+const unfailError     = ref('')
+
+const submitUnfail = async () => {
+  unfailLoading.value = true
+  unfailError.value   = ''
+  try {
+    await farmStore.updatePlanting(planting.value.id, { status: 'growing' })
+    showUnfailModal.value = false
+    await fetchPlantingData()
+  } catch (err) {
+    unfailError.value = err?.response?.data?.message || 'Failed to revert planting. Try again.'
+  } finally {
+    unfailLoading.value = false
   }
 }
 

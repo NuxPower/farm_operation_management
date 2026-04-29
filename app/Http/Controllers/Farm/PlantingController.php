@@ -404,9 +404,67 @@ class PlantingController extends Controller
         $isNewFailure = $planting->status !== Planting::STATUS_FAILED
             && ($data['status'] ?? null) === Planting::STATUS_FAILED;
 
+        $isUnfail = $planting->status === Planting::STATUS_FAILED
+            && isset($data['status'])
+            && $data['status'] !== Planting::STATUS_FAILED;
+
         if (!empty($data)) {
             $planting->fill($data);
             $planting->save();
+        }
+
+        if ($isUnfail) {
+            DB::transaction(function () use ($planting) {
+                // 1) Clear failure stamps
+                $planting->update([
+                    'failed_at'        => null,
+                    'failure_category' => null,
+                    'failure_reason'   => null,
+                ]);
+
+                // 2) Delete the auto-generated crop_loss expense
+                Expense::where('planting_id', $planting->id)
+                    ->where('category', 'crop_loss')
+                    ->delete();
+
+                // 3) Restore field to active (if currently fallow)
+                if ($planting->field->status === 'fallow') {
+                    $planting->field->update(['status' => 'active']);
+                }
+
+                // 4) Restore planting stages:
+                //    - Skipped stages that have started_at but no completed_at were in_progress → restore
+                //    - All other skipped stages → pending
+                $skippedStages = $planting->plantingStages()
+                    ->where('status', 'skipped')
+                    ->get();
+
+                $restoredInProgress = false;
+                foreach ($skippedStages as $stage) {
+                    if (!$restoredInProgress && $stage->started_at && !$stage->completed_at) {
+                        // This was the active stage when failure occurred
+                        $stage->update(['status' => 'in_progress']);
+                        $restoredInProgress = true;
+                    } else {
+                        $stage->update(['status' => 'pending']);
+                    }
+                }
+
+                // If no previously-in-progress stage was found, activate the first pending stage
+                if (!$restoredInProgress) {
+                    $firstPending = $planting->plantingStages()
+                        ->where('status', 'pending')
+                        ->join('rice_growth_stages', 'planting_stages.rice_growth_stage_id', '=', 'rice_growth_stages.id')
+                        ->orderBy('rice_growth_stages.order_sequence')
+                        ->select('planting_stages.*')
+                        ->first();
+
+                    if ($firstPending) {
+                        $firstPendingModel = \App\Models\PlantingStage::find($firstPending->id);
+                        $firstPendingModel?->update(['status' => 'in_progress', 'started_at' => now()]);
+                    }
+                }
+            });
         }
 
         if ($isNewFailure) {
