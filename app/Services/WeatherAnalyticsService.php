@@ -2148,11 +2148,15 @@ class WeatherAnalyticsService
         return $monitoring[$riskType] ?? ['Monitor conditions regularly'];
     }
 
-    private function getWeatherForecast($field, $days)
+    private function getWeatherForecast($farm, $days)
     {
         // Integrate with WeatherForecastService
+        // NOTE: $farm is a Farm model (not a Field). All callers pass a Farm directly.
+        if (!($farm instanceof \App\Models\Farm)) {
+            return collect();
+        }
         $forecastService = app(WeatherForecastService::class);
-        $forecast = $forecastService->getForecast($field->farm, $days);
+        $forecast = $forecastService->getForecast($farm, $days);
 
         if (isset($forecast['error'])) {
             return collect();
@@ -3521,7 +3525,7 @@ class WeatherAnalyticsService
                     $interval = Carbon::parse($log->recorded_at)->diffInHours(Carbon::parse($previous->recorded_at));
                     $intervals[] = $interval;
                 }
-                $previous = $log->recorded_at;
+                $previous = $log; // store the full model, not the Carbon date
             }
 
             if (!empty($intervals)) {
