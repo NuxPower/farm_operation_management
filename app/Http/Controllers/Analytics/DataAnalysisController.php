@@ -603,18 +603,6 @@ class DataAnalysisController extends Controller
             $text .= sprintf(' %d tasks are overdue.', $tasks['overdue_tasks']);
         }
 
-        // Add auto-cancelled order warning
-        if ($user) {
-            $autoCancelled = \App\Models\RiceOrder::whereHas('riceProduct', fn($q) => $q->where('farmer_id', $user->id))
-                ->where('status', \App\Models\RiceOrder::STATUS_CANCELLED)
-                ->where('updated_at', '>=', now()->subWeek())
-                ->where('cancellation_reason', 'like', '%auto-cancelled%')
-                ->count();
-            if ($autoCancelled > 0) {
-                $tone = 'concern';
-                $text .= sprintf(' Attention: %d orders were auto-cancelled this week due to expired pick-up deadlines.', $autoCancelled);
-            }
-        }
 
         return [
             'tone' => $tone,
