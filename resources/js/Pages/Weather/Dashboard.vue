@@ -102,16 +102,32 @@
               </button>
             </div>
             <!-- Windy.com Embed (Full Featured Weather Map) -->
+            <!-- Layer Selector Buttons -->
+            <div class="flex flex-wrap gap-2 mb-3">
+              <button
+                v-for="layer in windyLayers"
+                :key="layer.value"
+                @click="setWindyOverlay(layer.value)"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+                  windyOverlay === layer.value
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ]"
+              >
+                <span>{{ layer.icon }}</span>
+                {{ layer.label }}
+              </button>
+            </div>
             <div class="w-full rounded-lg overflow-hidden" style="height: 500px;">
               <iframe
                 ref="windyIframe"
-                src="https://embed.windy.com/embed2.html?lat=14.5995&lon=120.9842&zoom=6&level=surface&overlay=wind&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&detailLat=14.5995&detailLon=120.9842&metricWind=default&metricTemp=default&radarRange=-1"
+                :src="windySrc"
                 width="100%"
                 height="100%"
                 frameborder="0"
                 style="border: none;"
-                @error="handleIframeError"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
+                allow="geolocation"
                 @load="handleIframeLoad"
               ></iframe>
             </div>
@@ -342,6 +358,24 @@ const selectedWeatherLayer = ref('windy') // Default to Windy.com embed
 const currentWeatherLayer = ref(null) // Current active weather overlay
 
 const windyIframe = ref(null)
+
+// Windy overlay layer selector
+const windyOverlay = ref('wind')
+
+const windyLayers = [
+  { value: 'wind',     label: 'Wind',        icon: '💨' },
+  { value: 'rain',     label: 'Rain',        icon: '🌧️' },
+  { value: 'temp',     label: 'Temperature', icon: '🌡️' },
+  { value: 'clouds',   label: 'Clouds',      icon: '☁️' },
+]
+
+const windyBase = 'https://embed.windy.com/embed2.html?lat=14.5995&lon=120.9842&zoom=6&level=surface&menu=1&message=1&marker=1&calendar=now&pressure=1&type=map&location=coordinates&detail=&detailLat=14.5995&detailLon=120.9842&metricWind=default&metricTemp=default&radarRange=-1'
+
+const windySrc = computed(() => `${windyBase}&overlay=${windyOverlay.value}`)
+
+const setWindyOverlay = (overlay) => {
+  windyOverlay.value = overlay
+}
 
 const showHourlyModal = ref(false)
 const selectedDay = ref(null)
@@ -1144,9 +1178,9 @@ onMounted(async () => {
   
   // Initialize map only if not using Windy.com embed
   if (selectedWeatherLayer.value !== 'windy') {
-    setTimeout(() => {
-      initMap()
-    }, 100)
+  setTimeout(() => {
+    initMap()
+  }, 100)
   }
 })
 
