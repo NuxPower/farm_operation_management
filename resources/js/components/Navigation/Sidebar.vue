@@ -6,31 +6,37 @@
       :class="{ '-translate-x-full': !sidebarOpen, 'translate-x-0': sidebarOpen }"
     >
       <!-- Sidebar Header -->
-      <div class="flex items-center justify-between h-16 px-6 bg-white border-b border-gray-200 flex-shrink-0">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md ring-1 ring-gray-200 transform transition-transform hover:scale-110">
-              <img src="@assets/logo.png" alt="Logo" class="w-8 h-8" />
-            </div>
-          </div>
-          <div class="ml-3">
-            <h1 class="text-gray-900 text-lg font-bold tracking-tight">ANIBUKID</h1>
-            <p class="text-gray-500 text-xs font-medium">Management System</p>
-          </div>
-        </div>
+      <div class="relative flex flex-col items-center justify-center pt-6 pb-4 px-6 bg-white border-b border-gray-100 flex-shrink-0">
+        <!-- Close button for mobile -->
         <button
           @click="toggleSidebar"
-          class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-lg p-1 transition-all"
+          class="lg:hidden absolute top-3 right-3 text-gray-400 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-lg p-1 transition-all"
         >
-          <XMarkIcon class="w-6 h-6" />
+          <XMarkIcon class="w-5 h-5" />
         </button>
+        <!-- Logo centered on top -->
+        <div class="mb-2 transform transition-transform hover:scale-105">
+          <img src="@assets/logo.png" alt="ANIBUKID Logo" class="w-16 h-16 object-contain drop-shadow-sm" />
+        </div>
+        <!-- Brand text below the logo -->
+        <h1 class="text-gray-900 text-base font-bold tracking-tight leading-tight">ANIBUKID</h1>
+        <p class="text-gray-400 text-xs font-medium tracking-wide">Management System</p>
       </div>
 
       <!-- User Info -->
       <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md ring-2 ring-white">
+            <!-- Show profile picture if available, otherwise fallback to icon -->
+            <div v-if="authStore.user?.profile_picture && !avatarError" class="w-12 h-12 rounded-xl shadow-md ring-2 ring-white overflow-hidden">
+              <img
+                :src="'/storage/' + authStore.user.profile_picture"
+                :alt="authStore.user?.name"
+                class="w-full h-full object-cover"
+                @error="onAvatarError"
+              />
+            </div>
+            <div v-else class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md ring-2 ring-white">
               <UserIcon class="w-7 h-7 text-white" />
             </div>
           </div>
@@ -352,6 +358,11 @@ const authStore = useAuthStore();
 
 const sidebarOpen = ref(false);
 const isNavigating = ref(false);
+const avatarError = ref(false);
+
+const onAvatarError = () => {
+  avatarError.value = true;
+};
 
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value;
