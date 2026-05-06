@@ -66,6 +66,10 @@ return [
             'api_key' => env('RESEND_API_KEY'),
         ],
 
+        'brevo' => [
+            'transport' => 'brevo',
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
