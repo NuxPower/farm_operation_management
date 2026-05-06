@@ -341,9 +341,9 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
-
 import { useWeatherStore } from '@/stores/weather'
 import Modal from '@/Components/UI/Modal.vue'
+import axios from 'axios'
 
 const router = useRouter()
 const farmStore = useFarmStore()
@@ -721,7 +721,18 @@ const exportWeatherData = async () => {
      }
      
      // Trigger backend export
-     window.location.href = `/api/weather/analytics/farm/${farmId}/export`;
+     const response = await axios.get(`/api/weather/analytics/farm/${farmId}/export`, {
+       responseType: 'blob'
+     });
+     
+     const url = window.URL.createObjectURL(new Blob([response.data]));
+     const link = document.createElement('a');
+     link.href = url;
+     link.setAttribute('download', `weather_export_${new Date().toISOString().split('T')[0]}.csv`);
+     document.body.appendChild(link);
+     link.click();
+     link.remove();
+     window.URL.revokeObjectURL(url);
      
   } catch (e) {
      console.error('Export failed', e);

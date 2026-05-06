@@ -381,16 +381,17 @@ onMounted(() => {
   fetchLaborers();
   if (props.processToEdit) {
     const p = props.processToEdit;
+    assignLaborers.value = !!p.task;
     form.value = {
       ...form.value,
       ...p,
       process_date: p.process_date ? p.process_date.split('T')[0] : form.value.process_date,
       completed_date: new Date().toISOString().split('T')[0],
       output_unit: UNIT_MAP[p.process_type]?.output || p.input_unit || 'sacks_palay',
-      assigned_to: null,
-      laborer_group_id: null,
-      payment_type: 'wage',
-      wage_amount: null,
+      assigned_to: p.task?.assigned_to || null,
+      laborer_group_id: p.task?.laborer_group_id || null,
+      payment_type: p.task?.payment_type || 'wage',
+      wage_amount: p.task?.wage_amount || null,
     };
   }
 });
@@ -404,6 +405,7 @@ watch(() => props.isOpen, (isOpen) => {
     fetchLaborers();
     if (props.processToEdit) {
       const p = props.processToEdit;
+      assignLaborers.value = !!p.task;
       form.value = {
         ...defaultForm(),
         ...p,
@@ -412,10 +414,10 @@ watch(() => props.isOpen, (isOpen) => {
         process_date: p.process_date ? p.process_date.split('T')[0] : new Date().toISOString().split('T')[0],
         completed_date: new Date().toISOString().split('T')[0],
         output_unit: UNIT_MAP[props.processType || p.process_type]?.output || p.input_unit || 'sacks_palay',
-        assigned_to: null,
-        laborer_group_id: null,
-        payment_type: 'wage',
-        wage_amount: null,
+        assigned_to: p.task?.assigned_to || null,
+        laborer_group_id: p.task?.laborer_group_id || null,
+        payment_type: p.task?.payment_type || 'wage',
+        wage_amount: p.task?.wage_amount || null,
       };
     } else {
       form.value = defaultForm();

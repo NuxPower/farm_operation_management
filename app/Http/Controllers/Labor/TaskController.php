@@ -277,10 +277,12 @@ class TaskController extends Controller
             $task->fill($data);
             $task->save();
 
-            // Check if status was changed to completed
-            if ($task->wasChanged('status') && $task->status === Task::STATUS_COMPLETED) {
-                // Create labor expenses
-                $laborExpenses = $this->createLaborExpensesForTask($task, $user, null, Carbon::now());
+            // Check if status was changed
+            if ($task->wasChanged('status')) {
+                if ($task->status === Task::STATUS_COMPLETED) {
+                    // Create labor expenses
+                    $laborExpenses = $this->createLaborExpensesForTask($task, $user, null, Carbon::now());
+                }
                 $this->syncPostHarvestProcessStatus($task);
             } else {
                 // If due date has passed, complete task and create expenses
