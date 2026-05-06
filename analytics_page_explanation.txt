@@ -1,0 +1,55 @@
+ANIBUKID FARM OPERATION MANAGEMENT SYSTEM
+=========================================
+Detailed Documentation: Data Analytics Dashboard (/analytics)
+
+This document explains every metric, chart, and calculation present on the System Administrator / Farmer Data Analytics Dashboard. This page provides a comprehensive overview of the farm's operations, integrating data from various modules.
+
+---------------------------------------------------------
+1. GLOBAL FILTERS & CONTROLS
+---------------------------------------------------------
+- Date Range Selector: Allows filtering the analytics data by selecting a specific 'From' and 'To' date.
+- Update Button: Refreshes the dashboard with data from the selected date range.
+
+---------------------------------------------------------
+2. EXECUTIVE SUMMARY & RECOMMENDATIONS
+---------------------------------------------------------
+- Executive Summary: An AI-generated or system-generated textual summary of the farm's performance over the selected period, highlighting key areas of success or concern. The color indicator (green, yellow, blue) reflects the overall tone.
+- Recommended Actions: Actionable suggestions based on the data, prioritized by importance (High, Medium, Low), with direct links to take action.
+
+---------------------------------------------------------
+3. KEY PERFORMANCE INDICATORS (KPIs)
+---------------------------------------------------------
+- Weather: Displays the Average Temperature, Total Rainfall (mm), and Average Humidity (%) for the period.
+- Revenue: Shows Total Revenue, Total Orders, and the number of Pending Orders from sales and the marketplace.
+- Expenses: Shows Total Expenses, the percentage Trend (increase/decrease compared to previous periods), and the total number of expense records.
+- Stock Value: Represents the Total Value of current inventory. Also highlights Low Stock items, Expiring Soon items, and Historical Usage (90-day consumption) with the top consumed item.
+
+---------------------------------------------------------
+4. OPERATIONAL METRICS
+---------------------------------------------------------
+- Fields Area: Total area (in hectares) and the Utilization Rate (percentage of land currently planted).
+- Seedbed: Number of active nursery batches and those ready for transplanting.
+- Pest Incidents: Total number of incidents, currently active incidents, total treatment cost, and the average days taken to resolve an incident. Includes a breakdown by pest type.
+- Pending Tasks: Number of remaining tasks (Total minus Completed), with a specific callout for Overdue tasks.
+
+---------------------------------------------------------
+5. FINANCIAL & TASK CHARTS
+---------------------------------------------------------
+- Financial Overview (Bar Chart): Compares Revenue, Expenses, and Net Profit side-by-side.
+- Task Distribution (Donut Chart): Visualizes the proportion of Completed, Pending, and Overdue tasks out of the Total Tasks.
+- Top Expenses (Progress Bars): Breaks down expenses by category (e.g., Labor, Materials) and shows their percentage of the total budget.
+
+---------------------------------------------------------
+6. LABOR & POST-HARVEST ANALYTICS
+---------------------------------------------------------
+- Labor Workforce: Total registered laborers, currently active laborers, estimated payroll cost, and overall efficiency (task completion rate).
+- Post-Harvest Processing:
+    * Metrics: Average Recovery Rate (%), Average Self-Processing Cost per unit, Average Provider Cost per unit, and Total Completed Processes.
+    * Recovery by Variety: Bar charts comparing the recovery rate of different rice varieties.
+    * Monthly Recovery Trend: A chart tracking the average recovery rate over recent months.
+
+---------------------------------------------------------
+7. FORECASTING & PROJECTIONS
+---------------------------------------------------------
+- Disease & Pest Forecast: A 7-day outlook predicting pest and disease risks for specific fields based on current growth stages and weather. Displays risk levels (High, Moderate, Low).
+- Projected Cash Flow (Bar Chart): A forward-looking projection comparing expected Revenue vs. Expected Expenses for upcoming months.

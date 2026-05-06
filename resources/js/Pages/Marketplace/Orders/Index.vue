@@ -245,7 +245,7 @@
                   {{ order.rice_product?.name || 'Rice product' }}
                 </h4>
                 <p class="text-sm text-gray-600">
-                  Qty: {{ order.quantity }} {{ order.rice_product?.unit || 'kg' }}
+                  Qty: {{ order.quantity }} {{ formatUnit(order.rice_product?.unit) || 'kg' }}
                 </p>
               </div>
               <div class="text-right text-sm text-gray-600">
@@ -327,7 +327,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 import { useMarketplaceStore } from '@/stores/marketplace'
 import { useAuthStore } from '@/stores/auth'
 

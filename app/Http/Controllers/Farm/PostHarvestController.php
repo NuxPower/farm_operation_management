@@ -189,6 +189,11 @@ class PostHarvestController extends Controller
             'process_data' => 'nullable|array',
             'notes' => 'nullable|string',
             'task_id' => 'nullable|exists:tasks,id',
+            'assign_laborers' => 'nullable|boolean',
+            'assigned_to' => 'nullable|exists:laborers,id',
+            'laborer_group_id' => 'nullable|exists:laborer_groups,id',
+            'payment_type' => ['nullable', 'string', Rule::in(['wage', 'share', 'piece_rate'])],
+            'wage_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -198,14 +203,11 @@ class PostHarvestController extends Controller
             ], 422);
         }
 
-        $process->update($request->only([
-            'process_type', 'process_date', 'input_quantity', 'input_unit',
-            'status', 'cost', 'cost_type', 'cost_per_unit',
-            'service_provider', 'process_data', 'notes', 'task_id',
-        ]));
-
-        $freshProcess = $process->fresh();
-        $this->service->syncProcessingExpense($freshProcess, (float) ($freshProcess->cost ?? 0));
+        try {
+            $freshProcess = $this->service->updateProcess($process, $request->all());
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'message' => 'Process updated successfully',

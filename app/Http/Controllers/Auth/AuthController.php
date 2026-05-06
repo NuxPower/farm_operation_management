@@ -127,6 +127,22 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Enforce Terms of Service acceptance on first successful login.
+        if (!$user->tos_accepted) {
+            $acceptedTerms = filter_var($request->input('accept_tos', false), FILTER_VALIDATE_BOOLEAN);
+
+            if (!$acceptedTerms) {
+                return response()->json([
+                    'message' => 'You must accept the Terms of Service before signing in.',
+                    'code' => 'tos_not_accepted',
+                ], 403);
+            }
+
+            $user->forceFill([
+                'tos_accepted' => true,
+            ])->save();
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([

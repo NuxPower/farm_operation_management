@@ -1,0 +1,60 @@
+ANIBUKID FARM OPERATION MANAGEMENT SYSTEM
+=========================================
+Detailed Documentation: Weather Dashboard Page (/weather)
+
+This document explains the features, metrics, and widgets available on the real-time Weather Dashboard. This page is designed for day-to-day monitoring of immediate weather conditions affecting the farm.
+
+---------------------------------------------------------
+1. GLOBAL CONTROLS
+---------------------------------------------------------
+- Refresh Button: Pulls the latest real-time weather data from the weather API.
+- View Forecast Button: Navigates the user to the detailed Weather Reports & Analytics page (/weather/analytics).
+
+---------------------------------------------------------
+2. CURRENT WEATHER OVERVIEW
+---------------------------------------------------------
+Displays the immediate, real-time meteorological conditions for the farm location:
+- Temperature: Current air temperature (°C).
+- Humidity: Current relative humidity percentage (%).
+- Rainfall (24h): Cumulative precipitation over the last 24 hours (mm).
+- Wind Speed: Current wind velocity (km/h).
+
+---------------------------------------------------------
+3. INTERACTIVE WEATHER MAP
+---------------------------------------------------------
+An embedded, interactive map (powered by Windy.com) centered on the farm's coordinates.
+- Layer Controls: Allows the user to toggle different meteorological overlays on the map:
+    * Wind: Visualizes wind currents and speed.
+    * Rain: Displays precipitation radar.
+    * Temperature: Shows a heatmap of regional temperatures.
+    * Clouds: Displays cloud cover.
+
+---------------------------------------------------------
+4. 7-DAY FORECAST
+---------------------------------------------------------
+A daily summary of expected weather for the upcoming week.
+- For each day, it displays: Date, Icon, General Condition (e.g., Partly Cloudy), High/Low Temperatures, Chance of Rain (%), and Wind Speed.
+- View Hourly (Modal): Clicking this opens a detailed breakdown showing predicted Temperature, Condition, and Rain Chance for every hour of that specific day.
+
+---------------------------------------------------------
+5. WEATHER ALERTS
+---------------------------------------------------------
+A prioritized feed of warnings and advisories designed to protect farm operations.
+- Generates alerts from three sources:
+    1. Official weather service alerts (if available in the API).
+    2. Local Current Conditions: Triggers warnings for immediate threats like extreme heat (>35°C), high winds (>20 km/h), or active rain/storms.
+    3. Upcoming Forecast: Scans the next 3 days to provide advance warning for expected heavy rain or extreme heat.
+- Alerts are color-coded by severity (Danger/Red, Warning/Yellow, Info/Blue).
+
+---------------------------------------------------------
+6. GROWING DEGREE DAYS (GDD) SUMMARY
+---------------------------------------------------------
+A quick-reference widget for heat accumulation, vital for tracking rice development.
+- Shows GDD accumulated: Today, This Week, This Month, and This Season.
+- Includes an informational tooltip explaining the GDD formula: ((Max Temp + Min Temp) / 2) - 10°C, and notes that rice typically requires ~2200 cumulative GDD to mature.
+
+---------------------------------------------------------
+7. QUICK ACTIONS
+---------------------------------------------------------
+- Export Weather Data: Downloads a CSV of recent farm weather records.
+- View Weather Reports: Shortcut to the historical analytics page.

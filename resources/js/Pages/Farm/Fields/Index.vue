@@ -123,15 +123,15 @@
                 </div>
                 <div>
                   <dt class="font-medium text-gray-500">Soil Type</dt>
-                  <dd>{{ field.soil_type || 'Not specified' }}</dd>
+                  <dd>{{ formatDisplayKey(field.soil_type) || 'Not specified' }}</dd>
                 </div>
                 <div>
                   <dt class="font-medium text-gray-500">Current Crop</dt>
-                  <dd>{{ field.current_crop || 'None' }}</dd>
+                  <dd>{{ formatDisplayKey(field.current_crop) || 'None' }}</dd>
                 </div>
                 <div>
                   <dt class="font-medium text-gray-500">Irrigation</dt>
-                  <dd>{{ field.irrigation_type || 'Not specified' }}</dd>
+                  <dd>{{ formatDisplayKey(field.irrigation_type) || 'Not specified' }}</dd>
                 </div>
               </dl>
 
@@ -276,13 +276,20 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString()
 }
 
+const formatDisplayKey = (value) => {
+  if (!value) return ''
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 const statusLabel = (status) => {
   const labels = {
     active: 'Active',
     fallow: 'Fallow',
     maintenance: 'Maintenance'
   }
-  return labels[status] || status
+  return labels[status] || formatDisplayKey(status)
 }
 
 const statusClass = (status) => {

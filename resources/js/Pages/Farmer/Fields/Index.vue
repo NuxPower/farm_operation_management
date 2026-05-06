@@ -54,7 +54,7 @@
         </div>
         <select v-model="soilFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
           <option value="">All Soil Types</option>
-          <option v-for="soil in soilOptions" :key="soil" :value="soil">{{ soil }}</option>
+          <option v-for="soil in soilOptions" :key="soil" :value="soil">{{ formatDisplayKey(soil) }}</option>
         </select>
         <select v-model="statusFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
           <option value="">All Statuses</option>
@@ -64,7 +64,7 @@
         </select>
         <select v-model="cropFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
           <option value="">All Crops</option>
-          <option v-for="crop in cropOptions" :key="crop" :value="crop">{{ crop }}</option>
+          <option v-for="crop in cropOptions" :key="crop" :value="crop">{{ formatDisplayKey(crop) }}</option>
         </select>
         <button
           v-if="searchQuery || soilFilter || statusFilter || cropFilter"
@@ -189,9 +189,9 @@
                         :to="`/plantings/${field.current_planting_id}`"
                         class="text-sm font-bold text-green-700 hover:text-green-900 hover:underline"
                       >
-                        {{ field.current_crop }}
+                        {{ formatDisplayKey(field.current_crop) }}
                       </router-link>
-                      <span v-else class="text-sm font-bold text-green-700">{{ field.current_crop }}</span>
+                      <span v-else class="text-sm font-bold text-green-700">{{ formatDisplayKey(field.current_crop) }}</span>
                       <span 
                         v-if="field.current_planting_status"
                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
@@ -228,7 +228,7 @@
                   <div class="flex-1 min-w-0">
                     <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Soil</dt>
                     <dd class="text-sm font-semibold text-gray-700 mt-0.5 truncate">
-                      {{ field.soil_type || 'Not set' }}
+                      {{ formatDisplayKey(field.soil_type) || 'Not set' }}
                     </dd>
                   </div>
                 </div>
@@ -252,7 +252,7 @@
                   <div class="flex-1 min-w-0">
                     <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Irrigation</dt>
                     <dd class="text-sm font-semibold text-gray-700 mt-0.5 truncate">
-                      {{ field.irrigation_type || 'Not set' }}
+                      {{ formatDisplayKey(field.irrigation_type) || 'Not set' }}
                     </dd>
                   </div>
                 </div>
@@ -396,13 +396,20 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString()
 }
 
+const formatDisplayKey = (value) => {
+  if (!value) return ''
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 const statusLabel = (status) => {
   const labels = {
     active: 'Active',
     fallow: 'Fallow',
     maintenance: 'Maintenance'
   }
-  return labels[status] || status
+  return labels[status] || formatDisplayKey(status)
 }
 
 const plantingStatusClass = (status) => {

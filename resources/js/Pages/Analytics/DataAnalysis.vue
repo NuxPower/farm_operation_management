@@ -127,7 +127,7 @@
                   </span>
                 </div>
 
-                <h3 class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{{ suggestion.category }}</h3>
+                <h3 class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{{ formatDisplayKey(suggestion.category) }}</h3>
                 <p class="text-sm text-gray-500 mb-4 line-clamp-2 flex-grow">{{ suggestion.message }}</p>
 
                 <div class="flex items-center text-xs font-medium text-emerald-600 group-hover:text-emerald-700 transition-colors">
@@ -233,7 +233,7 @@
             <!-- Category breakdown bars -->
             <div v-if="analyticsData.inventory?.by_category && Object.keys(analyticsData.inventory.by_category).length > 0" class="space-y-1.5 mb-3">
               <div v-for="(cat, key) in analyticsData.inventory.by_category" :key="key" class="flex items-center gap-2 text-xs">
-                <span class="w-16 text-gray-500 capitalize truncate">{{ key }}</span>
+                <span class="w-16 text-gray-500 capitalize truncate">{{ formatDisplayKey(key) }}</span>
                 <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                   <div class="h-full rounded-full bg-violet-400" :style="{ width: Math.min(100, ((cat.total_value / Math.max(analyticsData.inventory.total_value, 1)) * 100)) + '%' }"></div>
                 </div>
@@ -416,7 +416,7 @@
                <div class="space-y-4">
                   <div v-for="(data, category) in analyticsData.expenses?.by_category ?? {}" :key="category">
                     <div class="flex justify-between text-xs mb-1">
-                      <span class="font-medium text-gray-700 capitalize">{{ category }}</span>
+                      <span class="font-medium text-gray-700 capitalize">{{ formatDisplayKey(category) }}</span>
                       <span class="text-gray-500">{{ data.percentage }}%</span>
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -642,6 +642,14 @@ const overduePercent = computed(() => {
 // Methods
 const formatNumber = (num) => { // Kept for other numbers like count, but falling back for compatibility
   return new Intl.NumberFormat('en-PH').format(num);
+};
+
+const formatDisplayKey = (value) => {
+  if (!value) return '';
+
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 const navigateTo = (path) => {

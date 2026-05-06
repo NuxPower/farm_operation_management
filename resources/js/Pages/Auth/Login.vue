@@ -118,6 +118,21 @@
                 placeholder="••••••••"
               />
             </div>
+
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-gray-600">Terms of Service</p>
+              <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+                By signing in, you agree to use Anibukid responsibly, keep your account secure, and provide accurate farm and marketplace records. Misuse, fraud, and unauthorized access are prohibited.
+              </p>
+              <label class="mt-3 flex items-start gap-2 text-sm text-gray-700">
+                <input
+                  v-model="form.accept_tos"
+                  type="checkbox"
+                  class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>I have read and accept the Terms of Service.</span>
+              </label>
+            </div>
           </div>
 
           <div v-if="authStore.error" class="rounded-lg bg-red-50 p-4 border border-red-100 flex items-start">
@@ -186,7 +201,8 @@ const authStore = useAuthStore();
 
 const form = ref({
   login_id: '',
-  password: ''
+  password: '',
+  accept_tos: false,
 });
 
 const handleLogin = async () => {

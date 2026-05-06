@@ -62,11 +62,11 @@
             <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
               <div class="text-center p-4 bg-green-50 rounded-lg">
                 <p class="text-3xl font-bold text-green-600">{{ harvest.quantity || harvest.yield || 0 }}</p>
-                <p class="text-sm text-gray-600 mt-1">{{ harvest.unit || 'kg' }} Harvested</p>
+                <p class="text-sm text-gray-600 mt-1">{{ formatUnit(harvest.unit) || 'kg' }} Harvested</p>
               </div>
               <div class="text-center p-4 bg-purple-50 rounded-lg">
                 <p class="text-3xl font-bold text-purple-600">{{ formatCurrency(harvest.price_per_unit || 0) }}</p>
-                <p class="text-sm text-gray-600 mt-1">Price per {{ harvest.unit || 'kg' }}</p>
+                <p class="text-sm text-gray-600 mt-1">Price per {{ formatUnit(harvest.unit) || 'kg' }}</p>
               </div>
               <div class="text-center p-4 bg-emerald-50 rounded-lg">
                 <p class="text-3xl font-bold text-emerald-600">{{ formatCurrency(harvest.total_value || calculateTotalValue()) }}</p>
@@ -141,7 +141,7 @@
               <div v-if="harvest.planting?.area_planted">
                 <div class="flex justify-between text-sm mb-1">
                   <span class="text-gray-600">Yield per Hectare</span>
-                  <span class="font-medium">{{ calculateYieldPerHectare() }} {{ harvest.unit || 'kg' }}/ha</span>
+                  <span class="font-medium">{{ calculateYieldPerHectare() }} {{ formatUnit(harvest.unit) || 'kg' }}/ha</span>
                 </div>
               </div>
               <div v-if="harvest.planting?.planting_date">
@@ -204,7 +204,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()

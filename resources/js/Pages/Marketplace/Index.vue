@@ -263,14 +263,14 @@
           </div>
           <div>
             <h4 class="font-semibold text-gray-900">{{ selectedProduct?.name }}</h4>
-            <p class="text-green-600 font-medium">{{ formatCurrency(selectedProduct?.price_per_unit) }}/{{ selectedProduct?.unit || 'kg' }}</p>
-            <p class="text-sm text-gray-500">{{ selectedProduct?.quantity_available || 0 }} {{ selectedProduct?.unit || 'kg' }} available</p>
+            <p class="text-green-600 font-medium">{{ formatCurrency(selectedProduct?.price_per_unit) }}/{{ formatUnit(selectedProduct?.unit) || 'kg' }}</p>
+            <p class="text-sm text-gray-500">{{ selectedProduct?.quantity_available || 0 }} {{ formatUnit(selectedProduct?.unit) || 'kg' }} available</p>
           </div>
         </div>
 
         <!-- Quantity Selector -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Quantity ({{ selectedProduct?.unit || 'kg' }})</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Quantity ({{ formatUnit(selectedProduct?.unit) || 'kg' }})</label>
           <div class="flex items-center gap-4">
             <button 
               @click="selectedQuantity = Math.max(1, selectedQuantity - 1)"

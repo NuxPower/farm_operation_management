@@ -47,7 +47,7 @@
     </div>
 
     <!-- Summary Cards -->
-    <div v-if="summary" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div v-if="summary" class="grid grid-cols-1 md:grid-cols-5 gap-4">
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
         <h3 class="text-sm font-medium text-gray-500">Original Harvest</h3>
         <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
@@ -63,6 +63,10 @@
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-rose-500">
         <h3 class="text-sm font-medium text-gray-500">Total Processing Cost</h3>
         <p class="mt-1 text-2xl font-semibold text-gray-900">₱{{ formatNumber(summary.total_cost) }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-violet-500">
+        <h3 class="text-sm font-medium text-gray-500">Processing + Labor Cost</h3>
+        <p class="mt-1 text-2xl font-semibold text-gray-900">₱{{ formatNumber(totalOperationalCost) }}</p>
       </div>
     </div>
 
@@ -170,18 +174,18 @@
               </div>
             </div>
             <div class="mt-2 sm:flex sm:justify-between">
-              <div class="sm:flex">
-                <p class="flex items-center text-sm text-gray-500 mr-6">
+              <div class="sm:flex sm:flex-wrap sm:gap-x-6 sm:gap-y-1">
+                <p class="flex items-center text-sm text-gray-500">
                   Input: <span class="font-medium text-gray-900 ml-1">{{ process.input_quantity }} {{ displayUnit(process.input_unit) }}</span>
                 </p>
-                <p v-if="process.status === 'completed'" class="flex items-center text-sm text-gray-500 mr-6">
+                <p v-if="process.status === 'completed'" class="flex items-center text-sm text-gray-500">
                   Output: <span class="font-medium text-gray-900 ml-1">{{ process.output_quantity }} {{ displayUnit(process.output_unit) }}</span>
                 </p>
                 <p v-if="process.cost > 0" class="flex items-center text-sm text-gray-500">
                   Cost: <span class="font-medium text-gray-900 ml-1">₱{{ formatNumber(process.cost) }}</span>
                   <span v-if="process.service_provider" class="ml-1">({{ process.service_provider }})</span>
                 </p>
-                <p v-if="getAssignedLaborLabel(process)" class="flex items-center text-sm text-gray-500 mr-6">
+                <p v-if="getAssignedLaborLabel(process)" class="flex items-center text-sm text-gray-500">
                   Laborer: <span class="font-medium text-gray-900 ml-1">{{ getAssignedLaborLabel(process) }}</span>
                 </p>
                 <p v-if="getLaborCost(process) > 0" class="flex items-center text-sm text-gray-500">
@@ -389,4 +393,15 @@ const getAssignedLaborLabel = (process) => {
 const getLaborCost = (process) => {
   return Number(process?.task?.wage_amount || 0);
 };
+
+const totalLaborCost = computed(() => {
+  return (processes.value || []).reduce((total, process) => {
+    return total + getLaborCost(process);
+  }, 0);
+});
+
+const totalOperationalCost = computed(() => {
+  const processingCost = Number(summary.value?.total_cost || 0);
+  return processingCost + totalLaborCost.value;
+});
 </script>

@@ -151,17 +151,17 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">
-                  {{ sale.harvest?.planting?.crop_type || 'Rice' }}
+                  {{ getSaleProductName(sale) }}
                 </div>
                 <div class="text-sm text-gray-500">
-                  {{ sale.harvest?.planting?.field?.name || 'Unknown Field' }}
+                  {{ getSaleSourceLabel(sale) }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatNumber(sale.quantity) }} {{ sale.harvest?.unit || 'kg' }}
+                {{ formatNumber(sale.quantity) }} {{ getSaleUnit(sale) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatCurrency(sale.unit_price) }}/{{ sale.harvest?.unit || 'kg' }}
+                {{ formatCurrency(sale.unit_price) }}/{{ getSaleUnit(sale) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                 {{ formatCurrency(sale.total_amount) }}
@@ -206,7 +206,7 @@
               <select v-model="form.harvest_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
                 <option value="">Select a harvest</option>
                 <option v-for="harvest in harvests" :key="harvest.id" :value="harvest.id">
-                  {{ harvest.planting?.crop_type || 'Rice' }} - {{ harvest.quantity }} {{ harvest.unit || 'kg' }} ({{ formatDate(harvest.harvest_date) }})
+                  {{ harvest.planting?.crop_type || 'Rice' }} - {{ harvest.quantity }} {{ formatUnit(harvest.unit) || 'kg' }} ({{ formatDate(harvest.harvest_date) }})
                 </option>
               </select>
               <p v-if="errors.harvest_id" class="text-xs text-red-600 mt-1">{{ errors.harvest_id[0] }}</p>
@@ -329,7 +329,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 import { useFormValidation } from '@/composables/useFormValidation'
 
 const loading = ref(true)
@@ -377,7 +377,7 @@ const errors = ref({})
 const selectedHarvestUnit = computed(() => {
   if (!form.value.harvest_id) return 'kg'
   const harvest = harvests.value.find(h => h.id === form.value.harvest_id)
-  return harvest ? (harvest.unit || 'kg') : 'kg'
+  return harvest ? (formatUnit(harvest.unit) || 'kg') : 'kg'
 })
 
 const computedTotal = computed(() => {
@@ -412,6 +412,26 @@ const paymentStatusClass = (status) => {
     overdue: 'bg-red-100 text-red-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const getSaleUnit = (sale) => {
+  const marketplaceUnit = sale?.rice_order?.rice_product?.unit
+  if (marketplaceUnit) return formatUnit(marketplaceUnit) || marketplaceUnit
+
+  const harvestUnit = sale?.harvest?.unit
+  if (harvestUnit) return formatUnit(harvestUnit) || harvestUnit
+
+  return 'kg'
+}
+
+const getSaleProductName = (sale) => {
+  if (sale?.rice_order?.rice_product?.name) return sale.rice_order.rice_product.name
+  return sale?.harvest?.planting?.crop_type || 'Rice'
+}
+
+const getSaleSourceLabel = (sale) => {
+  if (sale?.rice_order?.id) return `Marketplace order #${sale.rice_order.id}`
+  return sale?.harvest?.planting?.field?.name || 'Unknown Source'
 }
 
 const fetchSales = async () => {

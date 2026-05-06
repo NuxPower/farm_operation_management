@@ -1,0 +1,64 @@
+ANIBUKID FARM OPERATION MANAGEMENT SYSTEM
+=========================================
+Detailed Documentation: Weather Reports Page (/weather/analytics)
+
+This document explains every metric, chart, and calculation present on the Weather Reports page. This page focuses on analyzing historical weather patterns and their impact on agronomic conditions.
+
+---------------------------------------------------------
+1. GLOBAL FILTERS & CONTROLS
+---------------------------------------------------------
+- Date Range Dropdown: Filters historical data by "Last 7 Days", "Last 30 Days", "Last 3 Months", or "Last Year".
+- Update Report Button: Reloads the dashboard with data for the selected period.
+- Export Report Button: Generates and downloads a CSV file containing the raw weather data (Date, Temp, Rainfall, Wind, Sunshine).
+- Generate Report Button: Used to generate a formalized report view.
+
+---------------------------------------------------------
+2. WEATHER SUMMARY METRICS
+---------------------------------------------------------
+Averages and totals for the selected time period:
+- Avg Temperature: The mean temperature (°C) recorded over the period.
+- Total Rainfall: The cumulative amount of precipitation (mm).
+- Avg Wind Speed: The average wind velocity (km/h).
+- Sunshine Hours: Total estimated hours of direct sunlight.
+
+---------------------------------------------------------
+3. HISTORICAL CHARTS
+---------------------------------------------------------
+- Temperature Trends (Line Chart): Plots daily temperature fluctuations over the selected date range.
+- Rainfall Distribution (Bar Chart): Shows the daily accumulation of rainfall, making it easy to identify wet vs. dry spells.
+
+---------------------------------------------------------
+4. GROWING DEGREE DAYS (GDD)
+---------------------------------------------------------
+Measures heat accumulation to estimate crop maturity. (Formula: Average Daily Temp - 10°C Base Temp).
+- Today: GDD accumulated on the current day.
+- This Week: Cumulative GDD over the past 7 days.
+- This Month: Cumulative GDD over the past month.
+- This Season: Total GDD accumulated for the current growing season.
+
+---------------------------------------------------------
+5. SIGNIFICANT WEATHER EVENTS
+---------------------------------------------------------
+A chronological log of notable weather occurrences (e.g., Heavy Rain, Storms, Frost, Extreme Heat) that occurred during the period, detailing their Duration, Intensity, and potential Impact.
+
+---------------------------------------------------------
+6. HISTORICAL WEATHER DATA (TABLE)
+---------------------------------------------------------
+A paginated tabular view of daily historical records including: Date, General Condition, Temperature (°C), Rainfall (mm), Humidity (%), and Wind Speed (km/h).
+
+---------------------------------------------------------
+7. 7-DAY FORECAST
+---------------------------------------------------------
+A forward-looking projection for the upcoming week showing:
+- Date and Weather Icon.
+- General Condition (e.g., Clear, Rain).
+- High / Low Temperatures.
+- Chance of Rain (%) and Wind Speed.
+
+---------------------------------------------------------
+8. WEATHER IMPACT ANALYSIS
+---------------------------------------------------------
+Translates raw weather data into actionable farming insights:
+- Crop Development: Tracks the current Growth Stage, estimated Days to Maturity, and overall Stress Level (Low/Moderate/High) based on weather conditions.
+- Field Conditions: Estimates Soil Moisture, Field Workability (suitability for heavy machinery/labor), Disease Risk, and the Data Reliability Score (accuracy confidence of the data).
+- Recommendations: Actionable farming advice (e.g., "Postpone spraying due to high winds") derived from the analysis.

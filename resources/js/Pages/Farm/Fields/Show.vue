@@ -69,15 +69,15 @@
                 <div class="text-sm text-gray-600">Acres</div>
               </div>
               <div class="text-center">
-                <div class="text-2xl font-bold text-green-600">{{ field.current_crop || 'None' }}</div>
+                <div class="text-2xl font-bold text-green-600">{{ formatDisplayKey(field.current_crop) || 'None' }}</div>
                 <div class="text-sm text-gray-600">Current Crop</div>
               </div>
               <div class="text-center">
-                <div class="text-2xl font-bold text-yellow-600">{{ field.soil_type }}</div>
+                <div class="text-2xl font-bold text-yellow-600">{{ formatDisplayKey(field.soil_type) }}</div>
                 <div class="text-sm text-gray-600">Soil Type</div>
               </div>
               <div class="text-center">
-                <div class="text-2xl font-bold text-purple-600">{{ field.status }}</div>
+                <div class="text-2xl font-bold text-purple-600">{{ formatDisplayKey(field.status) }}</div>
                 <div class="text-sm text-gray-600">Status</div>
               </div>
             </div>
@@ -88,7 +88,7 @@
             <h2 class="text-xl font-semibold mb-4">Current Planting</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 class="font-medium text-gray-900 mb-2">{{ currentPlanting.crop_type }}</h3>
+                <h3 class="font-medium text-gray-900 mb-2">{{ formatDisplayKey(currentPlanting.crop_type) }}</h3>
                 <div class="space-y-2">
                   <div class="flex justify-between">
                     <span class="text-gray-600">Planted:</span>
@@ -156,7 +156,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr v-for="planting in plantingHistory" :key="planting.id">
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {{ planting.crop_type }}
+                      {{ formatDisplayKey(planting.crop_type) }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {{ formatDate(planting.planted_date) }}
@@ -172,7 +172,7 @@
                         :class="getStatusBadgeClass(planting.status)"
                         class="px-2 py-1 text-xs font-medium rounded-full"
                       >
-                        {{ planting.status }}
+                        {{ formatDisplayKey(planting.status) }}
                       </span>
                     </td>
                   </tr>
@@ -307,6 +307,13 @@ const getStatusBadgeClass = (status) => {
 const formatDate = (date) => {
   if (!date) return '-'
   return new Date(date).toLocaleDateString()
+}
+
+const formatDisplayKey = (value) => {
+  if (!value) return ''
+  return String(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 const editField = () => {

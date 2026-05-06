@@ -65,7 +65,7 @@
                 </span>
               </div>
               <div class="text-sm text-gray-600 space-y-1">
-                <p>{{ order.quantity }} {{ order.rice_product?.unit || 'kg' }} • {{ formatCurrency(order.total_amount) }}</p>
+                <p>{{ order.quantity }} {{ formatOrderUnit(order.rice_product?.unit, order.quantity) }} • {{ formatCurrency(order.total_amount) }}</p>
                 <p>Buyer: {{ order.buyer?.name || 'N/A' }}</p>
                 <p>Ordered: {{ formatDate(order.order_date) }}</p>
                 <!-- Preferred Pickup Date (pending orders) -->
@@ -82,8 +82,8 @@
                 </p>
                 <!-- Negotiation Price Info -->
                 <p v-if="order.status === 'negotiating' && order.offer_price" class="text-orange-600 font-medium">
-                  🤝 Buyer offers: {{ formatCurrency(order.offer_price) }}/{{ order.rice_product?.unit || 'kg' }}
-                  (Original: {{ formatCurrency(order.rice_product?.price_per_unit || order.unit_price) }}/{{ order.rice_product?.unit || 'kg' }})
+                  🤝 Buyer offers: {{ formatCurrency(order.offer_price) }}/{{ formatOrderUnit(order.rice_product?.unit) }}
+                  (Original: {{ formatCurrency(order.rice_product?.price_per_unit || order.unit_price) }}/{{ formatOrderUnit(order.rice_product?.unit) }})
                 </p>
               </div>
             </div>
@@ -142,7 +142,7 @@
         
         <div class="mb-4 p-3 bg-gray-50 rounded-lg">
           <p class="text-sm text-gray-600">Product: <strong>{{ confirmingOrder.rice_product?.name }}</strong></p>
-          <p class="text-sm text-gray-600">Quantity: <strong>{{ confirmingOrder.quantity }} {{ confirmingOrder.rice_product?.unit || 'kg' }}</strong></p>
+          <p class="text-sm text-gray-600">Quantity: <strong>{{ confirmingOrder.quantity }} {{ formatOrderUnit(confirmingOrder.rice_product?.unit, confirmingOrder.quantity) }}</strong></p>
           <p class="text-sm text-gray-600">Total: <strong>{{ formatCurrency(confirmingOrder.total_amount) }}</strong></p>
         </div>
 
@@ -200,7 +200,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useMarketplaceStore } from '@/stores/marketplace'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const marketplaceStore = useMarketplaceStore()
 const loading = ref(true)
@@ -268,6 +268,18 @@ const formatDateTime = (date) => {
   })
 }
 
+const formatOrderUnit = (unit, quantity = null) => {
+  const normalizedUnit = formatUnit(unit || 'kg')
+  const parsedQuantity = quantity == null ? null : Number(quantity)
+
+  // Keep mass units unchanged and pluralize count-based units naturally.
+  if (normalizedUnit === 'kg') return 'kg'
+  if (normalizedUnit === 'ton') return parsedQuantity !== null && parsedQuantity !== 1 ? 'tons' : 'ton'
+  if (normalizedUnit === 'sack') return parsedQuantity !== null && parsedQuantity !== 1 ? 'sacks' : 'sack'
+
+  return normalizedUnit.replace(/_/g, ' ')
+}
+
 const showConfirmModal = (order) => {
   confirmingOrder.value = order
   // Pre-fill with buyer's preferred date if available
@@ -314,7 +326,7 @@ const shipOrder = async (order) => {
 }
 
 const acceptNegotiation = async (order) => {
-  if (!confirm(`Accept buyer's offer of ${formatCurrency(order.offer_price)}/${order.rice_product?.unit || 'kg'}? The order will proceed.`)) return
+  if (!confirm(`Accept buyer's offer of ${formatCurrency(order.offer_price)}/${formatOrderUnit(order.rice_product?.unit)}? The order will proceed.`)) return
   try {
     await marketplaceStore.respondToNegotiation(order.id, 'accept')
     order.status = 'pending'

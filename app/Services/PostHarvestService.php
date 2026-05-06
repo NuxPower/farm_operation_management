@@ -15,6 +15,16 @@ use Illuminate\Support\Facades\Log;
 
 class PostHarvestService
 {
+    private function resolveTaskType(string $processType): string
+    {
+        return match ($processType) {
+            PostHarvestProcess::TYPE_THRESHING => Task::TYPE_THRESHING,
+            PostHarvestProcess::TYPE_DRYING => Task::TYPE_DRYING,
+            PostHarvestProcess::TYPE_MILLING => Task::TYPE_MILLING,
+            default => Task::TYPE_MAINTENANCE,
+        };
+    }
+
     /**
      * Create a new post-harvest process for a harvest.
      *
@@ -90,16 +100,11 @@ class PostHarvestService
                 $processData = $data;
 
                 // Task types map exactly from process types in this case
-                $taskType = match ($processType) {
-                    PostHarvestProcess::TYPE_THRESHING => \App\Models\Task::TYPE_THRESHING,
-                    PostHarvestProcess::TYPE_DRYING => \App\Models\Task::TYPE_DRYING,
-                    PostHarvestProcess::TYPE_MILLING => \App\Models\Task::TYPE_MILLING,
-                    default => \App\Models\Task::TYPE_MAINTENANCE,
-                };
+                $taskType = $this->resolveTaskType($processType);
 
-                $paymentType = $data['payment_type'] ?? \App\Models\Task::PAYMENT_TYPE_WAGE;
+                $paymentType = $data['payment_type'] ?? Task::PAYMENT_TYPE_WAGE;
 
-                $task = \App\Models\Task::create([
+                $task = Task::create([
                     'planting_id' => $harvest->planting_id,
                     'field_id' => $harvest->planting->field_id,
                     'task_type' => $taskType,
@@ -123,6 +128,76 @@ class PostHarvestService
         });
 
         return $process;
+    }
+
+    public function updateProcess(PostHarvestProcess $process, array $data): PostHarvestProcess
+    {
+        return DB::transaction(function () use ($process, $data) {
+            $process->update([
+                'process_type' => $data['process_type'] ?? $process->process_type,
+                'process_date' => $data['process_date'] ?? $process->process_date,
+                'input_quantity' => $data['input_quantity'] ?? $process->input_quantity,
+                'input_unit' => $data['input_unit'] ?? $process->input_unit,
+                'status' => $data['status'] ?? $process->status,
+                'cost' => $data['cost'] ?? $process->cost,
+                'cost_type' => $data['cost_type'] ?? $process->cost_type,
+                'cost_per_unit' => $data['cost_per_unit'] ?? $process->cost_per_unit,
+                'service_provider' => $data['service_provider'] ?? $process->service_provider,
+                'process_data' => $data['process_data'] ?? $process->process_data,
+                'notes' => $data['notes'] ?? $process->notes,
+            ]);
+
+            if (array_key_exists('assign_laborers', $data)) {
+                $assignLaborers = (bool) $data['assign_laborers'];
+                $task = $process->task;
+
+                if ($assignLaborers) {
+                    $taskPayload = [
+                        'planting_id' => $process->planting_id,
+                        'field_id' => $process->harvest?->planting?->field_id,
+                        'task_type' => $this->resolveTaskType((string) $process->process_type),
+                        'due_date' => $process->process_date,
+                        'description' => "Post-harvest processing: " . ucfirst((string) $process->process_type) . " for harvest #{$process->harvest_id}",
+                        'quantity' => $process->input_quantity,
+                        'unit' => $process->input_unit,
+                        'payment_type' => $data['payment_type'] ?? ($task?->payment_type ?? Task::PAYMENT_TYPE_WAGE),
+                        'assigned_to' => $data['assigned_to'] ?? null,
+                        'laborer_group_id' => $data['laborer_group_id'] ?? null,
+                        'wage_amount' => $data['wage_amount'] ?? null,
+                    ];
+
+                    if ($task) {
+                        $task->update($taskPayload);
+                    } else {
+                        $task = Task::create(array_merge($taskPayload, [
+                            'status' => Task::STATUS_PENDING,
+                        ]));
+                        $process->update(['task_id' => $task->id]);
+                    }
+                } elseif ($task) {
+                    if ($task->status === Task::STATUS_COMPLETED) {
+                        throw new \InvalidArgumentException('Cannot remove labor assignment from a completed task.');
+                    }
+
+                    $task->delete();
+                    $process->update(['task_id' => null]);
+                }
+            } elseif ($process->task) {
+                // Keep linked task synchronized with edited process details.
+                $process->task->update([
+                    'task_type' => $this->resolveTaskType((string) $process->process_type),
+                    'due_date' => $process->process_date,
+                    'description' => "Post-harvest processing: " . ucfirst((string) $process->process_type) . " for harvest #{$process->harvest_id}",
+                    'quantity' => $process->input_quantity,
+                    'unit' => $process->input_unit,
+                ]);
+            }
+
+            $freshProcess = $process->fresh();
+            $this->syncProcessingExpense($freshProcess, (float) ($freshProcess->cost ?? 0));
+
+            return $freshProcess;
+        });
     }
 
     /**

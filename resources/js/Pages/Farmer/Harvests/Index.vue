@@ -173,7 +173,7 @@
                       </div>
                       <div>
                         <h3 class="text-xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">
-                          {{ harvest.quantity || harvest.yield || 0 }} {{ harvest.unit || 'kg' }}
+                          {{ harvest.quantity || harvest.yield || 0 }} {{ formatUnit(harvest.unit) || 'kg' }}
                         </h3>
                         <div class="flex items-center text-xs text-gray-500 mt-1">
                           <svg class="h-3 w-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,7 +303,7 @@
     <ConfirmationModal
       :show="showConfirmModal"
       title="Delete Harvest"
-      :message="`Are you sure you want to delete this harvest of ${harvestToDelete?.quantity || 0} ${harvestToDelete?.unit || 'kg'}? This cannot be undone.`"
+      :message="`Are you sure you want to delete this harvest of ${harvestToDelete?.quantity || 0} ${formatUnit(harvestToDelete?.unit) || 'kg'}? This cannot be undone.`"
       confirm-text="Delete"
       type="danger"
       @close="showConfirmModal = false"
@@ -318,7 +318,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import HarvestFormModal from './HarvestFormModal.vue'
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatUnit } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()

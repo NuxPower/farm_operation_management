@@ -31,15 +31,20 @@ class SaleController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->has('date_from')) {
-            $query->where('sale_date', '>=', $request->date_from);
+        if ($request->filled('date_from')) {
+            $query->whereDate('sale_date', '>=', $request->date_from);
         }
 
-        if ($request->has('date_to')) {
-            $query->where('sale_date', '<=', $request->date_to);
+        if ($request->filled('date_to')) {
+            $query->whereDate('sale_date', '<=', $request->date_to);
         }
 
-        $sales = $query->with(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
+        $sales = $query->with([
+                'harvest.planting.field',
+                'harvest.planting.riceVariety',
+                'buyer',
+                'riceOrder.riceProduct',
+            ])
             ->orderBy('sale_date', 'desc')
             ->get();
 
@@ -121,7 +126,12 @@ class SaleController extends Controller
 
             return response()->json([
                 'message' => 'Sale created successfully',
-                'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
+                'sale' => $sale->load([
+                    'harvest.planting.field',
+                    'harvest.planting.riceVariety',
+                    'buyer',
+                    'riceOrder.riceProduct',
+                ])
             ], 201);
 
         } catch (\Exception $e) {
@@ -147,7 +157,12 @@ class SaleController extends Controller
             ], 403);
         }
 
-        $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer']);
+        $sale->load([
+            'harvest.planting.field',
+            'harvest.planting.riceVariety',
+            'buyer',
+            'riceOrder.riceProduct',
+        ]);
 
         return response()->json([
             'sale' => $sale
@@ -200,7 +215,12 @@ class SaleController extends Controller
 
         return response()->json([
             'message' => 'Sale updated successfully',
-            'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
+            'sale' => $sale->load([
+                'harvest.planting.field',
+                'harvest.planting.riceVariety',
+                'buyer',
+                'riceOrder.riceProduct',
+            ])
         ]);
     }
 
@@ -252,7 +272,12 @@ class SaleController extends Controller
 
         return response()->json([
             'message' => 'Payment status updated successfully',
-            'sale' => $sale->load(['harvest.planting.field', 'harvest.planting.riceVariety', 'buyer'])
+            'sale' => $sale->load([
+                'harvest.planting.field',
+                'harvest.planting.riceVariety',
+                'buyer',
+                'riceOrder.riceProduct',
+            ])
         ]);
     }
 
@@ -265,12 +290,12 @@ class SaleController extends Controller
 
         $query = Sale::where('user_id', $user->id);
 
-        if ($request->has('date_from')) {
-            $query->where('sale_date', '>=', $request->date_from);
+        if ($request->filled('date_from')) {
+            $query->whereDate('sale_date', '>=', $request->date_from);
         }
 
-        if ($request->has('date_to')) {
-            $query->where('sale_date', '<=', $request->date_to);
+        if ($request->filled('date_to')) {
+            $query->whereDate('sale_date', '<=', $request->date_to);
         }
 
         $totalSales = $query->sum('total_amount');

@@ -31,6 +31,7 @@ class User extends Authenticatable
         'address',
         'bio',
         'profile_picture',
+        'tos_accepted',
     ];
 
     /**
@@ -53,6 +54,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'address' => 'array',
         'verification_code_expires_at' => 'datetime',
+        'tos_accepted' => 'boolean',
     ];
 
     /**
