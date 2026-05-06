@@ -104,7 +104,7 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => $validator->errors()->first(),
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -134,8 +134,11 @@ class AuthController extends Controller
             if (!$acceptedTerms) {
                 return response()->json([
                     'message' => 'You must accept the Terms of Service before signing in.',
+                    'errors' => [
+                        'accept_tos' => ['You must accept the Terms of Service before signing in.']
+                    ],
                     'code' => 'tos_not_accepted',
-                ], 403);
+                ], 422);
             }
 
             $user->forceFill([
