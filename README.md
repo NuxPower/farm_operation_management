@@ -180,7 +180,7 @@ All five core project objectives have been **fully achieved** with comprehensive
 | **ColorfulClouds API** | Primary Forecasts (10-day precision) |
 | **OpenWeatherMap** | Agricultural Intelligence (Pest/Disease risks) |
 | **Windy.com** | Interactive weather map embed |
-| **Brevo (SMTP)** | Email Notifications (OTP, Alerts, Reports) |
+| **Brevo (HTTP API)** | Email Notifications (OTP, Alerts, Reports) |
 | **OpenStreetMap** | Base map tiles for field visualization |
 ---
 

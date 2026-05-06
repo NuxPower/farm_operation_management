@@ -102,6 +102,31 @@
       </router-link>
     </div>
 
+    <!-- Expiring/Expired Inventory Warning Banner -->
+    <div
+      v-if="stats.expired_items_count > 0 || stats.expiring_items_count > 0"
+      class="mb-6 bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-4"
+    >
+      <div class="shrink-0 text-2xl">⚠️</div>
+      <div class="flex-1">
+        <p class="text-sm font-semibold text-orange-800">
+          <span v-if="stats.expired_items_count > 0">{{ stats.expired_items_count }} item{{ stats.expired_items_count > 1 ? 's' : '' }} expired</span>
+          <span v-if="stats.expired_items_count > 0 && stats.expiring_items_count > 0"> and </span>
+          <span v-if="stats.expiring_items_count > 0">{{ stats.expiring_items_count }} item{{ stats.expiring_items_count > 1 ? 's' : '' }} expiring soon</span>
+          in your inventory.
+        </p>
+        <p class="text-xs text-orange-600 mt-0.5">
+          Please check your inventory to prevent waste and update stock levels.
+        </p>
+      </div>
+      <router-link
+        to="/inventory"
+        class="shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700"
+      >
+        Check Inventory
+      </router-link>
+    </div>
+
     <!-- Module Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
@@ -735,6 +760,29 @@ const loadDashboardData = async () => {
     const inventoryData = inventoryResponse.data.inventory || [];
     const lowStockItems = inventoryData.filter(item => (item.current_stock ?? item.quantity ?? 0) <= (item.minimum_stock ?? item.min_stock ?? 10));
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const expiringItems = inventoryData.filter(item => {
+      const stock = item.current_stock ?? item.quantity ?? 0;
+      if (!item.expiry_date || stock <= 0) return false;
+      const expiry = new Date(item.expiry_date);
+      expiry.setHours(0, 0, 0, 0);
+      const diffTime = expiry.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 7 && diffDays >= 0;
+    });
+
+    const expiredItems = inventoryData.filter(item => {
+      const stock = item.current_stock ?? item.quantity ?? 0;
+      if (!item.expiry_date || stock <= 0) return false;
+      const expiry = new Date(item.expiry_date);
+      expiry.setHours(0, 0, 0, 0);
+      const diffTime = expiry.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays < 0;
+    });
+
     // Process marketplace data
     const ordersData = marketplaceResponse.data.orders || [];
     const pendingOrders = ordersData.filter(order => ['pending', 'confirmed'].includes(order.status));
@@ -757,6 +805,8 @@ const loadDashboardData = async () => {
       weather_alerts: weatherFieldData.reduce((total, field) => total + (field.alerts_count || 0), 0),
       total_items: inventoryData.length,
       low_stock_items: lowStockItems.length,
+      expiring_items_count: expiringItems.length,
+      expired_items_count: expiredItems.length,
       pending_orders: pendingOrders.length,
       monthly_expenses: thisMonthExpenses.reduce((total, expense) => total + parseFloat(expense.amount || 0), 0),
       upcoming_tasks: upcomingTasksData.length,
@@ -852,6 +902,8 @@ const loadSampleData = () => {
     critical_plantings: 2,
     weather_alerts: 1,
     low_stock_items: 3,
+    expiring_items_count: 2,
+    expired_items_count: 1,
     pending_orders: 4,
     monthly_expenses: 2500,
     upcoming_tasks: 6,
