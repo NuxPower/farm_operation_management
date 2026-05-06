@@ -30,7 +30,14 @@ chmod -R 775 storage
 # Create storage link (public/storage -> storage/app/public)
 php artisan storage:link --force 2>/dev/null || true
 
-# Cache configuration, routes, and events
+# Clear any stale caches from previous deploys first
+# This ensures Railway env vars (e.g. MAIL_HOST) are always picked up fresh
+php artisan config:clear 2>/dev/null || true
+php artisan route:clear 2>/dev/null || true
+php artisan view:clear 2>/dev/null || true
+php artisan event:clear 2>/dev/null || true
+
+# Rebuild caches with current environment variables
 php artisan config:cache || echo "Warning: config:cache failed"
 php artisan route:cache || echo "Warning: route:cache failed"
 php artisan view:cache || echo "Warning: view:cache failed"

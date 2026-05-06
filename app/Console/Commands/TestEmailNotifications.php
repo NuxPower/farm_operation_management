@@ -144,7 +144,9 @@ class TestEmailNotifications extends Command
         $this->info("   Sending reset link for user: {$user->email}");
         $this->info("   APP_URL is: " . config('app.url'));
         $this->info("   MAIL_MAILER is: " . config('mail.default'));
-        $this->info("   MAIL_HOST is: " . config('mail.mailers.smtp.host'));
+        if (config('mail.default') === 'smtp') {
+            $this->info("   MAIL_HOST is: " . config('mail.mailers.smtp.host'));
+        }
 
         try {
             $status = Password::sendResetLink(['email' => $user->email]);
