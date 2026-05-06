@@ -378,6 +378,42 @@
             </div>
           </div>
 
+          <!-- Expiring Inventory Alerts (Conditional) -->
+          <div v-if="expiringItems.length > 0" class="bg-orange-50 border border-orange-200 rounded-lg shadow-sm p-4 animate-fade-in-down">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-md font-bold text-orange-800 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Expiring Items Warnings
+              </h3>
+              <button
+                @click="navigateTo('/inventory')"
+                class="text-xs font-semibold text-orange-700 hover:text-orange-900 underline"
+              >
+                View Inventory
+              </button>
+            </div>
+            <div class="space-y-2">
+              <div
+                v-for="item in expiringItems.slice(0, 3)"
+                :key="'expiring-' + item.id"
+                class="flex items-center justify-between bg-white bg-opacity-60 p-2 rounded-md border border-orange-100"
+              >
+                <div class="flex items-center">
+                   <div :class="['w-2 h-2 rounded-full mr-2', item.is_expired ? 'bg-red-500' : 'bg-orange-500']"></div>
+                   <span class="text-sm font-medium text-gray-800">{{ item.name }}</span>
+                </div>
+                <div class="text-sm">
+                  <span :class="['font-bold', item.is_expired ? 'text-red-600' : 'text-orange-600']">{{ getExpiringStatus(item.expiry_date) }}</span>
+                </div>
+              </div>
+              <div v-if="expiringItems.length > 3" class="text-center pt-1">
+                 <span class="text-xs text-orange-700 font-medium">+ {{ expiringItems.length - 3 }} more items</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Weather Farming Alerts -->
           <div v-if="weatherAlerts.length > 0" class="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-lg shadow-sm p-4 animate-fade-in-down">
             <div class="flex items-center justify-between mb-3">
@@ -686,6 +722,50 @@
   });
 
   const lowStockCount = computed(() => lowStockItems.value.length);
+
+  const expiringItems = computed(() => {
+    try {
+      if (!inventoryStore || !inventoryStore.items || !Array.isArray(inventoryStore.items)) return [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      return inventoryStore.items.reduce((acc, item) => {
+        if (!item || !item.expiry_date) return acc;
+        const currentStock = item.current_stock ?? item.quantity ?? 0;
+        if (currentStock <= 0) return acc;
+
+        const expiry = new Date(item.expiry_date);
+        expiry.setHours(0, 0, 0, 0);
+        const diffTime = expiry.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 7) {
+          acc.push({
+            ...item,
+            is_expired: diffDays < 0
+          });
+        }
+        return acc;
+      }, []).sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+    } catch(e) {
+      console.warn('Error getting expiring items', e);
+      return [];
+    }
+  });
+
+  const getExpiringStatus = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(date);
+    expiry.setHours(0, 0, 0, 0);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'Expired';
+    if (diffDays === 0) return 'Expires today';
+    if (diffDays === 1) return 'Expires tomorrow';
+    return `Expires in ${diffDays} days`;
+  };
 
   const pendingOrders = computed(() => {
     try {

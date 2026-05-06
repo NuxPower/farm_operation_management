@@ -50,11 +50,11 @@
     <div v-if="summary" class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
         <h3 class="text-sm font-medium text-gray-500">Original Harvest</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.original_quantity }} {{ summary.original_unit }}</p>
+        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
       </div>
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-emerald-500">
         <h3 class="text-sm font-medium text-gray-500">Current Output</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.final_quantity }} {{ summary.final_unit }}</p>
+        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
       </div>
       <div class="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500">
         <h3 class="text-sm font-medium text-gray-500">Overall Recovery</h3>
