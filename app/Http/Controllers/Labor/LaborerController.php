@@ -109,7 +109,7 @@ class LaborerController extends Controller
             ], 403);
         }
 
-        $laborer->load(['tasks', 'wages', 'groups']);
+        $laborer->load(['tasks.planting.field', 'wages', 'groups']);
 
         return response()->json([
             'laborer' => $laborer

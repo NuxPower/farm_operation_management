@@ -181,6 +181,12 @@
                   Cost: <span class="font-medium text-gray-900 ml-1">₱{{ formatNumber(process.cost) }}</span>
                   <span v-if="process.service_provider" class="ml-1">({{ process.service_provider }})</span>
                 </p>
+                <p v-if="getAssignedLaborLabel(process)" class="flex items-center text-sm text-gray-500 mr-6">
+                  Laborer: <span class="font-medium text-gray-900 ml-1">{{ getAssignedLaborLabel(process) }}</span>
+                </p>
+                <p v-if="getLaborCost(process) > 0" class="flex items-center text-sm text-gray-500">
+                  Labor Cost: <span class="font-medium text-gray-900 ml-1">₱{{ formatNumber(getLaborCost(process)) }}</span>
+                </p>
               </div>
               <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                 <p>
@@ -370,5 +376,17 @@ const displayUnit = (unit) => {
     sacks_rice: 'sacks (rice)',
   };
   return map[unit] || unit;
+};
+
+const getAssignedLaborLabel = (process) => {
+  const task = process?.task;
+  if (!task) return '';
+  if (task.laborer?.name) return task.laborer.name;
+  if (task.laborer_group?.name) return `${task.laborer_group.name} (group)`;
+  return '';
+};
+
+const getLaborCost = (process) => {
+  return Number(process?.task?.wage_amount || 0);
 };
 </script>

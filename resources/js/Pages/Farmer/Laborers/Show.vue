@@ -167,6 +167,28 @@
              <p class="text-gray-700 whitespace-pre-line">{{ laborer.notes }}</p>
         </div>
 
+        <div class="bg-white shadow rounded-2xl overflow-hidden p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Assigned Tasks</h3>
+          <div v-if="!assignedTasks.length" class="text-sm text-gray-500">No tasks assigned yet.</div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="task in assignedTasks"
+              :key="task.id"
+              class="border border-gray-100 rounded-lg p-3 flex items-center justify-between"
+            >
+              <div>
+                <p class="text-sm font-medium text-gray-900 capitalize">{{ task.task_type?.replaceAll('_', ' ') }}</p>
+                <p class="text-xs text-gray-500">
+                  Due {{ formatDate(task.due_date) }} <span v-if="task.planting?.field?.name">• {{ task.planting.field.name }}</span>
+                </p>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-full" :class="taskStatusClass(task.status)">
+                {{ formatStatus(task.status) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
     
@@ -197,6 +219,7 @@ const loading = ref(true)
 const error = ref('')
 const laborer = ref({})
 const showConfirmModal = ref(false)
+const assignedTasks = ref([])
 
 const fetchLaborer = async () => {
     loading.value = true
@@ -204,6 +227,9 @@ const fetchLaborer = async () => {
     try {
         const { data } = await axios.get(`/api/laborers/${route.params.id}`)
         laborer.value = data.laborer
+        assignedTasks.value = (data.laborer?.tasks || [])
+          .sort((a, b) => new Date(b.due_date || 0) - new Date(a.due_date || 0))
+          .slice(0, 10)
     } catch (err) {
         console.error('Failed to fetch laborer:', err)
         error.value = 'Failed to load laborer details.'
@@ -255,6 +281,16 @@ const statusClass = (status) => {
     on_leave: 'bg-yellow-100 text-yellow-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const taskStatusClass = (status) => {
+  const classes = {
+    completed: 'bg-green-100 text-green-800',
+    in_progress: 'bg-blue-100 text-blue-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    cancelled: 'bg-gray-100 text-gray-700',
+  }
+  return classes[status] || 'bg-gray-100 text-gray-700'
 }
 
 onMounted(() => {

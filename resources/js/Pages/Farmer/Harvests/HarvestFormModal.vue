@@ -343,7 +343,11 @@ const harvestablePlantings = computed(() => {
     return validStatuses.includes(status)
   })
   
-  // Debug logging when modal is open
+  // If the planting object is attached to the harvest but wasn't in the store list 
+  // (e.g. because it's archived/harvested on the backend), explicitly add it so the dropdown can select it.
+  if (props.harvest?.planting && !plantings.some(p => p.id === props.harvest.planting.id)) {
+    plantings.push(props.harvest.planting)
+  }
   
   return plantings
 })

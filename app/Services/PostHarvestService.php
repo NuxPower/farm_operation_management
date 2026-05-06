@@ -6,7 +6,10 @@ use App\Models\Expense;
 use App\Models\Harvest;
 use App\Models\InventoryItem;
 use App\Models\InventoryTransaction;
+use App\Models\LaborWage;
 use App\Models\PostHarvestProcess;
+use App\Models\Task;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -114,6 +117,8 @@ class PostHarvestService
                 $process->update(['task_id' => $task->id]);
             }
 
+            $this->syncProcessingExpense($process, (float) ($data['cost'] ?? 0));
+
             return $process;
         });
 
@@ -213,13 +218,13 @@ class PostHarvestService
 
             // ── Expense Recording ──
 
-            if ($cost > 0) {
-                $this->createProcessingExpense($process, $cost);
-            }
+            $this->syncProcessingExpense($process, $cost);
 
             // ── Task Sync ──
             if ($process->task_id && $process->task) {
-                $process->task->update(['status' => \App\Models\Task::STATUS_COMPLETED]);
+                $task = $process->task;
+                $task->update(['status' => Task::STATUS_COMPLETED]);
+                $this->createLaborExpensesForCompletedTask($task, Carbon::now());
             }
 
             return $process->fresh();
@@ -395,6 +400,124 @@ class PostHarvestService
             'related_entity_id' => $process->id,
             'planting_id' => $process->planting_id,
         ]);
+    }
+
+    public function syncProcessingExpense(PostHarvestProcess $process, float $cost): void
+    {
+        $existingExpense = Expense::where('related_entity_type', Expense::ENTITY_TYPE_POST_HARVEST_PROCESS)
+            ->where('related_entity_id', $process->id)
+            ->first();
+
+        if ($cost <= 0) {
+            if ($existingExpense) {
+                $existingExpense->delete();
+            }
+            return;
+        }
+
+        if ($existingExpense) {
+            $description = ucfirst($process->process_type) . ' processing';
+            if ($process->service_provider) {
+                $description .= " by {$process->service_provider}";
+            }
+
+            $existingExpense->update([
+                'description' => $description,
+                'amount' => $cost,
+                'date' => $process->completed_date ?? $process->process_date ?? now(),
+                'payment_method' => $process->cost_type === PostHarvestProcess::COST_TYPE_SELF ? 'self' : 'cash',
+                'notes' => "Auto-generated from post-harvest process #{$process->id}. "
+                    . "Input: {$process->input_quantity} {$process->input_unit}, "
+                    . "Output: {$process->output_quantity} {$process->output_unit}. "
+                    . "Loss: {$process->weight_loss_percentage}%.",
+            ]);
+            return;
+        }
+
+        $this->createProcessingExpense($process, $cost);
+    }
+
+    /**
+     * Create labor wage + expense records when post-harvest completion closes an assigned task.
+     * Mirrors TaskController behavior so labor costs appear in expenses/reports.
+     */
+    private function createLaborExpensesForCompletedTask(Task $task, Carbon $effectiveDate): void
+    {
+        // Prevent duplicate generation if this task already has wages recorded.
+        if ($task->laborWages()->exists()) {
+            return;
+        }
+
+        $task->loadMissing(['laborer', 'laborerGroup.laborers']);
+
+        $laborers = collect();
+        if ($task->laborer) {
+            $laborers->push($task->laborer);
+        } elseif ($task->laborerGroup && $task->laborerGroup->laborers) {
+            $laborers = $task->laborerGroup->laborers;
+        }
+
+        if ($laborers->isEmpty()) {
+            return;
+        }
+
+        foreach ($laborers as $laborer) {
+            // Share compensation is handled at harvest-time value realization.
+            if ($task->payment_type === Task::PAYMENT_TYPE_SHARE) {
+                continue;
+            }
+
+            $rate = (float) ($laborer->rate ?? 0);
+            $rateType = strtolower($laborer->rate_type ?? 'per_day');
+            if ($rateType === 'daily') {
+                $rateType = 'per_day';
+            }
+
+            $startDate = $task->created_at ? Carbon::parse($task->created_at)->startOfDay() : Carbon::now()->startOfDay();
+            $endDate = $effectiveDate->copy()->startOfDay();
+            $days = max(1, $startDate->diffInDays($endDate) + 1);
+
+            if ($rateType === 'per_task') {
+                $hours = 1;
+                $wageAmount = $rate;
+            } else {
+                $hours = $days * 8;
+                $wageAmount = $rate * $days;
+            }
+
+            if ((float) $task->wage_amount > 0) {
+                $wageAmount = (float) $task->wage_amount;
+            }
+
+            if ($task->payment_type === Task::PAYMENT_TYPE_PIECE_RATE && $laborers->count() > 1) {
+                $wageAmount = $wageAmount / $laborers->count();
+            }
+
+            if ($wageAmount <= 0) {
+                continue;
+            }
+
+            LaborWage::create([
+                'laborer_id' => $laborer->id,
+                'task_id' => $task->id,
+                'hours_worked' => $hours,
+                'wage_amount' => $wageAmount,
+                'date' => $effectiveDate,
+            ]);
+
+            Expense::create([
+                'description' => "Labor: {$laborer->name} - {$task->task_type} task",
+                'amount' => $wageAmount,
+                'category' => Expense::CATEGORY_LABOR,
+                'date' => $effectiveDate,
+                'user_id' => $task->field?->user_id ?? $task->planting?->field?->user_id,
+                'payment_method' => $task->payment_type === Task::PAYMENT_TYPE_SHARE ? 'revenue_share' : 'cash',
+                'notes' => "Auto-generated from post-harvest completion. Task ID: {$task->id}, Laborer: {$laborer->name}",
+                'related_entity_type' => Expense::ENTITY_TYPE_TASK,
+                'related_entity_id' => $task->id,
+                'planting_id' => $task->planting_id,
+            ]);
+        }
     }
 
     /**

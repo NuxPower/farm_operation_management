@@ -32,7 +32,7 @@ class PostHarvestController extends Controller
         }
 
         $processes = $harvest->postHarvestProcesses()
-            ->with(['task', 'parentProcess'])
+            ->with(['task.laborer', 'task.laborerGroup', 'parentProcess'])
             ->orderBy('id')
             ->get();
 
@@ -135,7 +135,7 @@ class PostHarvestController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $process->load(['harvest.planting.riceVariety', 'task', 'parentProcess']);
+        $process->load(['harvest.planting.riceVariety', 'task.laborer', 'task.laborerGroup', 'parentProcess']);
 
         return response()->json([
             'message' => 'Post-harvest process created successfully',
@@ -204,9 +204,12 @@ class PostHarvestController extends Controller
             'service_provider', 'process_data', 'notes', 'task_id',
         ]));
 
+        $freshProcess = $process->fresh();
+        $this->service->syncProcessingExpense($freshProcess, (float) ($freshProcess->cost ?? 0));
+
         return response()->json([
             'message' => 'Process updated successfully',
-            'process' => $process->fresh()->load(['task', 'parentProcess']),
+            'process' => $freshProcess->load(['task.laborer', 'task.laborerGroup', 'parentProcess']),
         ]);
     }
 
