@@ -37,60 +37,86 @@ class WeatherSeeder extends Seeder
 
             echo "Fetching weather data for farm '{$farm->farm_name}' at ({$lat}, {$lon}) from {$startDateStr} to {$endDateStr}...\n";
 
-            try {
-                $response = Http::get("https://archive-api.open-meteo.com/v1/archive", [
-                    'latitude' => $lat,
-                    'longitude' => $lon,
-                    'start_date' => $startDateStr,
-                    'end_date' => $endDateStr,
-                    'hourly' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code',
-                    'timezone' => 'Asia/Manila'
-                ]);
+            $totalCount = 0;
 
-                if (!$response->successful()) {
-                    echo "Failed to fetch data from Open-Meteo: " . $response->body() . "\n";
-                    continue;
+            // Chunk into 3-month windows to avoid Open-Meteo response size limits
+            $chunkStart = $startDate->copy();
+            while ($chunkStart->lessThanOrEqualTo($endDate)) {
+                $chunkEnd = $chunkStart->copy()->addMonths(3)->subDay();
+                if ($chunkEnd->greaterThan($endDate)) {
+                    $chunkEnd = $endDate->copy();
                 }
 
-                $data = $response->json();
-                $hourly = $data['hourly'];
+                $chunkStartStr = $chunkStart->format('Y-m-d');
+                $chunkEndStr   = $chunkEnd->format('Y-m-d');
 
-                $count = 0;
-                foreach ($hourly['time'] as $index => $time) {
-                    $recordedAt = Carbon::parse($time);
+                echo "  -> Fetching chunk {$chunkStartStr} to {$chunkEndStr}...\n";
 
-                    // We only want data up to "now"
-                    if ($recordedAt->isAfter(now())) {
+                try {
+                    $response = Http::timeout(60)->get("https://archive-api.open-meteo.com/v1/archive", [
+                        'latitude'   => $lat,
+                        'longitude'  => $lon,
+                        'start_date' => $chunkStartStr,
+                        'end_date'   => $chunkEndStr,
+                        'hourly'     => 'temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code',
+                        'timezone'   => 'Asia/Manila',
+                    ]);
+
+                    if (!$response->successful()) {
+                        echo "  [WARN] Failed chunk {$chunkStartStr}-{$chunkEndStr}: " . $response->body() . "\n";
+                        $chunkStart->addMonths(3);
                         continue;
                     }
 
-                    // Frequency check: Record every 6 hours (0, 6, 12, 18) to balance history length and DB size
-                    if ($recordedAt->hour % 6 !== 0) {
+                    $data   = $response->json();
+                    $hourly = $data['hourly'] ?? [];
+
+                    if (empty($hourly['time'])) {
+                        $chunkStart->addMonths(3);
                         continue;
                     }
 
-                    WeatherLog::updateOrCreate(
-                        [
-                            'farm_id' => $farm->id,
-                            'recorded_at' => $recordedAt,
-                        ],
-                        [
-                            'temperature' => $hourly['temperature_2m'][$index],
-                            'humidity' => $hourly['relative_humidity_2m'][$index],
-                            'wind_speed' => $hourly['wind_speed_10m'][$index],
-                            'rainfall' => $hourly['precipitation'][$index],
-                            'conditions' => $this->mapWmoCode($hourly['weather_code'][$index]),
-                        ]
-                    );
-                    $count++;
+                    $count = 0;
+                    foreach ($hourly['time'] as $index => $time) {
+                        $recordedAt = Carbon::parse($time);
+
+                        if ($recordedAt->isAfter(now())) {
+                            continue;
+                        }
+
+                        // Every 6 hours only (0, 6, 12, 18)
+                        if ($recordedAt->hour % 6 !== 0) {
+                            continue;
+                        }
+
+                        WeatherLog::updateOrCreate(
+                            [
+                                'farm_id'     => $farm->id,
+                                'recorded_at' => $recordedAt,
+                            ],
+                            [
+                                'temperature' => $hourly['temperature_2m'][$index],
+                                'humidity'    => $hourly['relative_humidity_2m'][$index],
+                                'wind_speed'  => $hourly['wind_speed_10m'][$index],
+                                'rainfall'    => $hourly['precipitation'][$index],
+                                'conditions'  => $this->mapWmoCode($hourly['weather_code'][$index]),
+                            ]
+                        );
+                        $count++;
+                    }
+
+                    $totalCount += $count;
+                    echo "  -> Inserted/updated {$count} records.\n";
+
+                } catch (\Exception $e) {
+                    echo "  [ERROR] Chunk {$chunkStartStr}-{$chunkEndStr}: " . $e->getMessage() . "\n";
+                    Log::error("WeatherSeeder Error: " . $e->getMessage());
                 }
 
-                echo "Seeded {$count} weather logs for farm '{$farm->farm_name}'.\n";
-
-            } catch (\Exception $e) {
-                echo "Error seeding weather for farm '{$farm->farm_name}': " . $e->getMessage() . "\n";
-                Log::error("WeatherSeeder Error: " . $e->getMessage());
+                $chunkStart->addMonths(3);
             }
+
+            echo "Done. Total records for farm '{$farm->farm_name}': {$totalCount}.\n";
         }
     }
 

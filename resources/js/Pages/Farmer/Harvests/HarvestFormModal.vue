@@ -294,7 +294,7 @@ const props = defineProps({
     default: false,
   },
   initialPlantingId: {
-    type: Number,
+    type: [Number, String],
     default: null,
   },
   harvest: {
@@ -331,8 +331,11 @@ const harvestablePlantings = computed(() => {
   const plantings = allPlantings.filter(p => {
     if (!p || !p.id) return false
     
-    // Always include the planting currently being edited, regardless of status
-    if (props.harvest?.planting_id && p.id === props.harvest.planting_id) {
+    // Always include the planting currently being edited or completed
+    if (props.harvest?.planting_id && p.id === Number(props.harvest.planting_id)) {
+      return true
+    }
+    if (props.initialPlantingId && p.id === Number(props.initialPlantingId)) {
       return true
     }
 
@@ -356,15 +359,21 @@ const formatDateForInput = (dateString) => {
   }
 }
 
-const getInitialFormData = () => ({
-  planting_id: props.harvest?.planting_id || props.initialPlantingId || '',
-  harvest_date: formatDateForInput(props.harvest?.harvest_date),
-  quantity: props.harvest?.quantity || '',
-  unit: props.harvest?.unit || 'bushels',
-  notes: props.harvest?.notes || '',
-  harvester_share: props.harvest?.harvester_share || '',
-  harvester_share_percentage: props.harvest?.harvester_share_percentage ?? DEFAULT_HARVESTER_SHARE_PERCENTAGE,
-})
+const getInitialFormData = () => {
+  const defaultPlantingId = props.harvest?.planting_id 
+    ? Number(props.harvest.planting_id) 
+    : (props.initialPlantingId ? Number(props.initialPlantingId) : '');
+    
+  return {
+    planting_id: defaultPlantingId,
+    harvest_date: formatDateForInput(props.harvest?.harvest_date),
+    quantity: props.harvest?.quantity || '',
+    unit: props.harvest?.unit || 'bushels',
+    notes: props.harvest?.notes || '',
+    harvester_share: props.harvest?.harvester_share || '',
+    harvester_share_percentage: props.harvest?.harvester_share_percentage ?? DEFAULT_HARVESTER_SHARE_PERCENTAGE,
+  };
+}
 
 const form = ref({
   data: getInitialFormData(),
@@ -400,6 +409,13 @@ watch(() => props.show, async (newVal) => {
     }
   }
 })
+
+// Watch for initialPlantingId changes (e.g. when passed from parent synchronously with show)
+watch(() => props.initialPlantingId, (newVal) => {
+  if (newVal && form.value && form.value.data && !isEditMode.value) {
+    form.value.data.planting_id = Number(newVal);
+  }
+}, { immediate: true })
 
 // When planting changes, check for a linked harvesting task with share payment
 watch(() => form.value.data.planting_id, (newPlantingId) => {

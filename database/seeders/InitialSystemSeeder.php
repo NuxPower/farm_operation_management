@@ -311,8 +311,7 @@ class InitialSystemSeeder extends Seeder
                 'condition' => $condition,
                 'value_min' => $min,
                 'value_max' => $max,
-            ],
-            [
+
                 'risk_level' => $riskLevel,
                 'risk_message' => $message
             ]
@@ -321,6 +320,7 @@ class InitialSystemSeeder extends Seeder
 
     /**
      * Seed Weather Data (Fetch from API)
+     * Chunks into 3-month windows to avoid Open-Meteo response size limits.
      */
     private function seedWeatherData(): void
     {
@@ -331,10 +331,8 @@ class InitialSystemSeeder extends Seeder
             return;
         }
 
-        $endDate = Carbon::now();
+        $endDate = Carbon::now()->subDays(5); // Open-Meteo archive has ~5 day lag
         $startDate = Carbon::create(2023, 1, 1);
-        $startDateStr = $startDate->format('Y-m-d');
-        $endDateStr = $endDate->format('Y-m-d');
 
         foreach ($farms as $farm) {
             $coordinates = $farm->farm_coordinates;
@@ -343,48 +341,78 @@ class InitialSystemSeeder extends Seeder
 
             echo "Fetching weather data for farm '{$farm->name}' ({$lat}, {$lon})...\n";
 
-            try {
-                $response = Http::get("https://archive-api.open-meteo.com/v1/archive", [
-                    'latitude' => $lat,
-                    'longitude' => $lon,
-                    'start_date' => $startDateStr,
-                    'end_date' => $endDateStr,
-                    'hourly' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code',
-                    'timezone' => 'Asia/Manila'
-                ]);
+            $totalCount = 0;
 
-                if (!$response->successful()) {
-                    echo "Failed to fetch Open-Meteo data: " . $response->body() . "\n";
-                    continue;
+            // Chunk into 3-month windows to avoid Open-Meteo response size limits
+            $chunkStart = $startDate->copy();
+            while ($chunkStart->lessThanOrEqualTo($endDate)) {
+                $chunkEnd = $chunkStart->copy()->addMonths(3)->subDay();
+                if ($chunkEnd->greaterThan($endDate)) {
+                    $chunkEnd = $endDate->copy();
                 }
 
-                $data = $response->json();
-                $hourly = $data['hourly'];
-                $count = 0;
+                $chunkStartStr = $chunkStart->format('Y-m-d');
+                $chunkEndStr = $chunkEnd->format('Y-m-d');
 
-                foreach ($hourly['time'] as $index => $time) {
-                    $recordedAt = Carbon::parse($time);
-                    if ($recordedAt->isAfter(now()) || $recordedAt->hour % 6 !== 0) {
+                echo "  -> Fetching chunk {$chunkStartStr} to {$chunkEndStr}...\n";
+
+                try {
+                    $response = Http::timeout(60)->get("https://archive-api.open-meteo.com/v1/archive", [
+                        'latitude' => $lat,
+                        'longitude' => $lon,
+                        'start_date' => $chunkStartStr,
+                        'end_date' => $chunkEndStr,
+                        'hourly' => 'temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code',
+                        'timezone' => 'Asia/Manila',
+                    ]);
+
+                    if (!$response->successful()) {
+                        echo "  [WARN] Failed chunk {$chunkStartStr}-{$chunkEndStr}: " . $response->body() . "\n";
+                        $chunkStart->addMonths(3);
                         continue;
                     }
 
-                    WeatherLog::updateOrCreate(
-                        ['farm_id' => $farm->id, 'recorded_at' => $recordedAt],
-                        [
-                            'temperature' => $hourly['temperature_2m'][$index],
-                            'humidity' => $hourly['relative_humidity_2m'][$index],
-                            'wind_speed' => $hourly['wind_speed_10m'][$index],
-                            'rainfall' => $hourly['precipitation'][$index],
-                            'conditions' => $this->mapWmoCode($hourly['weather_code'][$index]),
-                        ]
-                    );
-                    $count++;
+                    $data = $response->json();
+                    $hourly = $data['hourly'] ?? [];
+
+                    if (empty($hourly['time'])) {
+                        $chunkStart->addMonths(3);
+                        continue;
+                    }
+
+                    $count = 0;
+                    foreach ($hourly['time'] as $index => $time) {
+                        $recordedAt = Carbon::parse($time);
+                        // Skip future timestamps; only store every 6 hours to keep DB size manageable
+                        if ($recordedAt->isAfter(now()) || $recordedAt->hour % 6 !== 0) {
+                            continue;
+                        }
+
+                        WeatherLog::updateOrCreate(
+                            ['farm_id' => $farm->id, 'recorded_at' => $recordedAt],
+                            [
+                                'temperature' => $hourly['temperature_2m'][$index],
+                                'humidity' => $hourly['relative_humidity_2m'][$index],
+                                'wind_speed' => $hourly['wind_speed_10m'][$index],
+                                'rainfall' => $hourly['precipitation'][$index],
+                                'conditions' => $this->mapWmoCode($hourly['weather_code'][$index]),
+                            ]
+                        );
+                        $count++;
+                    }
+
+                    $totalCount += $count;
+                    echo "  -> Inserted/updated {$count} records.\n";
+
+                } catch (\Exception $e) {
+                    echo "  [ERROR] Chunk {$chunkStartStr}-{$chunkEndStr}: " . $e->getMessage() . "\n";
+                    Log::error("WeatherSeeder chunk error: " . $e->getMessage());
                 }
-                echo "Seeded {$count} weather logs for farm '{$farm->name}'.\n";
-            } catch (\Exception $e) {
-                echo "Error seeding weather for '{$farm->name}': " . $e->getMessage() . "\n";
-                Log::error("WeatherSeeder Error: " . $e->getMessage());
+
+                $chunkStart->addMonths(3);
             }
+
+            echo "Done. Total records for farm '{$farm->name}': {$totalCount}.\n";
         }
     }
 

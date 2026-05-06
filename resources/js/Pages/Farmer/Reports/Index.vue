@@ -175,9 +175,15 @@
 
               <div v-if="activeTab === 'weather'" class="space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <StatCard title="Avg Rainfall" :value="averageRainfall + ' mm'" sub="Precipitation" icon-bg="bg-cyan-50" icon-text="text-cyan-600" />
-                  <StatCard title="Avg Temperature" :value="averageTemperature + ' °C'" sub="Field climate" icon-bg="bg-orange-50" icon-text="text-orange-600" />
-                  <StatCard title="Climate Impact" :value="weatherImpact + '%'" sub="Favorable days" icon-bg="bg-green-50" icon-text="text-green-600" />
+                  <StatCard title="Avg Rainfall" :value="averageRainfall + ' mm'" sub="Precipitation" icon-bg="bg-cyan-50" icon-text="text-cyan-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z M8 16v4 M12 17v4 M16 16v4" />
+                  </StatCard>
+                  <StatCard title="Avg Temperature" :value="averageTemperature + ' °C'" sub="Field climate" icon-bg="bg-orange-50" icon-text="text-orange-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </StatCard>
+                  <StatCard title="Climate Impact" :value="weatherImpact + '%'" sub="Favorable days" icon-bg="bg-green-50" icon-text="text-green-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </StatCard>
                 </div>
 
                 <div class="bg-white rounded-2xl border border-gray-200 p-6">
@@ -291,7 +297,7 @@ const monthLabelFromKey = (key) => {
 
 const computePeriodFilters = (period) => {
   if (period === 'all') {
-    return { filters: {}, weatherDays: 365 };
+    return { filters: {}, weatherDays: 2000 };
   }
 
   const days = parseInt(period, 10);
@@ -308,7 +314,7 @@ const computePeriodFilters = (period) => {
       date_from: formatDateForApi(startDate),
       date_to: formatDateForApi(endDate),
     },
-    weatherDays: Math.min(days, 365),
+    weatherDays: Math.min(days, 2000),
   };
 };
 
@@ -364,7 +370,7 @@ const loadReportData = async () => {
       marketplaceStore.fetchFarmerOrders(orderFilters)
     ]);
 
-    const farmId = farmStore.farmProfile?.id;
+    const farmId = farmStore.farmProfile?.farm?.id ?? farmStore.farmProfile?.id;
 
     if (farmId) {
       await weatherStore.fetchWeatherHistory(farmId, weatherDays);

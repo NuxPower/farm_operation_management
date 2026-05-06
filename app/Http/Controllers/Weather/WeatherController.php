@@ -175,7 +175,7 @@ class WeatherController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'days' => 'integer|min:1|max:1200',
+            'days' => 'integer|min:1|max:2000',
             'page' => 'integer|min:1',
             'per_page' => 'integer|min:1|max:5000'
         ]);

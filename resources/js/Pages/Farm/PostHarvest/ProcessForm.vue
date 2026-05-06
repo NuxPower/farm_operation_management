@@ -42,14 +42,25 @@
               <div class="space-y-5">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium leading-6 text-slate-900">Input Material</label>
+                    <label class="block text-sm font-medium leading-6" :class="validationErrors.input_quantity ? 'text-red-600' : 'text-slate-900'">
+                      Input Material
+                      <span v-if="validationErrors.input_quantity" class="ml-1 font-normal">— {{ validationErrors.input_quantity }}</span>
+                    </label>
                     <div class="mt-2 relative flex rounded-md shadow-sm">
                       <input type="number" step="0.01" v-model="form.input_quantity" :disabled="isCompletionMode" 
-                        class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00">
-                      <div class="relative flex items-center rounded-r-md border-0 bg-slate-50 py-2 pl-3 pr-4 text-slate-500 ring-1 ring-inset ring-slate-300 sm:text-sm">
+                        @input="clearError('input_quantity')"
+                        :class="validationErrors.input_quantity
+                          ? 'ring-red-400 focus:ring-red-500'
+                          : 'ring-slate-300 focus:ring-blue-600'"
+                        class="relative -mr-px block w-full min-w-0 rounded-l-md border-0 px-3 py-2 text-slate-900 ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00">
+                      <div :class="validationErrors.input_quantity ? 'bg-red-50 text-red-600 ring-red-400' : 'bg-slate-50 text-slate-500 ring-slate-300'" class="relative flex items-center rounded-r-md border-0 py-2 pl-3 pr-4 ring-1 ring-inset sm:text-sm">
                         {{ displayUnit(inputUnitLabel) }}
                       </div>
                     </div>
+                    <p v-if="props.processType === 'threshing' && props.harvestQuantity" class="mt-1.5 text-xs text-slate-500">
+                      Max: <span class="font-medium">{{ props.harvestQuantity }} {{ displayUnit(inputUnitLabel) }}</span>
+                      <span class="text-amber-600"> (after harvester share deduction)</span>
+                    </p>
                   </div>
 
                   <div v-if="!isCompletionMode">
@@ -158,8 +169,8 @@
 
               <hr class="border-slate-100" />
 
-              <!-- Laborer Assignment (optional, always visible) -->
-              <div>
+              <!-- Laborer Assignment (optional, not shown on completion) -->
+              <div v-if="!isCompletionMode">
                 <div class="relative flex items-start">
                   <div class="flex h-6 items-center">
                     <input id="assign-labor" v-model="assignLaborers" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
@@ -273,6 +284,7 @@ const props = defineProps({
   isCompletionMode: Boolean,
   processType: String,        // Fixed process type determined by pipeline position
   riceVarietyName: String,    // Variety name for milling output label
+  harvestQuantity: [String, Number],
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -444,6 +456,8 @@ const clearError = (field) => {
 
 const validate = () => {
   const errors = {};
+  const type = form.value.process_type || props.processType;
+  
   if (props.isCompletionMode) {
     if (!form.value.output_quantity || Number(form.value.output_quantity) <= 0) {
       errors.output_quantity = 'Required';
@@ -454,6 +468,8 @@ const validate = () => {
   } else {
     if (!form.value.input_quantity || Number(form.value.input_quantity) <= 0) {
       errors.input_quantity = 'Required';
+    } else if (type === 'threshing' && props.harvestQuantity && Number(form.value.input_quantity) > Number(props.harvestQuantity)) {
+      errors.input_quantity = `Cannot exceed net harvest quantity (${props.harvestQuantity} — after harvester share deduction)`;
     }
     if (!form.value.process_date) {
       errors.process_date = 'Required';

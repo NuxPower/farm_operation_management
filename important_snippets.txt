@@ -1,0 +1,598 @@
+================================================================================
+ANIBUKID FARM OPERATION MANAGEMENT - IMPORTANT CODE SNIPPETS
+================================================================================
+
+================================================================================
+FILE: Dockerfile
+================================================================================
+FROM node:20 AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM php:8.4-fpm
+RUN apt-get update && apt-get install -y \
+    git curl libpng-dev libpq-dev libonig-dev libxml2-dev \
+    zip unzip nginx supervisor postgresql-client \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts --prefer-dist
+
+COPY . .
+COPY --from=build /app/public/build public/build
+
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
+
+COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/run.sh /usr/local/bin/run.sh
+RUN chmod +x /usr/local/bin/run.sh
+
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/run.sh"]
+
+================================================================================
+FILE: docker-compose.yml
+================================================================================
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: farm-app
+    ports:
+      - "8000:8080"
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-farm_db}
+      DB_USERNAME: ${DB_USERNAME:-sail}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    depends_on:
+      - pgsql
+    networks:
+      - farm-network
+
+  pgsql:
+    image: 'postgres:15'
+    ports:
+      - '${FORWARD_DB_PORT:-5432}:5432'
+    environment:
+      POSTGRES_DB: '${DB_DATABASE:-farm_db}'
+      POSTGRES_USER: '${DB_USERNAME:-sail}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
+    volumes:
+      - 'sail-pgsql:/var/lib/postgresql/data'
+    networks:
+      - farm-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${DB_DATABASE:-farm_db}", "-U", "${DB_USERNAME:-sail}"]
+      retries: 3
+      timeout: 5s
+
+networks:
+  farm-network:
+    driver: bridge
+volumes:
+  sail-pgsql:
+    driver: local
+
+================================================================================
+FILE: docker/run.sh
+================================================================================
+#!/bin/sh
+cd /var/www/html
+
+if [ ! -f .env ]; then
+    touch .env
+fi
+
+if [ -z "$APP_KEY" ]; then
+    php artisan key:generate --force
+fi
+
+mkdir -p storage/app/public/products
+mkdir -p storage/framework/cache/data
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/logs
+
+chown -R www-data:www-data storage
+chmod -R 775 storage
+
+php artisan storage:link --force 2>/dev/null || true
+php artisan config:cache || echo "Warning: config:cache failed"
+php artisan route:cache  || echo "Warning: route:cache failed"
+php artisan migrate --force 2>/dev/null || echo "Warning: migrate skipped"
+
+LISTEN_PORT=${PORT:-8080}
+if [ "$LISTEN_PORT" != "8080" ]; then
+    sed -i "s/listen 8080 default_server;/listen $LISTEN_PORT default_server;/g" /etc/nginx/sites-available/default
+fi
+
+ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+
+================================================================================
+FILE: docker/supervisord.conf
+================================================================================
+[supervisord]
+nodaemon=true
+
+[program:php-fpm]
+command=docker-php-entrypoint php-fpm
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
+
+[program:nginx]
+command=nginx -g "daemon off;"
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
+
+[program:scheduler]
+command=php /var/www/html/artisan schedule:work
+autostart=true
+autorestart=true
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/dev/stdout
+
+================================================================================
+FILE: app/Models/Planting.php  —  Status constants, scopes, key model methods
+================================================================================
+const STATUS_PLANNED  = 'planned';
+const STATUS_PLANTED  = 'planted';
+const STATUS_GROWING  = 'growing';
+const STATUS_READY    = 'ready';
+const STATUS_HARVESTED= 'harvested';
+const STATUS_FAILED   = 'failed';
+
+const FAILURE_CATEGORIES = [
+    'pest_disease'    => 'Pest / Disease',
+    'weather'         => 'Weather (General)',
+    'flood'           => 'Flood',
+    'drought'         => 'Drought',
+    'poor_germination'=> 'Poor Germination',
+    'other'           => 'Other',
+];
+
+// Auto-stamp failed_at on first failure transition
+protected static function boot()
+{
+    parent::boot();
+    static::saving(function ($model) {
+        if ($model->isDirty('status') &&
+            $model->status === self::STATUS_FAILED &&
+            empty($model->failed_at)) {
+            $model->failed_at = now();
+        }
+    });
+}
+
+public function scopeFailed($query) { return $query->where('status', self::STATUS_FAILED); }
+public function scopeActive($query) { return $query->whereNotIn('status', [self::STATUS_HARVESTED, self::STATUS_FAILED]); }
+
+public function getCurrentStage()
+{
+    return $this->plantingStages()->with('riceGrowthStage')->where('status', 'in_progress')->first();
+}
+
+public function getProgressPercentage()
+{
+    $total     = $this->plantingStages()->count();
+    $completed = $this->plantingStages()->completed()->count();
+    return $total === 0 ? 0 : round(($completed / $total) * 100, 2);
+}
+
+public function getEstimatedYield()
+{
+    if (!$this->riceVariety || !$this->area_planted) return null;
+    return $this->area_planted * $this->riceVariety->average_yield_per_hectare;
+}
+
+public function startTransplantingStage()
+{
+    // Fast-forward to tillering (stage 2) for transplanting method
+    $tilleringStage = RiceGrowthStage::where('stage_code', 'stage_2_tillering')->first();
+    if ($tilleringStage) {
+        $priorIds = RiceGrowthStage::active()
+            ->where('order_sequence', '<', $tilleringStage->order_sequence)
+            ->pluck('id')->toArray();
+
+        $this->plantingStages()->whereIn('rice_growth_stage_id', $priorIds)->get()
+            ->each(fn($s) => $s->markAsCompleted('Completed in nursery (Transplanting)'));
+
+        $this->plantingStages()->where('rice_growth_stage_id', $tilleringStage->id)
+            ->first()?->markAsStarted();
+    }
+}
+
+================================================================================
+FILE: app/Http/Controllers/Farm/PlantingController.php  —  Failure / Un-fail logic
+================================================================================
+// --- Failure transition side-effects ---
+$isNewFailure = $planting->status !== Planting::STATUS_FAILED
+    && ($data['status'] ?? null) === Planting::STATUS_FAILED;
+
+$isUnfail = $planting->status === Planting::STATUS_FAILED
+    && isset($data['status'])
+    && $data['status'] !== Planting::STATUS_FAILED;
+
+if ($isUnfail) {
+    DB::transaction(function () use ($planting) {
+        $planting->update(['failed_at' => null, 'failure_category' => null, 'failure_reason' => null]);
+        Expense::where('planting_id', $planting->id)->where('category', 'crop_loss')->delete();
+
+        if ($planting->field->status === 'fallow') {
+            $planting->field->update(['status' => 'active']);
+        }
+
+        // Restore planting stages that were skipped
+        $skipped = $planting->plantingStages()->where('status', 'skipped')->get();
+        $restoredInProgress = false;
+        foreach ($skipped as $stage) {
+            if (!$restoredInProgress && $stage->started_at && !$stage->completed_at) {
+                $stage->update(['status' => 'in_progress']);
+                $restoredInProgress = true;
+            } else {
+                $stage->update(['status' => 'pending']);
+            }
+        }
+    });
+}
+
+if ($isNewFailure) {
+    $cropLossAmount = 0;
+    DB::transaction(function () use ($planting, $user, &$cropLossAmount) {
+        $planting->tasks()->whereIn('status', ['pending', 'in_progress'])->update(['status' => 'cancelled']);
+        $planting->plantingStages()->where('status', 'pending')->update(['status' => 'skipped']);
+        $planting->plantingStages()->where('status', 'in_progress')->update(['status' => 'skipped']);
+
+        $otherActive = Planting::where('field_id', $planting->field_id)
+            ->where('id', '!=', $planting->id)->active()->count();
+        if ($otherActive === 0) {
+            $planting->field->update(['status' => 'fallow']);
+        }
+
+        // Auto-create crop_loss expense from seed inventory transaction
+        $seedTx = InventoryTransaction::where('reference_type', 'Planting')
+            ->where('reference_id', $planting->id)->where('transaction_type', 'out')->first();
+
+        if ($seedTx && $seedTx->total_cost > 0) {
+            $cropLossAmount = (float) $seedTx->total_cost;
+            if (!Expense::where('planting_id', $planting->id)->where('category', 'crop_loss')->exists()) {
+                Expense::create([
+                    'user_id'     => $user->id,
+                    'planting_id' => $planting->id,
+                    'date'        => now(),
+                    'category'    => 'crop_loss',
+                    'description' => 'Crop failure write-off – seed cost (Planting #' . $planting->id . ')',
+                    'amount'      => $cropLossAmount,
+                    'notes'       => 'Auto-generated on failure. Reason: ' . ($planting->failure_reason ?? 'Not specified'),
+                ]);
+            }
+        }
+    });
+    $user->notify(new PlantingFailedNotification($planting->fresh(), $cropLossAmount));
+}
+
+private function determineSeasonFromDate(?Carbon $date): string
+{
+    if (!$date) return 'wet';
+    $month = (int) $date->format('n');
+    // Philippines PAGASA: Rainy Jun-Nov, Dry Dec-May
+    return ($month >= 6 && $month <= 11) ? 'wet' : 'dry';
+}
+
+================================================================================
+FILE: app/Http/Controllers/Analytics/DataAnalysisController.php  —  Full JSON response shape
+================================================================================
+public function getComprehensiveAnalytics(Request $request): JsonResponse
+{
+    // Builds 13 data sections and returns one JSON payload
+    return response()->json([
+        'executive_summary'  => $executiveSummary,   // tone + text
+        'action_suggestions' => $actionSuggestions,  // max 4, priority-sorted
+        'weather'            => $weatherData,         // avg_temperature, total_rainfall, avg_humidity
+        'sales'              => $salesData,           // total_revenue, total_orders, pending_orders
+        'expenses'           => $expensesData,        // total_expenses, by_category[]
+        'tasks'              => $taskStats,           // total, completed, pending, overdue
+        'fields'             => $fieldsData,          // total_area, utilization_rate
+        'nursery'            => $nurseryData,         // active_batches, ready_for_transplant
+        'pests'              => $pestsData,           // incidents, by_type, by_severity, forecasts[]
+        'laborers'           => $laborersData,        // total, active, total_labor_cost, completion_rate
+        'inventory'          => $inventoryData,       // total_items, low_stock_count, by_category, historical_usage
+        'post_harvest'       => $postHarvestData,     // avg_recovery_rate, cost_optimization, variety_performance
+        'failure_analysis'   => $failureData,         // total_failed, failure_rate_pct, by_category, by_variety, by_season
+        'financial_forecast' => $financialForecast,  // months[], projected_revenue[], projected_expenses[]
+        'generated_at'       => now(),
+    ]);
+}
+
+// Executive summary tone logic
+private function generateExecutiveSummary($sales, $expenses, $tasks, $pests, $user): array
+{
+    $profit = $revenue - $expenseTotal;
+    $tone = 'neutral';
+    if ($profit > 0 && $revenue > 0) {
+        $margin = ($profit / $revenue) * 100;
+        $tone = $margin > 20 ? 'positive' : 'neutral';
+    } elseif ($profit < 0) {
+        $tone = 'concern';
+    }
+    if (($pests['active_incidents'] ?? 0) > 0) $tone = 'concern';
+    return ['tone' => $tone, 'text' => $text];
+}
+
+// Action suggestions — priority flags
+// 'urgent'  → pickup expiring within 24 hours
+// 'high'    → pending orders, pest incidents, overdue tasks, harvest ready, low stock, crop failures
+// 'medium'  → expenses > revenue, ready seedlings for transplant
+// 'low'     → pending tasks > 5, fallback planning suggestions
+
+// Task scoping across planting→field and direct field_id
+$farmTaskScope = function ($query) use ($farm) {
+    $query->where(function ($q) use ($farm) {
+        $q->whereHas('planting.field', fn($fq) => $fq->where('farm_id', $farm->id))
+          ->orWhereHas('field', fn($fq) => $fq->where('farm_id', $farm->id));
+    });
+};
+
+// Pest forecast per field with growth stage context
+foreach ($farm->fields as $field) {
+    $activePlanting = $field->plantings()->whereIn('status', ['planted', 'growing'])
+        ->with(['riceVariety', 'harvests'])->first();
+    $fieldRisks = $this->pestPredictionService->predictRisks($farm, $resolvedIncidents, $activePlanting);
+
+    if ($activePlanting) {
+        $daysPlanted = Carbon::parse($activePlanting->planting_date)->diffInDays(now());
+        $growthStage = $daysPlanted <= 45 ? 'Vegetative' : ($daysPlanted <= 75 ? 'Reproductive' : 'Ripening');
+    }
+}
+
+================================================================================
+FILE: app/Services/WeatherAnalyticsService.php  —  Key public methods
+================================================================================
+// Efficient DB-aggregate period stats (used for historical comparison)
+public function getPeriodStats(Farm $farm, Carbon $startDate, Carbon $endDate)
+{
+    $stats = WeatherLog::where('farm_id', $farm->id)
+        ->whereBetween('recorded_at', [$startDate, $endDate])
+        ->selectRaw('AVG(temperature) as avg_temperature, MIN(temperature) as min_temperature,
+                     MAX(temperature) as max_temperature, AVG(humidity) as avg_humidity,
+                     AVG(wind_speed) as avg_wind_speed, COUNT(*) as total_readings')
+        ->first();
+
+    $mostCommon = WeatherLog::where('farm_id', $farm->id)
+        ->whereBetween('recorded_at', [$startDate, $endDate])
+        ->select('conditions', DB::raw('count(*) as count'))
+        ->groupBy('conditions')->orderByDesc('count')->value('conditions');
+
+    return [
+        'avg_temperature'     => round($stats->avg_temperature, 1),
+        'min_temperature'     => round($stats->min_temperature, 1),
+        'max_temperature'     => round($stats->max_temperature, 1),
+        'avg_humidity'        => round($stats->avg_humidity, 1),
+        'avg_wind_speed'      => round($stats->avg_wind_speed, 1),
+        'most_common_condition' => $mostCommon ?? 'unknown',
+        'total_readings'      => $stats->total_readings,
+    ];
+}
+
+// Advanced yield prediction — multi-factor model
+private function advancedYieldPrediction($planting, $weatherData)
+{
+    $baseYield = 4500; // kg/ha
+
+    // Factor 1: Temperature (0-30% impact) — optimal 22-28°C
+    $tempScore  = ($weatherData->whereBetween('temperature', [22, 28])->count() / $total) * 100;
+    $tempFactor = 1 + (($tempScore - 50) / 100) * 0.3;
+
+    // Factor 2: Rainfall adequacy (0-25% impact) — optimal ~1000mm/season
+    $rainfallRatio  = min(1.2, max(0.5, $weatherData->sum('rainfall') / 1000));
+    $rainfallFactor = 0.75 + ($rainfallRatio * 0.25);
+
+    // Factor 3: Humidity (0-15% impact) — optimal 65-80%
+    $humidityScore  = ($weatherData->whereBetween('humidity', [65, 80])->count() / $total) * 100;
+    $humidityFactor = 1 + (($humidityScore - 50) / 100) * 0.15;
+
+    // Factor 4: Stress events (up to -20% impact)
+    $stressFactor = 1 - (min(1, $stressDays / $total) * 0.2);
+
+    // Factor 5: Growth stage weather alignment (0-10% impact)
+    $growthFactor = 0.9 + (($growthStageScore / 100) * 0.1);
+
+    $predictedYield = $baseYield * $tempFactor * $rainfallFactor * $humidityFactor * $stressFactor * $growthFactor;
+    return ['predicted_yield_kg_per_ha' => round($predictedYield, 0), ...];
+}
+
+// ML-based yield: 60% current prediction + 40% historical average
+private function mlBasedYieldPrediction($planting, $weatherData)
+{
+    $advanced     = $this->advancedYieldPrediction($planting, $weatherData);
+    $historicalAvg= $this->getHistoricalYieldForPlanting($planting)['average_yield'] ?? 4500;
+    $mlYield      = ($advanced['predicted_yield_kg_per_ha'] * 0.6) + ($historicalAvg * 0.4);
+    return ['predicted_yield_kg_per_ha' => round($mlYield, 0), 'confidence_level' => 'high', ...];
+}
+
+// Optimal temperature ranges per growth stage
+private function countOptimalDays($weatherData, $stage)
+{
+    $optimalRanges = [
+        'seedling'     => ['temp' => [20, 30], 'humidity' => [70, 90]],
+        'tillering'    => ['temp' => [25, 32], 'humidity' => [70, 85]],
+        'flowering'    => ['temp' => [25, 30], 'humidity' => [70, 80]],
+        'grain_filling'=> ['temp' => [20, 28], 'humidity' => [60, 75]],
+        'ripening'     => ['temp' => [20, 28], 'humidity' => [50, 70]],
+    ];
+    // Count days within optimal ranges...
+}
+
+// Stress event identification — heat (>35°C), cold (<15°C), drought, flood
+private function identifyStressEvents($weatherData)
+{
+    // Groups consecutive heat/cold/drought/flood days into events
+    // Returns: type, severity (mild/moderate/severe), start_date, end_date, duration_days
+}
+
+// Trend stability analysis
+private function analyzeTrends($trends): array
+{
+    // Temperature change >2°C → low stability, >1°C → moderate, else high
+    // Humidity change >5% → low, >2% → moderate, else high
+    // Returns: overall_stability, stability_score, risk_level, risk_factors[]
+}
+
+================================================================================
+FILE: app/Http/Controllers/Weather/WeatherAnalyticsController.php  —  Route handlers
+================================================================================
+// GET /api/weather/analytics/{farmId}?analysis_type=basic|rice_specific|detailed|comparative
+public function getAnalytics(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/trends?trend_type=temperature|humidity|conditions|comprehensive
+public function getFarmWeatherTrends(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/impact?planting_id=X&analysis_period=planting_season|growth_stages|full_cycle
+public function getWeatherImpactAnalysis(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/yield?planting_id=X&prediction_model=simple|advanced|ml_based
+public function getYieldPredictions(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/planting-recommendations?crop_type=rice&planning_months=6
+public function getPlantingRecommendations(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/risk?risk_types[]=drought,flood,heat_stress,cold_stress,disease,pest
+public function getWeatherRiskAssessment(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/irrigation?soil_moisture_level=X&crop_stage=Y
+public function getIrrigationRecommendations(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/pest-disease-risk?pest_types[]=brown_planthopper&disease_types[]=rice_blast
+public function getPestDiseaseRisk(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/climate?analysis_years=5&climate_scenarios[]=current,moderate_warming
+public function getClimateChangeImpact(Request $request, $farmId): JsonResponse
+
+// GET /api/weather/analytics/{farmId}/export?format=csv|json&report_type=summary|detailed|comprehensive
+public function exportAnalyticsReport(Request $request, $farmId)
+
+================================================================================
+FILE: app/Services/PestPredictionService.php  —  Core prediction logic
+================================================================================
+public function predictRisks(Farm $farm, $resolvedIncidents = [], ?Planting $planting = null): array
+{
+    // 1. Get 7-day forecast (cached 30 min)
+    $forecast = Cache::remember("pest_forecast_{$lat}_{$lon}", now()->addMinutes(30),
+        fn() => $this->weatherService->getForecast((float)$lat, (float)$lon, 7));
+
+    // 2. Load pest library with rules (cached 6 hours)
+    $pests = Cache::remember('active_pest_rules', now()->addHours(6),
+        fn() => PestLibrary::with('rules')->get());
+
+    // 3. Determine growth stage from planting
+    $growthStage = $planting ? $this->getGrowthStage(
+        Carbon::parse($planting->planting_date)->diffInDays(now())
+    ) : null;
+
+    // 4. Analyze each forecast day and filter already-resolved risks
+    foreach ($forecast['list'] as $day) {
+        $risks = $this->analyzeDailyRisk($day, $pests, $growthStage);
+        $risks = array_filter($risks, function($risk) use ($resolvedIncidents) {
+            foreach ($resolvedIncidents as $incident) {
+                if (strcasecmp($incident->pest_name, $risk['pest_name']) === 0 ||
+                    (strcasecmp($incident->pest_type, $risk['type']) === 0 &&
+                     abs(now()->diffInDays($incident->updated_at)) < 7)) {
+                    return false; // recently resolved — skip
+                }
+            }
+            return true;
+        });
+    }
+}
+
+// Rule evaluation — supports: temperature, humidity, rainfall, wind_speed, lunar_phase
+private function analyzeDailyRisk(array $day, $pests, ?string $growthStage): array
+{
+    // Skip pests not relevant to current growth stage (vulnerable_stages filter)
+    // Evaluates each pest rule: '>', '<', 'between', 'equals'
+    // Returns: pest_name, type, risk_level, description, stage_note, recommendation, image
+}
+
+// Growth stage thresholds
+public function getGrowthStage(int $days): string
+{
+    if ($days <= 45) return 'vegetative';
+    if ($days <= 75) return 'reproductive';
+    return 'ripening';
+}
+
+// Lunar phase (affects Rice Black Bug pest pressure)
+private function getLunarPhase($timestamp): string
+{
+    // Calculates approximate moon age (0–29.53 day cycle)
+    // Returns: 'New Moon', 'First Quarter', 'Full Moon', 'Last Quarter', 'Intermediate'
+    // Waxing/Waning Gibbous (b=3,5) also treated as Full Moon for RBB risk
+}
+
+================================================================================
+FILE: resources/js/Pages/Weather/Dashboard.vue  —  Key reactive logic
+================================================================================
+// Windy.com layer switching
+const windyOverlay = ref('wind')
+const windyLayers = [
+  { value: 'wind', label: 'Wind', icon: '💨' },
+  { value: 'rain', label: 'Rain', icon: '🌧️' },
+  { value: 'temp', label: 'Temperature', icon: '🌡️' },
+  { value: 'clouds', label: 'Clouds', icon: '☁️' },
+]
+const windyBase = 'https://embed.windy.com/embed2.html?lat=14.5995&lon=120.9842&zoom=6&level=surface&menu=1&marker=1&pressure=1&type=map&location=coordinates&metricWind=default&metricTemp=default'
+const windySrc  = computed(() => `${windyBase}&overlay=${windyOverlay.value}`)
+const setWindyOverlay = (overlay) => { windyOverlay.value = overlay }
+
+// Cross-origin iframe security errors (harmless browser extension issue)
+window.addEventListener('error', (event) => {
+  if (event.message?.includes('Blocked a frame with origin')) {
+    event.preventDefault()
+    return false
+  }
+}, true)
+
+// Growing Degree Days (GDD) — base temp 10°C for rice
+const GDD_BASE_TEMP = 10
+const calculateDailyGDD = (high, low) => Math.max(0, ((high + low) / 2) - GDD_BASE_TEMP)
+// Rice typically requires ~2200 cumulative GDD to reach maturity
+const gdd = computed(() => ({
+  today : Math.round(calculateDailyGDD(forecastData[0].high, forecastData[0].low)),
+  week  : Math.round(weekDays.reduce((sum, d) => sum + calculateDailyGDD(d.high, d.low), 0)),
+  month : Math.round(weekGDD / weekDays.length * 7 * 4.3),
+  season: Math.round(monthGDD * 4),
+}))
+
+// Auto-generated local weather alerts from current conditions
+// - Rain/Storm → 'Rain Warning'
+// - temp > 35°C → 'Extreme Heat Alert'
+// - wind > 20 km/h → 'High Wind Advisory'
+// - Forecast scan (next 3 days): rainChance > 50 → 'Rain Expected', maxTemp > 35 → 'Extreme Heat Forecast'
+// Sorted by severity: critical(4) > high(3) > medium(2) > low(1) > info(0)
+
+// Weather refresh sequence
+const refreshWeather = async () => {
+  const farmId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id
+  if (farmId) {
+    await Promise.all([
+      weatherStore.fetchCurrentWeather(farmId),
+      weatherStore.fetchForecast(farmId, 7),
+      weatherStore.fetchWeatherAlerts(farmId),
+    ])
+  }
+}

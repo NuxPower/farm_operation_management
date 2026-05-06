@@ -84,6 +84,7 @@
             </span>
             <span class="mt-2 text-sm font-medium text-gray-900">Harvest</span>
             <span class="text-xs text-gray-500">{{ harvest?.quantity }} {{ displayUnit(harvest?.unit) }}</span>
+            <span v-if="harvest?.harvester_share > 0" class="text-xs text-amber-600 font-medium">Net: {{ netHarvestQuantity }} {{ displayUnit(harvest?.unit) }}</span>
           </div>
 
           <!-- Fixed pipeline steps: Threshing → Drying → Milling -->
@@ -202,6 +203,7 @@
       :is-completion-mode="isCompletionMode"
       :process-type="currentProcessType"
       :rice-variety-name="riceVarietyName"
+      :harvest-quantity="netHarvestQuantity"
       @close="closeModal"
       @saved="fetchData"
     />
@@ -225,6 +227,14 @@ const pipelineStatus = ref({ completed_types: [], next_step: 'threshing', is_com
 const riceVarietyName = ref('Rice');
 
 const pipelineOrder = ['threshing', 'drying', 'milling'];
+
+// Net quantity the farmer can actually process = gross minus harvester share
+const netHarvestQuantity = computed(() => {
+  if (!harvest.value) return null;
+  const gross = parseFloat(harvest.value.quantity || 0);
+  const share = parseFloat(harvest.value.harvester_share || 0);
+  return parseFloat((gross - share).toFixed(2));
+});
 
 const showModal = ref(false);
 const selectedParentId = ref(null);

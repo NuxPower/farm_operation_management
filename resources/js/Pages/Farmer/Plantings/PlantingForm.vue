@@ -422,8 +422,8 @@
                 class="block w-full rounded-l-xl border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 focus:z-10 sm:text-sm font-medium h-12 px-4"
                 :class="{ 'border-red-500': form.errors.seed_rate }"
               />
-              <div class="inline-flex items-center rounded-r-xl border border-l-0 border-gray-300 bg-emerald-50 text-emerald-700 sm:text-sm font-semibold px-4 whitespace-nowrap">
-                Packets
+              <div class="inline-flex items-center rounded-r-xl border border-l-0 border-gray-300 bg-emerald-50 text-emerald-700 sm:text-sm font-semibold px-4 whitespace-nowrap capitalize">
+                {{ form.data.seed_unit || 'packets' }}
               </div>
             </div>
             <p v-if="form.errors.seed_rate" class="mt-1 text-xs text-red-600 font-medium">{{ form.errors.seed_rate }}</p>
@@ -668,8 +668,6 @@ const form = ref({
   processing: false,
 })
 
-// seed_unit is always 'packets' — locked in the UI
-
 // Get selected inventory item
 const selectedInventoryItem = computed(() => {
   if (!form.value.data.inventory_item_id) return null;
@@ -723,6 +721,13 @@ watch(sourceType, (newSource) => {
   if (!isCurrentValid && validMethods.length > 0) {
     form.value.data.planting_method = validMethods[0].value
   }
+
+  // Update seed_unit based on source type
+  if (newSource === 'nursery') {
+    form.value.data.seed_unit = selectedSeedPlanting.value?.unit || 'pieces';
+  } else {
+    form.value.data.seed_unit = selectedInventoryItem.value?.unit || 'packets';
+  }
 })
 
 // Watch for seed_planting_id selection to autofill
@@ -761,7 +766,7 @@ watch(() => form.value.data.inventory_item_id, (newId) => {
       }
     }
 
-    // seed_unit is always 'packets' — not auto-changed from inventory item
+    form.value.data.seed_unit = item.unit || 'packets';
   }
 });
 
@@ -777,9 +782,16 @@ const calculateExpectedHarvestDate = () => {
   if (!harvestDateManuallyChanged.value &&
       form.value.data.planting_date &&
       selectedRiceVariety.value?.maturity_days) {
-    const plantingDate = new Date(form.value.data.planting_date)
-    const harvestDate = new Date(plantingDate)
     const maturityDays = Number(selectedRiceVariety.value.maturity_days) || 0
+    let baseDateStr = form.value.data.planting_date
+
+    // If using nursery seedlings, maturity is calculated from the day they were sown
+    if (sourceType.value === 'nursery' && selectedSeedPlanting.value?.planting_date) {
+      baseDateStr = selectedSeedPlanting.value.planting_date
+    }
+
+    const baseDate = new Date(baseDateStr)
+    const harvestDate = new Date(baseDate)
     harvestDate.setDate(harvestDate.getDate() + maturityDays)
     form.value.data.expected_harvest_date = formatDateForInput(harvestDate.toISOString())
   }
@@ -921,7 +933,7 @@ const submitForm = async () => {
   }
 
   // Validate seed quantity against inventory stock
-  if (form.value.data.inventory_item_id && form.value.data.seed_rate) {
+  if (sourceType.value === 'direct' && form.value.data.inventory_item_id && form.value.data.seed_rate) {
     const item = inventoryStore.riceSeeds.find(i => i.id == form.value.data.inventory_item_id);
     if (item) {
       const quantityNeeded = Number(form.value.data.seed_rate);
@@ -950,6 +962,13 @@ const submitForm = async () => {
     payload.rice_variety_id = Number(payload.rice_variety_id);
   } else {
     payload.rice_variety_id = null;
+  }
+
+  // Clear mutually exclusive fields based on sourceType
+  if (sourceType.value === 'direct') {
+    payload.seed_planting_id = null;
+  } else if (sourceType.value === 'nursery') {
+    payload.inventory_item_id = null;
   }
   // --- END CLEANING STEP ---
 

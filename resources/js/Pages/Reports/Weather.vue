@@ -205,8 +205,9 @@
       <!-- Historical Weather Data -->
       <div class="mt-8">
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-200">
+          <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 class="text-xl font-semibold text-gray-900">Historical Weather Data</h2>
+            <span class="text-sm text-gray-500">{{ dailyHistory.length }} records</span>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -226,9 +227,9 @@
                     No historical data available for this period.
                   </td>
                 </tr>
-                <tr v-for="day in dailyHistory" :key="day.date">
+                <tr v-for="day in paginatedHistory" :key="day.date" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(day.date) }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{{ day.condition }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatGrowthStage(day.condition) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ day.temperature }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ day.rainfall }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ day.humidity }}</td>
@@ -236,6 +237,83 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+          <!-- Pagination -->
+          <div v-if="totalHistoryPages > 1" class="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
+            <span class="text-sm text-gray-600">
+              Page {{ historyPage }} of {{ totalHistoryPages }}
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                @click="historyPage = 1"
+                :disabled="historyPage === 1"
+                class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >«</button>
+              <button
+                @click="historyPage--"
+                :disabled="historyPage === 1"
+                class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >‹</button>
+              <button
+                v-for="p in totalHistoryPages"
+                :key="p"
+                v-show="Math.abs(p - historyPage) <= 2"
+                @click="historyPage = p"
+                :class="[
+                  'px-3 py-1 text-xs rounded border',
+                  p === historyPage
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'border-gray-300 hover:bg-gray-100'
+                ]"
+              >{{ p }}</button>
+              <button
+                @click="historyPage++"
+                :disabled="historyPage === totalHistoryPages"
+                class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >›</button>
+              <button
+                @click="historyPage = totalHistoryPages"
+                :disabled="historyPage === totalHistoryPages"
+                class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >»</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Forecast -->
+      <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">7-Day Forecast</h2>
+          <div v-if="forecastLoading" class="text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="text-gray-500 mt-4 text-sm">Loading forecast...</p>
+          </div>
+          <div v-else-if="forecast.length === 0" class="text-center py-8 text-gray-500">
+            <p class="text-sm">No forecast data available. Try refreshing the Weather Dashboard first.</p>
+            <button @click="router.push('/weather')" class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium underline">Go to Weather Dashboard →</button>
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="day in forecast"
+              :key="day.date"
+              class="flex flex-col md:flex-row md:items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 gap-3"
+            >
+              <div class="flex items-center space-x-4">
+                <div class="text-sm font-medium text-gray-900 w-28">{{ formatForecastDate(day.date) }}</div>
+                <div class="text-2xl">{{ day.icon }}</div>
+                <div class="font-medium text-gray-900">{{ day.condition }}</div>
+              </div>
+              <div class="flex items-center gap-6 text-sm text-gray-600">
+                <div>
+                  <span class="font-semibold text-gray-900">{{ day.high !== null && !isNaN(day.high) ? Math.round(day.high) + '°C' : '--' }}</span>
+                  <span class="text-gray-400 mx-1">/</span>
+                  <span>{{ day.low !== null && !isNaN(day.low) ? Math.round(day.low) + '°C' : '--' }}</span>
+                </div>
+                <div class="flex items-center gap-1">🌧️ {{ day.rain_chance !== null && !isNaN(day.rain_chance) ? Math.round(day.rain_chance) + '%' : '--' }}</div>
+                <div class="flex items-center gap-1">💨 {{ day.wind_speed !== null && !isNaN(day.wind_speed) ? Math.round(day.wind_speed * 3.6) + ' km/h' : '--' }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -250,11 +328,11 @@
               <div class="space-y-2">
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Growth Stage</span>
-                  <span class="font-medium">{{ weatherImpact.crop_development.growth_stage }}</span>
+                  <span class="font-medium">{{ formatGrowthStage(weatherImpact.crop_development.growth_stage) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Days to Maturity</span>
-                  <span class="font-medium">{{ weatherImpact.crop_development.days_to_maturity }}</span>
+                  <span class="font-medium">{{ formatDaysToMaturity(weatherImpact.crop_development.days_to_maturity) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Stress Level</span>
@@ -329,6 +407,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { reportsAPI } from '@/services/api'
+import { useWeatherStore } from '@/stores/weather'
+import { useFarmStore } from '@/stores/farm'
 import LineChart from '@/Components/Charts/LineChart.vue'
 import BarChart from '@/Components/Charts/BarChart.vue'
 
@@ -367,8 +447,52 @@ const weatherImpact = ref({
 
 
 
+const weatherStore = useWeatherStore()
+const farmStore = useFarmStore()
+
 const weatherEvents = ref([])
 const dailyHistory = ref([])
+
+// Pagination
+const historyPage = ref(1)
+const historyPageSize = 10
+const paginatedHistory = computed(() => {
+  const start = (historyPage.value - 1) * historyPageSize
+  return dailyHistory.value.slice(start, start + historyPageSize)
+})
+const totalHistoryPages = computed(() => Math.max(1, Math.ceil(dailyHistory.value.length / historyPageSize)))
+
+// Forecast from weatherStore (same data as /weather)
+const getWeatherIconFromCondition = (condition) => {
+  const c = (condition || '').toLowerCase()
+  if (c.includes('storm') || c.includes('thunder')) return '⛈️'
+  if (c.includes('heavy rain')) return '🌧️'
+  if (c.includes('rain') || c.includes('drizzle')) return '🌦️'
+  if (c.includes('cloud') || c.includes('overcast')) return '☁️'
+  if (c.includes('partly')) return '⛅'
+  if (c.includes('fog') || c.includes('mist')) return '🌫️'
+  if (c.includes('snow')) return '❄️'
+  return '☀️'
+}
+const forecast = computed(() => {
+  if (!weatherStore.forecast || weatherStore.forecast.length === 0) return []
+  return weatherStore.forecast.map(day => {
+    const condition = day.most_common_condition || day.condition || day.weather || 'Clear'
+    const tempMin = day.temperature?.min ?? day.low ?? day.temperature_min ?? null
+    const tempMax = day.temperature?.max ?? day.high ?? day.temperature_max ?? null
+    return {
+      date: day.date || day.time,
+      condition,
+      icon: getWeatherIconFromCondition(condition),
+      high: tempMax,
+      low: tempMin,
+      rain_chance: day.precipitation_probability ?? day.rain_chance ?? 0,
+      wind_speed: day.wind_speed_avg ?? day.wind_speed ?? 0,
+      hourly: day.hourly || []
+    }
+  })
+})
+const forecastLoading = ref(false)
 
 const getEventIcon = (type) => {
   const icons = {
@@ -382,7 +506,36 @@ const getEventIcon = (type) => {
 }
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString()
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const formatForecastDate = (date) => {
+  return new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+const formatDaysToMaturity = (value) => {
+  if (!value || value === 'N/A') return 'N/A'
+  // If it looks like a date string (contains - or /)
+  if (typeof value === 'string' && (value.includes('-') || value.includes('/'))) {
+    const d = new Date(value)
+    if (!isNaN(d.getTime())) {
+      const today = new Date()
+      const diffMs = d - today
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+      if (diffDays < 0) return 'Harvested'
+      if (diffDays === 0) return 'Today'
+      return `${diffDays} day${diffDays !== 1 ? 's' : ''} (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`
+    }
+  }
+  return value
+}
+
+const formatGrowthStage = (value) => {
+  if (!value || value === 'N/A') return value
+  // Title-case each word, replace underscores/hyphens with spaces
+  return value
+    .replace(/[_-]/g, ' ')
+    .replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
 }
 
 const updateReport = async () => {
@@ -558,6 +711,21 @@ const route = useRoute()
 
 onMounted(async () => {
   loadWeatherData()
+  // Load forecast from weatherStore (same as /weather dashboard)
+  forecastLoading.value = true
+  try {
+    if (!farmStore.farmProfile) {
+      await farmStore.fetchFarmProfile()
+    }
+    const farmId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id
+    if (farmId && (!weatherStore.forecast || weatherStore.forecast.length === 0)) {
+      await weatherStore.fetchForecast(farmId, 7)
+    }
+  } catch (e) {
+    console.error('Failed to load forecast:', e)
+  } finally {
+    forecastLoading.value = false
+  }
 })
 </script>
 

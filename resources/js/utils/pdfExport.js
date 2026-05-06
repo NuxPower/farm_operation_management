@@ -35,11 +35,11 @@ export const pdfExport = {
 
         yPos += 8
         doc.setFontSize(10)
-        doc.text(`Total Revenue: ₱${(data.totalRevenue || 0).toLocaleString()}`, 20, yPos)
+        doc.text(`Total Revenue: PHP ${(data.totalRevenue || 0).toLocaleString()}`, 20, yPos)
         yPos += 6
-        doc.text(`Total Expenses: ₱${(data.totalExpenses || 0).toLocaleString()}`, 20, yPos)
+        doc.text(`Total Expenses: PHP ${(data.totalExpenses || 0).toLocaleString()}`, 20, yPos)
         yPos += 6
-        doc.text(`Net Profit: ₱${(data.netProfit || 0).toLocaleString()}`, 20, yPos)
+        doc.text(`Net Profit: PHP ${(data.netProfit || 0).toLocaleString()}`, 20, yPos)
 
         // Expenses by Category Table
         if (data.expensesByCategory && data.expensesByCategory.length > 0) {
@@ -49,7 +49,7 @@ export const pdfExport = {
 
             autoTable(doc, {
                 startY: yPos + 5,
-                head: [['Category', 'Amount (₱)', '% of Total']],
+                head: [['Category', 'Amount (PHP)', '% of Total']],
                 body: data.expensesByCategory.map(item => [
                     item.category || 'Other',
                     (item.amount || 0).toLocaleString(),
@@ -230,12 +230,12 @@ export const pdfExport = {
 
             autoTable(doc, {
                 startY: yPos,
-                head: [['Name', 'Category', 'Stock', 'Unit', 'Min Stock', 'Price (₱)', 'Location', 'Status']],
+                head: [['Name', 'Category', 'Stock', 'Unit', 'Min Stock', 'Price (PHP)', 'Location', 'Status']],
                 body: items.map(item => [
                     item.name,
-                    item.category,
+                    item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : '',
                     item.current_stock,
-                    item.unit,
+                    this._formatUnit(item.unit),
                     item.minimum_stock,
                     Number(item.unit_price).toFixed(2),
                     item.location || '-',
@@ -256,6 +256,15 @@ export const pdfExport = {
         if (stock <= 0) return 'Out of Stock'
         if (stock <= min) return 'Low Stock'
         return 'In Stock'
+    },
+
+    _formatUnit(unit) {
+        if (!unit) return ''
+        const displayLabels = {
+            'sacks_palay': 'sacks (palay)',
+            'sacks_rice': 'sacks (rice)',
+        }
+        return displayLabels[unit] || unit.replace(/_/g, ' ')
     }
 }
 

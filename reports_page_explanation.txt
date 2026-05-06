@@ -1,0 +1,62 @@
+ANIBUKID FARM OPERATION MANAGEMENT SYSTEM
+=========================================
+Detailed Documentation: Reports & Analytics Page (/reports)
+
+This document explains every metric, chart, and calculation present on the Farmer Reports & Analytics page. The page is divided into three main tabs: Yield Report, Financial Report, and Weather Correlation.
+
+---------------------------------------------------------
+1. GLOBAL FILTERS & CONTROLS
+---------------------------------------------------------
+- Time Period Dropdown: Allows the user to filter all data on the page by "Last 30 Days", "Last 3 Months", "Last Year", or "All Time".
+- Export Button: Allows the farmer to export the currently viewed data into PDF, CSV, or JSON formats.
+
+---------------------------------------------------------
+2. YIELD REPORT TAB
+---------------------------------------------------------
+This tab focuses on the physical production of the farm.
+
+Metrics:
+- Total Yield: The absolute sum of the harvest yields (e.g., in kilograms or bushels) recorded during the selected time period.
+- Avg Yield / Hectare: Calculates farm efficiency. It divides the 'Total Yield' by the total area (size) of all registered fields on the farm.
+- Top Performing Variety: Looks at all harvests in the selected period, groups them by the specific rice variety planted, and identifies the variety that produced the highest total yield.
+- Harvest Frequency: The total number of separate harvest events that occurred during the selected time frame.
+
+Charts:
+- Yield Trend (Line Chart): Displays the chronological progression of harvest yields over time. It plots the yield amount on the dates harvests occurred (showing up to the 12 most recent harvests in the selected period).
+- Yield by Variety (Pie/Doughnut Chart): Visually breaks down the 'Total Yield' into slices, showing what percentage of the total production came from each specific rice variety.
+
+---------------------------------------------------------
+3. FINANCIAL REPORT TAB
+---------------------------------------------------------
+This tab focuses on the economic performance of the farm, tracking money coming in and going out.
+
+Metrics:
+- Total Revenue: The sum of all money earned. It combines two sources:
+    1. Traditional sales recorded manually by the farmer.
+    2. Digital sales from the Anibukid Marketplace (specifically, orders where the payment_status is 'paid').
+- Total Expenses: The sum of all recorded farm expenses (e.g., seeds, fertilizer, labor, equipment) during the selected period.
+- Net Profit: Calculated simply as: (Total Revenue) - (Total Expenses). Shows the actual money kept.
+- Profit Margin: Calculates profitability as a percentage. Formula: (Net Profit / Total Revenue) * 100. For example, a 20% margin means for every $100 earned, $20 was kept as profit.
+
+Charts:
+- Revenue vs Expenses (Line/Area Chart): Aggregates all revenue and all expenses by month. It plots two lines over the selected period, allowing the farmer to easily see months where they operated at a loss (red line above green line) or at a profit (green line above red line).
+- Expenses Breakdown (Pie/Doughnut Chart): Groups all expenses by their Category (e.g., Labor, Fertilizer, Equipment) and shows which categories consume the largest portion of the budget.
+
+---------------------------------------------------------
+4. WEATHER CORRELATION TAB
+---------------------------------------------------------
+This tab analyzes agronomic conditions and attempts to link environmental factors with crop performance.
+
+Metrics:
+- Avg Rainfall: Calculates the average daily precipitation during the selected period. Formula: (Sum of all rainfall readings) / (Number of unique days).
+- Avg Temperature: The average temperature across all weather logs in the period (which are recorded every 6 hours).
+- Climate Impact (Favorable Days %): This acts as a "Favorable Weather Score". It calculates the percentage of days in the selected period where the weather was ideal for growing rice.
+    * Criteria for a "favorable day": Daily rainfall must be between 2mm and 20mm AND the average temperature for the day must be between 20°C and 35°C.
+    * Example: If the period is 30 days, and 15 days met the criteria, the Climate Impact is 50%. A high score during a growing season indicates excellent environmental conditions.
+
+Charts:
+- Yield & Rainfall Correlation (Combo Chart):
+    * How it works: It overlays Yield (as a line or bar) on top of Rainfall (as a filled area).
+    * If the selected period is 30 Days: It plots daily rainfall and overlays daily yield.
+    * If the selected period is > 30 Days (Months/Years): It groups rainfall cumulatively by month (Total Monthly Rainfall) and plots the yield on the specific month the harvest occurred.
+    * Purpose: Allows the farmer to visually identify patterns. For example, they might notice that a harvest following several months of very low rainfall resulted in a poor yield, or that an overly wet month caused harvest delays.
