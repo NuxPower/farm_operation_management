@@ -20,7 +20,7 @@
         </div>
         <!-- Brand text below the logo -->
         <h1 class="text-gray-900 text-base font-bold tracking-tight leading-tight">ANIBUKID</h1>
-        <p class="text-gray-400 text-xs font-medium tracking-wide">Management System</p>
+        <p class="text-gray-400 text-xs font-medium tracking-wide">{{ authStore.isBuyer ? 'Marketplace' : 'Management System' }}</p>
       </div>
 
       <!-- User Info -->
