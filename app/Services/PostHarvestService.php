@@ -120,6 +120,9 @@ class PostHarvestService
                 ]);
 
                 $process->update(['task_id' => $task->id]);
+                
+                // Immediately sync labor expenses so they appear in the UI
+                $this->syncLaborExpensesForTask($task, Carbon::parse($data['process_date']));
             }
 
             $this->syncProcessingExpense($process, (float) ($data['cost'] ?? 0));
@@ -168,16 +171,24 @@ class PostHarvestService
 
                     if ($task) {
                         $task->update($taskPayload);
+                        $this->syncLaborExpensesForTask($task, Carbon::parse($process->process_date));
                     } else {
                         $task = Task::create(array_merge($taskPayload, [
                             'status' => Task::STATUS_PENDING,
                         ]));
                         $process->update(['task_id' => $task->id]);
+                        $this->syncLaborExpensesForTask($task, Carbon::parse($process->process_date));
                     }
                 } elseif ($task) {
                     if ($task->status === Task::STATUS_COMPLETED) {
                         throw new \InvalidArgumentException('Cannot remove labor assignment from a completed task.');
                     }
+                    
+                    // Remove associated expenses and wages
+                    $task->laborWages()->delete();
+                    Expense::where('related_entity_type', Expense::ENTITY_TYPE_TASK)
+                        ->where('related_entity_id', $task->id)
+                        ->delete();
 
                     $task->delete();
                     $process->update(['task_id' => null]);
@@ -299,7 +310,7 @@ class PostHarvestService
             if ($process->task_id && $process->task) {
                 $task = $process->task;
                 $task->update(['status' => Task::STATUS_COMPLETED]);
-                $this->createLaborExpensesForCompletedTask($task, Carbon::now());
+                $this->syncLaborExpensesForTask($task, Carbon::parse($process->completed_date ?? now()));
             }
 
             return $process->fresh();
@@ -513,16 +524,11 @@ class PostHarvestService
     }
 
     /**
-     * Create labor wage + expense records when post-harvest completion closes an assigned task.
-     * Mirrors TaskController behavior so labor costs appear in expenses/reports.
+     * Create or update labor wage + expense records for a task.
+     * Synchronizes immediately so labor costs appear in expenses/reports when assigned.
      */
-    private function createLaborExpensesForCompletedTask(Task $task, Carbon $effectiveDate): void
+    private function syncLaborExpensesForTask(Task $task, Carbon $effectiveDate): void
     {
-        // Prevent duplicate generation if this task already has wages recorded.
-        if ($task->laborWages()->exists()) {
-            return;
-        }
-
         $task->loadMissing(['laborer', 'laborerGroup.laborers']);
 
         $laborers = collect();
@@ -537,10 +543,7 @@ class PostHarvestService
         }
 
         foreach ($laborers as $laborer) {
-            // Share compensation is handled at harvest-time value realization.
-            if ($task->payment_type === Task::PAYMENT_TYPE_SHARE) {
-                continue;
-            }
+            $isShare = $task->payment_type === Task::PAYMENT_TYPE_SHARE;
 
             $rate = (float) ($laborer->rate ?? 0);
             $rateType = strtolower($laborer->rate_type ?? 'per_day');
@@ -552,46 +555,59 @@ class PostHarvestService
             $endDate = $effectiveDate->copy()->startOfDay();
             $days = max(1, $startDate->diffInDays($endDate) + 1);
 
-            if ($rateType === 'per_task') {
-                $hours = 1;
-                $wageAmount = $rate;
-            } else {
-                $hours = $days * 8;
-                $wageAmount = $rate * $days;
+            $hours = 8;
+            $wageAmount = 0;
+
+            if (!$isShare) {
+                if ($rateType === 'per_task') {
+                    $hours = 1;
+                    $wageAmount = $rate;
+                } else {
+                    $hours = $days * 8;
+                    $wageAmount = $rate * $days;
+                }
+
+                if ((float) $task->wage_amount > 0) {
+                    $wageAmount = (float) $task->wage_amount;
+                }
+
+                if ($task->payment_type === Task::PAYMENT_TYPE_PIECE_RATE && $laborers->count() > 1) {
+                    $wageAmount = $wageAmount / $laborers->count();
+                }
             }
 
-            if ((float) $task->wage_amount > 0) {
-                $wageAmount = (float) $task->wage_amount;
-            }
-
-            if ($task->payment_type === Task::PAYMENT_TYPE_PIECE_RATE && $laborers->count() > 1) {
-                $wageAmount = $wageAmount / $laborers->count();
-            }
-
-            if ($wageAmount <= 0) {
+            if ($wageAmount <= 0 && !$isShare) {
                 continue;
             }
 
-            LaborWage::create([
-                'laborer_id' => $laborer->id,
-                'task_id' => $task->id,
-                'hours_worked' => $hours,
-                'wage_amount' => $wageAmount,
-                'date' => $effectiveDate,
-            ]);
+            LaborWage::updateOrCreate(
+                [
+                    'laborer_id' => $laborer->id,
+                    'task_id' => $task->id,
+                ],
+                [
+                    'hours_worked' => $hours,
+                    'wage_amount' => $wageAmount,
+                    'date' => $effectiveDate,
+                ]
+            );
 
-            Expense::create([
-                'description' => "Labor: {$laborer->name} - {$task->task_type} task",
-                'amount' => $wageAmount,
-                'category' => Expense::CATEGORY_LABOR,
-                'date' => $effectiveDate,
-                'user_id' => $task->field?->user_id ?? $task->planting?->field?->user_id,
-                'payment_method' => $task->payment_type === Task::PAYMENT_TYPE_SHARE ? 'revenue_share' : 'cash',
-                'notes' => "Auto-generated from post-harvest completion. Task ID: {$task->id}, Laborer: {$laborer->name}",
-                'related_entity_type' => Expense::ENTITY_TYPE_TASK,
-                'related_entity_id' => $task->id,
-                'planting_id' => $task->planting_id,
-            ]);
+            Expense::updateOrCreate(
+                [
+                    'related_entity_type' => Expense::ENTITY_TYPE_TASK,
+                    'related_entity_id' => $task->id,
+                    'description' => "Labor: {$laborer->name} - {$task->task_type} task",
+                ],
+                [
+                    'amount' => $wageAmount,
+                    'category' => Expense::CATEGORY_LABOR,
+                    'date' => $effectiveDate,
+                    'user_id' => $task->field?->user_id ?? $task->planting?->field?->user_id,
+                    'payment_method' => $isShare ? 'revenue_share' : 'cash',
+                    'notes' => "Auto-generated from post-harvest task. Task ID: {$task->id}, Laborer: {$laborer->name}",
+                    'planting_id' => $task->planting_id,
+                ]
+            );
         }
     }
 

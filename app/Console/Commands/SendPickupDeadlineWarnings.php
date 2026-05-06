@@ -12,7 +12,7 @@ class SendPickupDeadlineWarnings extends Command
 {
     protected $signature = 'orders:send-deadline-warnings';
 
-    protected $description = 'Send warning emails to farmers about orders with pickup deadlines expiring in 24 hours';
+    protected $description = 'Send warning emails to buyers about orders with pickup deadlines expiring in 24 hours';
 
     public function handle()
     {
@@ -27,17 +27,17 @@ class SendPickupDeadlineWarnings extends Command
 
         $count = 0;
         foreach ($expiringOrders as $order) {
-            $farmer = $order->riceProduct->farmer ?? null;
+            $buyer = $order->buyer ?? null;
 
-            if ($farmer && $farmer->email) {
+            if ($buyer && $buyer->email) {
                 $hoursRemaining = now()->diffInHours($order->pickup_deadline);
 
                 try {
-                    Mail::to($farmer->email)->send(
+                    Mail::to($buyer->email)->send(
                         new PickupDeadlineWarningMail($order, max(1, $hoursRemaining))
                     );
                     $count++;
-                    $this->info("Sent warning for Order #{$order->id} to {$farmer->email}");
+                    $this->info("Sent warning for Order #{$order->id} to {$buyer->email}");
                 } catch (\Exception $e) {
                     $this->error("Failed to send warning for Order #{$order->id}: {$e->getMessage()}");
                 }

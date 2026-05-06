@@ -1,0 +1,23 @@
+Scheduled Commands Report
+Generated: 2026-05-07 (UTC+8)
+Workspace: /home/hanyu/Projects/farm_operation_management
+
+The message "INFO No scheduled commands are ready to run." means that there are scheduled commands defined in the system, but none of them are scheduled to run at the exact minute the scheduler checked.
+
+List of All Scheduled Commands:
+
+1. Daily Commands:
+- inventory:check-expiry (Runs daily at 8:00 AM)
+- orders:send-deadline-warnings (Runs daily at 8:00 AM)
+- pre-orders:send-notifications (Runs daily at 9:00 AM)
+- tasks:process-due (Runs daily at 10:00 AM)
+
+2. Hourly Commands (Run at the top of the hour, e.g. 6:00, 7:00):
+- reports:send-scheduled
+- orders:cancel-expired-pickups
+- weather:monitor
+
+Note: If none of these timing conditions are met, the schedule worker will correctly report that no commands are ready. 
+`php artisan schedule:run` is the command the system runs every minute to check if anything is due. It does NOT force commands to run if it's not their scheduled time.
+To force a scheduled task to run immediately for testing purposes, use: `php artisan schedule:test` (which will let you interactively select one to run).
+Alternatively, you can just run a specific command directly, e.g., `php artisan weather:monitor`.

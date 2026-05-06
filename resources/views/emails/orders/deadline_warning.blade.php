@@ -1,9 +1,9 @@
 @component('mail::message')
 # Pickup Deadline Warning
 
-Hello {{ $order->riceProduct->farmer->name ?? 'Farmer' }},
+Hello {{ $order->buyer->name ?? 'Buyer' }},
 
-**Order #{{ $order->id }}** has a pickup deadline expiring soon!
+Your **Order #{{ $order->id }}** has a pickup deadline expiring soon!
 
 ## Order Details
 - **Product:** {{ $order->riceProduct->name ?? 'Rice Product' }}
@@ -18,15 +18,14 @@ If the buyer doesn't pick up by
 **{{ $order->pickup_deadline ? $order->pickup_deadline->format('M d, Y h:i A') : 'the deadline' }}**, this order will be
 **automatically cancelled** and the reserved stock will be released.
 
-@component('mail::button', ['url' => config('app.url') . '/farmer/orders/' . $order->id])
+@component('mail::button', ['url' => config('app.url') . '/orders/' . $order->id])
 View Order
 @endcomponent
 
 ---
 
-**Why this matters:**
-Based on research from major retailers (Target, Walmart) and fresh produce e-commerce studies, pickup deadlines help
-protect farmers from potential scammers who reserve products indefinitely without picking them up.
+**Important:**
+If you fail to pick up your order by the deadline, it will be automatically cancelled so the stock can be made available to other customers.
 
 Thanks,<br>
 {{ config('app.name') }}
