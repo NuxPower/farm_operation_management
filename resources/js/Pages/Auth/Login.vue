@@ -130,7 +130,12 @@
                   type="checkbox"
                   class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <span>I have read and accept the Terms of Service.</span>
+                <span>
+                  I have read and accept the
+                  <router-link to="/terms-of-service" class="font-medium text-emerald-700 underline hover:text-emerald-800">
+                    Terms of Service
+                  </router-link>.
+                </span>
               </label>
             </div>
           </div>

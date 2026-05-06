@@ -1,0 +1,399 @@
+ANIBUKID FARM OPERATION MANAGEMENT SYSTEM
+=========================================
+Analytics Warning Samples and Calculation Guide
+
+This file provides sample warning instances and how each metric is calculated
+for:
+1) Data Analytics Dashboard (/analytics/data-analysis)
+2) Weather Dashboard + Weather Reports (/weather and /weather/analytics)
+
+----------------------------------------------------------------------
+A. DATA ANALYTICS WARNING SAMPLES (/analytics/data-analysis)
+----------------------------------------------------------------------
+
+A1) Pending Sales Orders Warning
+Trigger Rule:
+- Warning appears when pending sales orders count > 0.
+
+Calculation:
+- pending_orders = count of RiceOrder where status = "pending" for current farmer.
+
+Sample Instance:
+- Pending orders found: 4
+- Warning text sample:
+  "You have 4 pending sales order(s). Review and confirm them."
+
+
+A2) Pickup Deadline Warning (Urgent)
+Trigger Rule:
+- Warning appears when order status = "ready_for_pickup" and pickup_deadline is
+  within the next 24 hours.
+
+Calculation:
+- expiring_pickups = count of ready_for_pickup orders with:
+  now < pickup_deadline <= now + 24 hours
+
+Sample Instance:
+- 2 pickups expiring in 24 hours
+- Warning text sample:
+  "2 order(s) awaiting pickup will expire within 24 hours."
+
+
+A3) Overdue Tasks Warning
+Trigger Rule:
+- Warning appears when overdue_tasks > 0.
+
+Calculation:
+- overdue_tasks = count of farm tasks where:
+  due_date < current time AND status != completed
+
+Sample Instance:
+- Total tasks: 18
+- Completed tasks: 11
+- Overdue tasks: 3
+- Warning text sample:
+  "3 overdue tasks need immediate attention."
+
+
+A4) Active Pest Incident Warning
+Trigger Rule:
+- Warning appears when active_incidents > 0.
+
+Calculation:
+- active_incidents = count of pest incidents in "active" scope for farm plantings.
+
+Sample Instance:
+- Total incidents: 9
+- Active incidents: 2
+- Warning text sample:
+  "2 active pest incidents require treatment."
+
+
+A5) Inventory Low Stock Warning
+Trigger Rule:
+- Warning appears when low_stock_count > 0.
+
+Calculation:
+- low_stock_count = number of inventory items where item.isLowStock() returns true.
+
+Sample Instance:
+- Total inventory items: 31
+- Low stock items: 6
+- Warning text sample:
+  "6 item(s) below minimum stock level - restock needed."
+
+
+A6) Inventory Expiry Warning
+Trigger Rule:
+- Warning appears when expiring_soon_count > 0.
+
+Calculation:
+- expiring_soon_count = count of inventory items with expiry_date between:
+  today and today + 30 days
+
+Sample Instance:
+- Expiring soon items: 5
+- Warning text sample:
+  "5 item(s) expiring within 30 days - use or dispose."
+
+
+A7) Expense Exceeds Revenue Warning
+Trigger Rule:
+- Warning appears when total_expenses > total_revenue and revenue > 0.
+
+Calculation:
+- profit = total_revenue - total_expenses
+- if profit < 0, financial warning is generated.
+
+Sample Instance:
+- Revenue: PHP 120,000
+- Expenses: PHP 150,000
+- Profit: PHP -30,000
+- Warning text sample:
+  "Expenses exceed revenue. Review expense categories for optimization."
+
+
+A8) Field Utilization Monitoring (Operational Risk Signal)
+Trigger Rule:
+- No strict hard alert in code, but low utilization indicates underused land.
+
+Calculation:
+- total_area = sum(field.size)
+- planted_area = sum(planting.area_planted for statuses planted/growing/active)
+- utilization_rate = (planted_area / total_area) * 100
+
+Sample Instance:
+- total_area = 20.0 ha
+- planted_area = 8.0 ha
+- utilization_rate = (8.0 / 20.0) * 100 = 40.0%
+- Risk interpretation sample:
+  "Land utilization is low (40.0%). Review planting schedule."
+
+
+A9) Labor Completion Rate (Productivity Risk Signal)
+Trigger Rule:
+- No direct hard warning threshold, but low completion rate indicates labor risk.
+
+Calculation:
+- completion_rate = (completed_tasks / total_tasks) * 100
+
+Sample Instance:
+- completed_tasks = 11
+- total_tasks = 18
+- completion_rate = (11 / 18) * 100 = 61.1%
+- Risk interpretation sample:
+  "Task completion rate is 61.1%. Consider labor/task reallocation."
+
+
+A10) Post-Harvest Recovery Performance
+Trigger Rule:
+- No direct warning threshold, but low recovery rate or high provider cost can be flagged.
+
+Calculation:
+- process_recovery_rate = (output_quantity / input_quantity) * 100 (from process method)
+- average_recovery_rate = mean(process_recovery_rate across completed processes)
+- self_avg_cost = average(cost/output_quantity for self-processed records)
+- provider_avg_cost = average(cost/output_quantity for provider-processed records)
+
+Sample Instance:
+- Process A recovery: 63%
+- Process B recovery: 68%
+- Process C recovery: 64%
+- average_recovery_rate = (63 + 68 + 64) / 3 = 65.0%
+- self_avg_cost = PHP 4.20/unit
+- provider_avg_cost = PHP 6.10/unit
+- Risk interpretation sample:
+  "Provider processing is costlier than self-processing by PHP 1.90/unit."
+
+
+----------------------------------------------------------------------
+B. WEATHER ANALYTICS WARNING SAMPLES (/weather and /weather/analytics)
+----------------------------------------------------------------------
+
+B1) Current Rain/Storm Warning (Dashboard)
+Trigger Rule:
+- If current weather description contains "rain" or "storm".
+
+Sample Instance:
+- Current condition: "stormy"
+- Warning text sample:
+  "Rain or storm conditions detected. Field work involving spraying should be postponed."
+
+
+B2) Current Extreme Heat Warning (Dashboard)
+Trigger Rule:
+- If current temperature > 35 C.
+
+Sample Instance:
+- Current temperature: 37 C
+- Warning text sample:
+  "Extreme Heat Alert: High temperature (37 C). Avoid strenuous field work during peak hours."
+
+
+B3) Current High Wind Advisory (Dashboard)
+Trigger Rule:
+- If current wind speed > 20 km/h.
+
+Sample Instance:
+- Current wind speed: 26 km/h
+- Warning text sample:
+  "High Wind Advisory: High wind speeds (26 km/h) detected."
+
+
+B4) Forecast Rain Expected Warning
+Trigger Rule:
+- For next 3 forecast days:
+  condition contains rain/storm OR rain_chance > 50%.
+
+Sample Instance:
+- Day: Friday
+- Condition: Cloudy
+- rain_chance: 72%
+- Warning text sample:
+  "Rain Expected: Rain forecast for Fri. Plan field activities accordingly."
+
+
+B5) Forecast Extreme Heat Warning
+Trigger Rule:
+- For next 3 forecast days:
+  max_temp > 35 C.
+
+Sample Instance:
+- Day: Saturday
+- max_temp: 36.5 C
+- Warning text sample:
+  "Extreme Heat Forecast: High temperatures (>35 C) expected on Sat."
+
+
+B6) Rice-Specific Cold Stress (Backend Weather Alerts)
+Trigger Rule:
+- latest temperature < 15 C.
+
+Sample Instance:
+- Temperature: 14 C
+- Warning text sample:
+  "Cold Stress Warning: Temperature below 15 C can slow rice growth and development."
+
+
+B7) Rice-Specific Heat Stress (Backend Weather Alerts)
+Trigger Rule:
+- latest temperature > 35 C.
+
+Sample Instance:
+- Temperature: 36 C
+- Warning text sample:
+  "Heat Stress Warning: Temperature above 35 C can reduce rice yield."
+
+
+B8) Flowering Stage Critical Heat (Rice-Specific)
+Trigger Rule:
+- If growth stage = flowering AND temperature > 30 C.
+
+Sample Instance:
+- Stage: flowering
+- Temperature: 31.5 C
+- Warning text sample:
+  "Critical Heat Stress (Flowering): High temperature during flowering can cause spikelet sterility."
+
+
+B9) Flowering Stage Low Humidity
+Trigger Rule:
+- If growth stage = flowering AND humidity < 60%.
+
+Sample Instance:
+- Stage: flowering
+- Humidity: 55%
+- Warning text sample:
+  "Low Humidity (Flowering): Low humidity during flowering may affect pollination."
+
+
+B10) Grain Filling Heat Stress
+Trigger Rule:
+- If growth stage = grain_filling AND temperature > 32 C.
+
+Sample Instance:
+- Stage: grain_filling
+- Temperature: 33 C
+- Warning text sample:
+  "Heat Stress (Grain Filling): High temperature can reduce grain quality."
+
+
+B11) Humidity Disease Risk Warning
+Trigger Rule:
+- If humidity > 85%.
+
+Sample Instance:
+- Humidity: 89%
+- Warning text sample:
+  "High Humidity Disease Risk: Increased risk of rice blast and fungal diseases."
+
+
+B12) Strong Wind Advisory (Rice-Specific)
+Trigger Rule:
+- If wind_speed > 15 km/h.
+
+Sample Instance:
+- Wind speed: 18 km/h
+- Warning text sample:
+  "Strong Wind Advisory: Strong winds can cause lodging in rice plants."
+
+
+B13) Heavy Rainfall Detected (Rice-Specific)
+Trigger Rule:
+- If conditions in ['stormy', 'rainy'].
+
+Sample Instance:
+- Condition: rainy
+- Warning text sample:
+  "Heavy Rainfall Detected. Monitor field water levels to prevent flooding damage."
+
+
+----------------------------------------------------------------------
+C. WEATHER ANALYTICS CALCULATIONS (FORMULAS + EXAMPLES)
+----------------------------------------------------------------------
+
+C1) Weather Summary Calculations (Reports Weather)
+- avg_temperature = average(weather_log.temperature over selected period)
+- total_rainfall = sum(weather_log.rainfall over selected period)
+- avg_wind_speed = average(weather_log.wind_speed over selected period)
+- sunshine_hours = clear_days * 8 (estimated)
+
+Example:
+- Temperatures: [28, 30, 29, 31] => avg = 29.5 C
+- Rainfall: [5, 0, 12, 3] => total = 20 mm
+- Wind: [9, 11, 13, 7] => avg = 10.0 km/h
+- Clear days: 2 => sunshine_hours = 2 * 8 = 16 h
+
+
+C2) GDD (Growing Degree Days) - Reports Backend
+Formula:
+- daily_gdd = max(0, daily_avg_temp - 10)
+- today/week/month/season GDD are sums of daily_gdd over each window.
+
+Example:
+- Daily average temperatures for week: [26, 27, 28, 25, 24, 29, 30]
+- Daily GDD: [16, 17, 18, 15, 14, 19, 20]
+- Week GDD = 16+17+18+15+14+19+20 = 119
+
+
+C3) Dashboard GDD (Frontend Approximation)
+Formula used in dashboard widget:
+- daily_gdd = max(0, ((high + low) / 2) - 10)
+- week = sum(next 7 days daily_gdd
+- month ~= (weekly average scaled) * 4.3
+- season ~= month * 4
+
+Example:
+- Day high/low = 34/24
+- daily_gdd = ((34 + 24) / 2) - 10 = 19
+
+
+C4) Rain Chance Conversion (ColorfulClouds path)
+If precipitation amount is used:
+- 0 < rain < 1 mm => rain_chance = 20%
+- 1 to <5 mm => 50%
+- 5 to <10 mm => 70%
+- >=10 mm => 90%
+
+Example:
+- Predicted rain = 6.5 mm => rain_chance = 70%
+
+
+C5) Disease Risk Indicator (Weather Impact)
+In weather impact mapping:
+- disease risk uses assessed disease risk levels and maps highest level:
+  high -> High, medium -> Moderate, else Low
+
+Example:
+- Rice blast overall risk: medium
+- Bacterial blight overall risk: high
+- Final disease_risk shown = High
+
+
+----------------------------------------------------------------------
+D. QUICK REFERENCE WARNING THRESHOLDS
+----------------------------------------------------------------------
+
+Data Analytics:
+- Pending orders warning: pending_orders > 0
+- Pickup expiry warning: pickup_deadline within next 24h
+- Overdue tasks warning: overdue_tasks > 0
+- Pest warning: active_incidents > 0
+- Low stock warning: low_stock_count > 0
+- Expiry warning: expiring_soon_count > 0
+- Financial concern: total_expenses > total_revenue
+- Planning load note: pending_tasks > 5
+
+Weather Analytics:
+- Extreme heat: temperature > 35 C
+- Cold stress: temperature < 15 C
+- Strong wind: > 15 km/h (rice-specific), > 20 km/h (dashboard local advisory)
+- High humidity disease risk: humidity > 85%
+- Forecast rain warning: rain/storm condition OR rain chance > 50%
+- Forecast heat warning: max temp > 35 C
+- Flowering critical heat: stage flowering AND temp > 30 C
+- Flowering low humidity: stage flowering AND humidity < 60%
+- Grain filling heat stress: stage grain_filling AND temp > 32 C
+
+
+End of file.

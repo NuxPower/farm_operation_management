@@ -106,6 +106,12 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: '/terms-of-service',
+    name: 'terms-of-service',
+    component: () => import('@/Pages/Legal/TermsOfService.vue'),
+    meta: { allowGuest: true }
+  },
+  {
     path: '/onboarding',
     name: 'onboarding',
     component: FarmProfile,
