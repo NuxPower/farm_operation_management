@@ -78,6 +78,8 @@ const submit = async () => {
   } catch (error) {
     if (error.response && error.response.data.errors) {
       errors.value = error.response.data.errors;
+    } else if (error.response && error.response.data.message) {
+      errors.value = { email: [error.response.data.message] };
     } else {
       errors.value = { email: ['An unexpected error occurred. Please try again.'] };
     }
