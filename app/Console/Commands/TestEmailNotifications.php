@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use App\Mail\VerificationCodeMail;
 use App\Mail\WeatherWarningMail;
 use App\Mail\PreOrderAvailableMail;
@@ -23,7 +24,7 @@ class TestEmailNotifications extends Command
     protected $signature = 'email:test 
         {email : The email address to send test emails to}
         {--user= : The user email to simulate (for fetching order data)}
-        {--only= : Only test a specific email type (verification, weather, preorder, pickup_reminder, deadline_warning, order_expired)}';
+        {--only= : Only test a specific email type (verification, weather, preorder, pickup_reminder, deadline_warning, order_expired, password_reset)}';
 
     /**
      * The console command description.
@@ -58,6 +59,11 @@ class TestEmailNotifications extends Command
         }
 
         $results = [];
+
+        // 0. Test Password Reset Email
+        if (!$onlyType || $onlyType === 'password_reset') {
+            $results['password_reset'] = $this->testPasswordResetEmail($targetEmail);
+        }
 
         // 1. Test Verification Code Email
         if (!$onlyType || $onlyType === 'verification') {
@@ -121,6 +127,36 @@ class TestEmailNotifications extends Command
         $this->info("Total: {$successCount} passed, {$failCount} failed");
 
         return $failCount > 0 ? 1 : 0;
+    }
+
+    private function testPasswordResetEmail(string $email): array
+    {
+        $this->info("");
+        $this->info("🔑 Testing Password Reset Email...");
+
+        // Find a user with that email, or any user as fallback
+        $user = User::where('email', $email)->first() ?? User::first();
+
+        if (!$user) {
+            return ['success' => false, 'message' => 'No user found in database to send reset link for.'];
+        }
+
+        $this->info("   Sending reset link for user: {$user->email}");
+        $this->info("   APP_URL is: " . config('app.url'));
+        $this->info("   MAIL_MAILER is: " . config('mail.default'));
+        $this->info("   MAIL_HOST is: " . config('mail.mailers.smtp.host'));
+
+        try {
+            $status = Password::sendResetLink(['email' => $user->email]);
+
+            if ($status === Password::RESET_LINK_SENT) {
+                return ['success' => true, 'message' => "Reset link sent to {$user->email} (status: {$status})"];
+            }
+
+            return ['success' => false, 'message' => "Laravel returned status: {$status} — email may not have been sent."];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
     }
 
     private function testVerificationCodeEmail(string $email): array
