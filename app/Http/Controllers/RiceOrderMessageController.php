@@ -17,7 +17,7 @@ class RiceOrderMessageController extends Controller
         }
 
         $messages = $order->messages()
-            ->with('sender:id,name')
+            ->with('sender:id,name,profile_picture')
             ->orderBy('created_at')
             ->get();
 
@@ -42,7 +42,7 @@ class RiceOrderMessageController extends Controller
             'rice_order_id' => $order->id,
             'sender_id' => $user->id,
             'message' => $validated['message'],
-        ])->load('sender:id,name');
+        ])->load('sender:id,name,profile_picture');
 
         return response()->json([
             'message' => 'Message sent successfully',

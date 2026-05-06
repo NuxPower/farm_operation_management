@@ -152,26 +152,48 @@
             </div>
           </div>
 
-          <!-- Pickup Location -->
+          <!-- Contact & Delivery Information -->
           <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4">Pickup Location</h2>
+            <h2 class="text-xl font-semibold mb-4">Contact & Delivery Information</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 class="font-medium text-gray-900 mb-2">Pickup Address</h3>
-                <div class="text-gray-600 space-y-1">
-                  <div>Managok, Malaybalay City</div>
-                  <div>Bukidnon, Philippines</div>
-                  <div class="mt-2">
-                    <span class="font-medium">📞 Phone:</span> 0917-123-4567
+              <div v-if="contactPerson">
+                <h3 class="font-medium text-gray-900 mb-2">{{ contactPerson.roleTitle }}</h3>
+                <div class="text-gray-600 space-y-2">
+                  <div class="flex items-start gap-2">
+                    <span>👤</span>
+                    <div>
+                      <div class="font-medium text-gray-800">{{ contactPerson.name }}</div>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span>📞</span>
+                    <div>
+                      <a :href="'tel:' + contactPerson.phone" class="text-blue-600 hover:underline" v-if="contactPerson.phone">{{ contactPerson.phone }}</a>
+                      <span v-else class="text-gray-400 italic">Not provided</span>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span>📧</span>
+                    <div>
+                      <a :href="'mailto:' + contactPerson.email" class="text-blue-600 hover:underline" v-if="contactPerson.email">{{ contactPerson.email }}</a>
+                      <span v-else class="text-gray-400 italic">Not provided</span>
+                    </div>
+                  </div>
+                  <div class="flex items-start gap-2 mt-2">
+                    <span>📍</span>
+                    <div class="text-sm">
+                      <div class="font-medium text-gray-700">Location / Address:</div>
+                      <div>{{ contactPerson.address }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
               <div>
-                <h3 class="font-medium text-gray-900 mb-2">Pickup Details</h3>
+                <h3 class="font-medium text-gray-900 mb-2">Delivery Details</h3>
                 <div class="space-y-2 text-gray-600">
-                  <div class="flex gap-2">
+                  <div class="flex justify-between">
                     <span>Method:</span>
-                    <span>{{ order.delivery_method || 'pickup' }}</span>
+                    <span class="font-medium capitalize">{{ order.delivery_method || 'pickup' }}</span>
                   </div>
                   <!-- Preferred Pickup Date (buyer's request) -->
                   <div v-if="order.preferred_pickup_date" class="flex justify-between">
@@ -180,7 +202,7 @@
                   </div>
                   <!-- Confirmed Pickup Date (farmer confirmed) -->
                   <div v-if="order.confirmed_pickup_date" class="flex justify-between bg-green-50 p-2 rounded-md border border-green-200">
-                    <span class="text-green-700 font-medium">📅 Scheduled Pickup:</span>
+                    <span class="text-green-700 font-medium">📅 Scheduled:</span>
                     <span class="text-green-700 font-medium">{{ formatDate(order.confirmed_pickup_date) }}</span>
                   </div>
                   <div v-if="order.tracking_number" class="flex justify-between">
@@ -257,21 +279,38 @@
                 <!-- Regular Message -->
                 <div
                   v-if="item.type === 'message'"
-                  class="max-w-md rounded-lg px-4 py-3 text-sm"
-                  :class="item.sender_id == currentUserId ? 'ml-auto bg-green-100 text-right' : 'mr-auto bg-white text-left border border-gray-200'"
+                  class="flex items-end max-w-md w-full"
+                  :class="item.sender_id == currentUserId ? 'ml-auto flex-row-reverse' : 'mr-auto'"
                 >
-                  <div class="text-xs text-gray-500">
-                    {{ item.sender?.name || 'Participant' }} • {{ formatDateTime(item.created_at) }}
+                  <div class="flex-shrink-0 mx-2">
+                    <img v-if="item.sender?.profile_picture" :src="getProfilePictureUrl(item.sender)" class="h-8 w-8 rounded-full object-cover border border-gray-200" :alt="item.sender?.name" />
+                    <div v-else class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm border border-gray-300">
+                      {{ (item.sender?.name || 'U').charAt(0).toUpperCase() }}
+                    </div>
                   </div>
-                  <div class="mt-2 text-gray-800 whitespace-pre-line">{{ item.message }}</div>
+                  <div
+                    class="rounded-lg px-4 py-3 text-sm"
+                    :class="item.sender_id == currentUserId ? 'bg-green-100 text-right' : 'bg-white text-left border border-gray-200'"
+                  >
+                    <div class="text-xs text-gray-500">
+                      {{ item.sender?.name || 'Participant' }} • {{ formatDateTime(item.created_at) }}
+                    </div>
+                    <div class="mt-1 text-gray-800 whitespace-pre-line">{{ item.message }}</div>
+                  </div>
                 </div>
 
                 <!-- Negotiation Proposal -->
                 <div
                   v-else-if="item.type === 'negotiation'"
-                  class="mx-auto max-w-sm rounded-lg border-2 p-4 text-center"
+                  class="mx-auto max-w-sm rounded-lg border-2 p-4 text-center mt-4 mb-4"
                   :class="getNegotiationCardClass(item)"
                 >
+                  <div class="flex justify-center mb-2">
+                    <img v-if="item.proposer?.profile_picture" :src="getProfilePictureUrl(item.proposer)" class="h-8 w-8 rounded-full object-cover border border-gray-200" :alt="item.proposer?.name" />
+                    <div v-else class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm border border-gray-300">
+                      {{ (item.proposer?.name || 'U').charAt(0).toUpperCase() }}
+                    </div>
+                  </div>
                   <div class="text-xs text-gray-500 mb-2">
                     {{ item.proposer?.name || 'Someone' }} • {{ formatDateTime(item.created_at) }}
                   </div>
@@ -689,6 +728,43 @@ const orderSubtotal = computed(() => {
 const deliveryAddress = computed(() => order.value?.delivery_address || {})
 const currentUserId = computed(() => authStore.user?.id)
 
+const formatAddress = (addressData) => {
+  if (!addressData) return 'N/A'
+  if (typeof addressData === 'string') return addressData
+  
+  const parts = []
+  if (addressData.street) parts.push(addressData.street)
+  if (addressData.barangay) parts.push(addressData.barangay)
+  if (addressData.city) parts.push(addressData.city)
+  if (addressData.province) parts.push(addressData.province)
+  
+  return parts.length > 0 ? parts.join(', ') : 'N/A'
+}
+
+const contactPerson = computed(() => {
+  if (!order.value) return null
+  
+  if (isFarmer.value) {
+    const buyer = order.value.buyer
+    return {
+      roleTitle: 'Buyer Information',
+      name: buyer?.name || 'Unknown Buyer',
+      phone: buyer?.phone,
+      email: buyer?.email,
+      address: formatAddress(order.value.delivery_address)
+    }
+  } else {
+    const farmer = order.value.rice_product?.farmer
+    return {
+      roleTitle: 'Farmer Information',
+      name: farmer?.name || 'Unknown Farmer',
+      phone: farmer?.phone,
+      email: farmer?.email,
+      address: formatAddress(farmer?.address)
+    }
+  }
+})
+
 const messages = ref([])
 const messagesLoading = ref(false)
 const sendingMessage = ref(false)
@@ -755,6 +831,15 @@ const getNegotiationCardClass = (negotiation) => {
     default:
       return 'border-orange-300 bg-orange-50'
   }
+}
+
+// Helper: Get profile picture url
+const getProfilePictureUrl = (user) => {
+  if (!user || !user.profile_picture) return null;
+  if (user.profile_picture.startsWith('http')) {
+    return user.profile_picture;
+  }
+  return `/storage/${user.profile_picture}`;
 }
 
 // Load negotiations for the order

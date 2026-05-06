@@ -21,7 +21,7 @@ class PriceNegotiationController extends Controller
         }
 
         $negotiations = $order->negotiations()
-            ->with('proposer:id,name')
+            ->with('proposer:id,name,profile_picture')
             ->orderBy('created_at')
             ->get();
 
@@ -79,7 +79,7 @@ class PriceNegotiationController extends Controller
             $order->update(['status' => RiceOrder::STATUS_NEGOTIATING]);
         }
 
-        $negotiation->load('proposer:id,name');
+        $negotiation->load('proposer:id,name,profile_picture');
 
         return response()->json([
             'message' => 'Price proposal submitted successfully',
@@ -118,7 +118,7 @@ class PriceNegotiationController extends Controller
 
             return response()->json([
                 'message' => 'Negotiation accepted. Price updated.',
-                'negotiation' => $negotiation->fresh()->load('proposer:id,name'),
+                'negotiation' => $negotiation->fresh()->load('proposer:id,name,profile_picture'),
                 'order' => $order->fresh(),
             ]);
         }
@@ -128,7 +128,7 @@ class PriceNegotiationController extends Controller
 
             return response()->json([
                 'message' => 'Negotiation rejected.',
-                'negotiation' => $negotiation->fresh()->load('proposer:id,name'),
+                'negotiation' => $negotiation->fresh()->load('proposer:id,name,profile_picture'),
             ]);
         }
 
@@ -143,7 +143,7 @@ class PriceNegotiationController extends Controller
                 'status' => PriceNegotiation::STATUS_PENDING,
             ]);
 
-            $counterProposal->load('proposer:id,name');
+            $counterProposal->load('proposer:id,name,profile_picture');
 
             return response()->json([
                 'message' => 'Counter-proposal submitted.',
