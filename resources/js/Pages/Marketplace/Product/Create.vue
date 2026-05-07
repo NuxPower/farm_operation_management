@@ -113,7 +113,7 @@
                         Latest completed output: {{ getProcessStageLabel(latestCompletedProcess.process_type) }}
                       </p>
                       <p class="mt-1 text-sm text-emerald-800">
-                        Suggested ready quantity: {{ processingSummary?.summary?.final_quantity }} {{ processingSummary?.summary?.final_unit || form.unit }}
+                        Suggested ready quantity: {{ latestCompletedProcess.output_quantity || processingSummary?.summary?.final_quantity }} {{ displayUnitLabel(latestCompletedProcess.output_unit || processingSummary?.summary?.final_unit || form.unit) }}
                       </p>
                       <p class="mt-2 text-xs text-emerald-700">
                         This form uses the latest completed post-harvest output when available while keeping your processing workflow flexible.
@@ -570,17 +570,22 @@ const isUnitLocked = computed(() => {
 })
 
 const applyProcessingSuggestions = () => {
-  if (!latestCompletedProcess.value || !processingSummary.value?.summary?.final_quantity) {
+  if (!latestCompletedProcess.value) {
     return
   }
 
-  form.quantity_available = Number(processingSummary.value.summary.final_quantity)
+  const latestQty = latestCompletedProcess.value.output_quantity || processingSummary.value?.summary?.final_quantity
+  if (!latestQty) return
+
+  form.quantity_available = Number(latestQty)
+
+  const latestUnit = latestCompletedProcess.value.output_unit || processingSummary.value?.summary?.final_unit
 
   // Lock unit to the milling output unit type when milling is completed
   if (latestCompletedProcess.value.process_type === 'milling') {
     form.unit = 'sacks_rice'
-  } else if (processingSummary.value.summary.final_unit && units.includes(processingSummary.value.summary.final_unit)) {
-    form.unit = processingSummary.value.summary.final_unit
+  } else if (latestUnit && units.includes(latestUnit)) {
+    form.unit = latestUnit
   }
 
   if (!form.processing_method) {

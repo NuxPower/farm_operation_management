@@ -104,7 +104,7 @@
                 :error="errors.unit?.[0]"
               >
                 <option v-for="unit in units" :key="unit" :value="unit">
-                  {{ unit }}
+                  {{ displayUnitLabel(unit) }}
                 </option>
               </SelectDropdown>
 
@@ -371,6 +371,21 @@ const qualityGrades = {
 const processingMethods = {
   milled: 'Milled',
   organic: 'Organic'
+}
+
+const UNIT_DISPLAY_LABELS = {
+  sacks_palay: 'Sacks (Palay)',
+  sacks_rice: 'Sacks (Rice)',
+  kg: 'Kg',
+  tons: 'Tons',
+  sacks: 'Sacks',
+  bushels: 'Bushels',
+  pounds: 'Pounds',
+  grams: 'Grams',
+}
+
+const displayUnitLabel = (unit) => {
+  return UNIT_DISPLAY_LABELS[unit] || (unit ? unit.charAt(0).toUpperCase() + unit.slice(1) : '')
 }
 
 const riceVarieties = computed(() => marketplaceStore.riceVarieties || [])
