@@ -497,6 +497,12 @@ const processingMethods = {
 }
 
 const riceVarieties = computed(() => marketplaceStore.riceVarieties || [])
+const PROCESS_WEIGHT = {
+  milling: 3,
+  drying: 2,
+  threshing: 1
+}
+
 const harvests = computed(() => farmStore.harvests || [])
 const latestCompletedProcess = computed(() => {
   const completed = (processingSummary.value?.processes || []).filter(process => process.status === 'completed')
@@ -506,9 +512,14 @@ const latestCompletedProcess = computed(() => {
   }
 
   return completed.sort((a, b) => {
-    const left = new Date(b.completed_date || b.process_date || 0).getTime()
-    const right = new Date(a.completed_date || a.process_date || 0).getTime()
-    return left - right
+    const timeA = new Date(a.completed_date || a.process_date || 0).getTime()
+    const timeB = new Date(b.completed_date || b.process_date || 0).getTime()
+    if (timeA !== timeB) {
+      return timeB - timeA
+    }
+    const weightA = PROCESS_WEIGHT[a.process_type] || 0
+    const weightB = PROCESS_WEIGHT[b.process_type] || 0
+    return weightB - weightA
   })[0]
 })
 
@@ -523,8 +534,17 @@ const formatHarvestOption = (harvest) => {
   if (harvest?.post_harvest_processes?.length) {
     const completedProcesses = harvest.post_harvest_processes.filter(p => p.status === 'completed')
     if (completedProcesses.length > 0) {
-      // Sort by latest completed date
-      completedProcesses.sort((a, b) => new Date(b.completed_date || b.process_date || 0) - new Date(a.completed_date || a.process_date || 0))
+      // Sort by latest completed date, then by process logical order
+      completedProcesses.sort((a, b) => {
+        const timeA = new Date(a.completed_date || a.process_date || 0).getTime()
+        const timeB = new Date(b.completed_date || b.process_date || 0).getTime()
+        if (timeA !== timeB) {
+          return timeB - timeA
+        }
+        const weightA = PROCESS_WEIGHT[a.process_type] || 0
+        const weightB = PROCESS_WEIGHT[b.process_type] || 0
+        return weightB - weightA
+      })
       const latest = completedProcesses[0]
       if (latest.output_quantity) {
         latestOutputQuantity = latest.output_quantity
