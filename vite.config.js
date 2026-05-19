@@ -22,7 +22,7 @@ export default defineConfig({
         host: '0.0.0.0', // Allow connections from any IP
         allowedHosts: true, // ✅ Allow ngrok URLs
         hmr: {
-            host: process.env.VITE_HMR_HOST || '182.40.7.38',
+            host: process.env.VITE_HMR_HOST || 'localhost',
             clientPort: process.env.VITE_HMR_HOST ? 443 : 5173,
         },
     },
