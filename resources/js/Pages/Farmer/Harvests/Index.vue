@@ -1,17 +1,45 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">Harvests</h1>
-          <p class="text-gray-500 mt-1">Log and manage all your crop yields and performance.</p>
-        </div>
-        <div class="flex items-center gap-3">
+  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]">
+    <div class="w-full mx-auto px-6 py-8 space-y-6">
+      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
+          <div class="bg-[linear-gradient(135deg,#713f12_0%,#047857_52%,#14532d_100%)] p-8 text-white">
+            <p class="text-xs font-bold uppercase tracking-[0.24em] text-amber-100">Production Cycle</p>
+            <h1 class="mt-3 text-4xl font-bold leading-tight">Harvests</h1>
+            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+              Log harvested output, quality notes, and processing readiness from every completed field cycle.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Yield</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Quality</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Processing</span>
+            </div>
+          </div>
+          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">Harvest summary</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{{ harvestStats.totalQuantity }} {{ harvestStats.unit }}</p>
+              <p class="mt-2 text-sm leading-6 text-gray-500">{{ harvestStats.total }} harvest{{ harvestStats.total === 1 ? '' : 's' }} recorded, {{ harvestStats.unprocessed }} awaiting processing.</p>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-xl bg-emerald-50 p-3">
+                <p class="text-xs font-medium text-emerald-700">Records</p>
+                <p class="mt-1 text-xl font-bold text-emerald-950">{{ harvestStats.total }}</p>
+              </div>
+              <div class="rounded-xl bg-amber-50 p-3">
+                <p class="text-xs font-medium text-amber-700">Unprocessed</p>
+                <p class="mt-1 text-xl font-bold text-amber-950">{{ harvestStats.unprocessed }}</p>
+              </div>
+              <div class="rounded-xl bg-sky-50 p-3">
+                <p class="text-xs font-medium text-sky-700">Processed</p>
+                <p class="mt-1 text-xl font-bold text-sky-950">{{ harvestStats.processed }}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
           <button
             @click="refreshHarvests"
             :disabled="loading"
-            class="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
           >
             <svg
               :class="['h-5 w-5', { 'animate-spin': loading }]"
@@ -25,12 +53,14 @@
           </button>
           <button
             @click="openCreateModal"
-            class="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium"
+                class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
           >
             <span class="text-xl leading-none">+</span> Add Harvest
           </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       <!-- Filter Bar -->
       <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
@@ -338,6 +368,19 @@ const searchQuery = ref('')
 const processingFilter = ref('')
 
 const harvests = computed(() => farmStore.harvests || [])
+
+const harvestStats = computed(() => {
+  const rows = harvests.value || []
+  const totalQuantity = rows.reduce((sum, harvest) => sum + Number(harvest.quantity || harvest.yield || 0), 0)
+  const unprocessed = rows.filter(harvest => getProcessingStatus(harvest) === 'unprocessed').length
+  return {
+    total: rows.length,
+    totalQuantity: Number.isInteger(totalQuantity) ? totalQuantity : totalQuantity.toFixed(1),
+    unit: formatUnit(rows[0]?.unit) || 'kg',
+    unprocessed,
+    processed: rows.length - unprocessed,
+  }
+})
 
 /**
  * Derive the processing status of a harvest from its postHarvestProcesses.

@@ -1,22 +1,52 @@
 <template>
-  <div class="tasks-page">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">Tasks</h1>
-          <p class="text-gray-600 mt-2">Manage your farm tasks and activities</p>
+  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f2_38%,#f8fafc_100%)]">
+    <div class="w-full mx-auto px-6 py-8 space-y-6">
+      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
+          <div class="bg-[linear-gradient(135deg,#1e3a8a_0%,#047857_52%,#14532d_100%)] p-8 text-white">
+            <p class="text-xs font-bold uppercase tracking-[0.24em] text-sky-100">Production Cycle</p>
+            <h1 class="mt-3 text-4xl font-bold leading-tight">Tasks</h1>
+            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+              Coordinate field work, labor assignments, and due dates across the active farm schedule.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Planning</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Labor</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Deadlines</span>
+            </div>
+          </div>
+          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">Workload</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{{ taskStats.open }} open task{{ taskStats.open === 1 ? '' : 's' }}</p>
+              <p class="mt-2 text-sm leading-6 text-gray-500">{{ taskStats.urgent }} urgent and {{ taskStats.completed }} completed in this list.</p>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-xl bg-amber-50 p-3">
+                <p class="text-xs font-medium text-amber-700">Pending</p>
+                <p class="mt-1 text-xl font-bold text-amber-950">{{ taskStats.pending }}</p>
+              </div>
+              <div class="rounded-xl bg-sky-50 p-3">
+                <p class="text-xs font-medium text-sky-700">In Progress</p>
+                <p class="mt-1 text-xl font-bold text-sky-950">{{ taskStats.inProgress }}</p>
+              </div>
+              <div class="rounded-xl bg-rose-50 p-3">
+                <p class="text-xs font-medium text-rose-700">Urgent</p>
+                <p class="mt-1 text-xl font-bold text-rose-950">{{ taskStats.urgent }}</p>
+              </div>
+            </div>
+            <button
+              @click="showCreateModal = true"
+              class="inline-flex w-fit items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+            >
+              <span class="text-lg leading-none">+</span> New Task
+            </button>
+          </div>
         </div>
-        <button
-          @click="showCreateModal = true"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Add New Task
-        </button>
-      </div>
+      </section>
 
       <!-- Filters and Search -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
@@ -69,7 +99,7 @@
         <div
           v-for="task in filteredTasks"
           :key="task.id"
-          class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+          class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -325,6 +355,14 @@ const filteredTasks = computed(() => {
     return matchesSearch && matchesStatus && matchesPriority
   })
 })
+
+const taskStats = computed(() => ({
+  pending: tasks.value.filter(task => task.status === 'pending').length,
+  inProgress: tasks.value.filter(task => task.status === 'in_progress').length,
+  completed: tasks.value.filter(task => task.status === 'completed').length,
+  urgent: tasks.value.filter(task => task.priority === 'urgent').length,
+  open: tasks.value.filter(task => task.status !== 'completed').length,
+}))
 
 const getPriorityBadgeClass = (priority) => {
   const classes = {

@@ -1,17 +1,45 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">Seedbed</h1>
-          <p class="text-gray-500 mt-1">Manage all your seed sowings, from sowing to transplanting.</p>
-        </div>
-        <div class="flex items-center gap-3">
+  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f2_38%,#f8fafc_100%)]">
+    <div class="w-full mx-auto px-6 py-8 space-y-6">
+      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
+          <div class="bg-[linear-gradient(135deg,#14532d_0%,#047857_52%,#0f766e_100%)] p-8 text-white">
+            <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-100">Production Cycle</p>
+            <h1 class="mt-3 text-4xl font-bold leading-tight">Seedbed</h1>
+            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+              Track nursery batches from sowing to transplant readiness before they move into active field planting.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Sowing</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Germination</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Transplant Ready</span>
+            </div>
+          </div>
+          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">Nursery status</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{{ seedbedStats.ready }} ready batch{{ seedbedStats.ready === 1 ? '' : 'es' }}</p>
+              <p class="mt-2 text-sm leading-6 text-gray-500">{{ seedbedStats.total }} total sowing{{ seedbedStats.total === 1 ? '' : 's' }} under seedbed monitoring.</p>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-xl bg-emerald-50 p-3">
+                <p class="text-xs font-medium text-emerald-700">Ready</p>
+                <p class="mt-1 text-xl font-bold text-emerald-950">{{ seedbedStats.ready }}</p>
+              </div>
+              <div class="rounded-xl bg-amber-50 p-3">
+                <p class="text-xs font-medium text-amber-700">Growing</p>
+                <p class="mt-1 text-xl font-bold text-amber-950">{{ seedbedStats.growing }}</p>
+              </div>
+              <div class="rounded-xl bg-rose-50 p-3">
+                <p class="text-xs font-medium text-rose-700">Failed</p>
+                <p class="mt-1 text-xl font-bold text-rose-950">{{ seedbedStats.failed }}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
           <button
             @click="refreshPlantings"
             :disabled="loading"
-            class="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
           >
             <svg
               :class="['h-5 w-5', { 'animate-spin': loading }]"
@@ -25,12 +53,14 @@
           </button>
           <button
             @click="goToCreate"
-            class="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium"
+                class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
           >
             <span class="text-xl leading-none">+</span> New Sowing
           </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       <div>
       <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
@@ -52,7 +82,7 @@
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-lg shadow mb-6 flex flex-col md:flex-row gap-4 items-end" v-if="!loading && (seedPlantings.length > 0 || filters.status || filters.variety)">
+      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-end" v-if="!loading && (seedPlantings.length > 0 || filters.status || filters.variety)">
           <div class="flex-1 w-full md:w-auto">
             <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
             <select
@@ -130,7 +160,7 @@
           <article
             v-for="planting in filteredPlantings"
             :key="planting.id"
-            class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+            class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
           >
             <div class="h-full flex flex-col">
               <div class="flex items-start justify-between mb-4 pt-6 px-6">
@@ -239,6 +269,15 @@ const showConfirmModal = ref(false)
 const plantingToDelete = ref(null)
 
 const seedPlantings = computed(() => farmStore.seedPlantings);
+const seedbedStats = computed(() => {
+  const rows = seedPlantings.value || [];
+  return {
+    total: rows.length,
+    ready: rows.filter(p => p.status === 'ready').length,
+    growing: rows.filter(p => ['sown', 'germinating'].includes(p.status)).length,
+    failed: rows.filter(p => p.status === 'failed').length,
+  };
+});
 const varietyOptions = computed(() => {
   const options = [];
   const seen = new Set();
