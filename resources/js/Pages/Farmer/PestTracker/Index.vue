@@ -45,26 +45,6 @@
         </div>
       </section>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p class="text-sm text-gray-500">Total Incidents</p>
-          <p class="text-2xl font-bold text-gray-800">{{ stats.total }}</p>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 border-l-4 border-red-500">
-          <p class="text-sm text-gray-500">Active</p>
-          <p class="text-2xl font-bold text-red-600">{{ stats.active }}</p>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 border-l-4 border-yellow-500">
-          <p class="text-sm text-gray-500">Treated</p>
-          <p class="text-2xl font-bold text-yellow-600">{{ stats.treated }}</p>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 border-l-4 border-green-500">
-          <p class="text-sm text-gray-500">Resolved</p>
-          <p class="text-2xl font-bold text-green-600">{{ stats.resolved }}</p>
-        </div>
-      </div>
-
       <!-- Analytics Section (Collapsible) -->
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
         <button @click="showAnalytics = !showAnalytics" class="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors">

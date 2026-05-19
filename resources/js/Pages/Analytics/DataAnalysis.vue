@@ -816,6 +816,11 @@ const monthLabelFromKey = (key) => {
   return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 };
 
+const selectedPeriodLabel = computed(() => {
+  if (selectedPeriod.value === 'all') return 'All Time';
+  return `${formatLabelDate(startDate.value)} - ${formatLabelDate(endDate.value)}`;
+});
+
 const aggregateByMonth = (records, dateKey, valueKey) => {
   const result = new Map();
   ensureArray(records).forEach((record) => {
@@ -892,7 +897,34 @@ const monthLabels = computed(() => {
 });
 
 const financialChartData = computed(() => {
-  if (!monthLabels.value.length) return { labels: [], datasets: [] };
+  if (!monthLabels.value.length) {
+    const revenue = Number(analyticsData.value?.sales?.total_revenue ?? 0);
+    const expenses = Number(analyticsData.value?.expenses?.total_expenses ?? 0);
+
+    if (revenue <= 0 && expenses <= 0) return { labels: [], datasets: [] };
+
+    return {
+      labels: [selectedPeriodLabel.value],
+      datasets: [
+        {
+          label: 'Revenue',
+          data: [revenue],
+          borderColor: 'rgb(16, 185, 129)',
+          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+          tension: 0.3,
+          fill: true
+        },
+        {
+          label: 'Expenses',
+          data: [expenses],
+          borderColor: 'rgb(244, 63, 94)',
+          backgroundColor: 'rgba(244, 63, 94, 0.15)',
+          tension: 0.3,
+          fill: true
+        }
+      ]
+    };
+  }
 
   const labels = monthLabels.value.map(monthLabelFromKey);
   const revenueData = monthLabels.value.map((key) => parseFloat((revenueByMonth.value.get(key) || 0).toFixed(2)));
@@ -922,7 +954,34 @@ const financialChartData = computed(() => {
 });
 
 const expenseChartData = computed(() => {
-  if (!expensesList.value.length) return { labels: [], datasets: [] };
+  if (!expensesList.value.length) {
+    const categoryBreakdown = analyticsData.value?.expenses?.by_category ?? {};
+    const entries = Object.entries(categoryBreakdown)
+      .map(([category, data]) => [category, Number(data?.total ?? 0)])
+      .filter(([, amount]) => amount > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    if (!entries.length) {
+      const totalExpenses = Number(analyticsData.value?.expenses?.total_expenses ?? 0);
+      if (totalExpenses <= 0) return { labels: [], datasets: [] };
+
+      return {
+        labels: ['Expenses'],
+        datasets: [{
+          data: [totalExpenses],
+          backgroundColor: [getColor(0)]
+        }]
+      };
+    }
+
+    return {
+      labels: entries.map(([category]) => formatDisplayKey(category)),
+      datasets: [{
+        data: entries.map(([, amount]) => Number(amount.toFixed(2))),
+        backgroundColor: entries.map((_, index) => getColor(index))
+      }]
+    };
+  }
 
   const categoryTotals = expensesList.value.reduce((acc, expense) => {
     const category = expense?.category || 'Uncategorized';
@@ -941,8 +1000,6 @@ const expenseChartData = computed(() => {
 });
 
 const weatherCorrelationData = computed(() => {
-  if (!weatherHistoryRecords.value.length) return { labels: [], datasets: [] };
-
   const dailyRainfall = new Map();
   weatherHistoryRecords.value.forEach(record => {
     const day = formatLabelDate(record.recorded_at);
@@ -958,6 +1015,8 @@ const weatherCorrelationData = computed(() => {
   });
 
   const allDaysSet = new Set([...dailyRainfall.keys(), ...dailyYields.keys()]);
+  if (!allDaysSet.size) return { labels: [], datasets: [] };
+
   const sortedDays = Array.from(allDaysSet).sort((a, b) => new Date(a) - new Date(b)).slice(-14);
 
   return {

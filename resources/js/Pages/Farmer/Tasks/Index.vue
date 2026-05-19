@@ -1,103 +1,72 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">Rice Farming Tasks</h1>
-          <p class="text-gray-500 mt-1">Manage your rice farming activities and schedule</p>
-        </div>
-        
-        <div class="flex space-x-3">
-          <router-link 
-            to="/tasks/calendar"
-            class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center shadow-sm"
-          >
-            <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Calendar View
-          </router-link>
-          <router-link 
-            to="/tasks/create"
-            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center shadow-sm"
-          >
-            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            New Task
-          </router-link>
-        </div>
-      </div>
-      <!-- Task Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <svg class="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f2_38%,#f8fafc_100%)]">
+    <div class="w-full mx-auto px-6 py-8 space-y-6">
+      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
+          <div class="bg-[linear-gradient(135deg,#1e3a8a_0%,#047857_52%,#14532d_100%)] p-8 text-white">
+            <p class="text-xs font-bold uppercase tracking-[0.24em] text-sky-100">Production Cycle</p>
+            <h1 class="mt-3 text-4xl font-bold leading-tight">Rice Farming Tasks</h1>
+            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+              Coordinate field work, labor assignments, and due dates across the active farm schedule.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Planning</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Labor</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Schedule</span>
+            </div>
+          </div>
+          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">Workload</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{{ openTasks }} open task{{ openTasks === 1 ? '' : 's' }}</p>
+              <p class="mt-2 text-sm leading-6 text-gray-500">
+                {{ overdueTasks }} overdue, {{ inProgressTasks }} in progress, {{ completedTasks }} completed.
+              </p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div class="rounded-xl bg-amber-50 p-3">
+                <p class="text-xs font-medium text-amber-700">Pending</p>
+                <p class="mt-1 text-xl font-bold text-amber-950">{{ pendingTasks }}</p>
+              </div>
+              <div class="rounded-xl bg-sky-50 p-3">
+                <p class="text-xs font-medium text-sky-700">In Progress</p>
+                <p class="mt-1 text-xl font-bold text-sky-950">{{ inProgressTasks }}</p>
+              </div>
+              <div class="rounded-xl bg-rose-50 p-3">
+                <p class="text-xs font-medium text-rose-700">Overdue</p>
+                <p class="mt-1 text-xl font-bold text-rose-950">{{ overdueTasks }}</p>
+              </div>
+              <div class="rounded-xl bg-emerald-50 p-3">
+                <p class="text-xs font-medium text-emerald-700">Completed</p>
+                <p class="mt-1 text-xl font-bold text-emerald-950">{{ completedTasks }}</p>
               </div>
             </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Pending Tasks</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ pendingTasks }}</p>
+            <div class="flex flex-wrap gap-2">
+              <router-link 
+                to="/tasks/calendar"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                <svg class="h-3.5 w-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Calendar
+              </router-link>
+              <router-link 
+                to="/tasks/create"
+                class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                New Task
+              </router-link>
             </div>
           </div>
         </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">In Progress</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ inProgressTasks }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
-                <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Overdue</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ overdueTasks }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Completed</p>
-              <p class="text-2xl font-semibold text-gray-900">{{ completedTasks }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
 
       <!-- Filters -->
-      <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Task Type</label>
@@ -156,7 +125,7 @@
 
       <!-- Tasks List -->
       <div v-if="loading" class="space-y-4">
-        <div v-for="n in 5" :key="n" class="bg-white rounded-lg shadow p-6 animate-pulse">
+        <div v-for="n in 5" :key="n" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 animate-pulse">
           <div class="h-4 bg-gray-200 rounded mb-4"></div>
           <div class="h-3 bg-gray-200 rounded mb-2"></div>
           <div class="h-3 bg-gray-200 rounded w-3/4"></div>
@@ -167,7 +136,7 @@
         <div 
           v-for="task in filteredTasks" 
           :key="task.id"
-          class="bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
         >
           <div class="p-6">
             <div class="flex items-center justify-between">
@@ -250,7 +219,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="text-center py-12">
+      <div v-else class="rounded-xl border border-dashed border-gray-300 bg-white/70 text-center py-12">
         <svg class="h-16 w-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
@@ -310,6 +279,7 @@ const pendingTasks = computed(() => tasks.value.filter(t => t.status === 'pendin
 const inProgressTasks = computed(() => tasks.value.filter(t => t.status === 'in_progress').length);
 const overdueTasks = computed(() => tasks.value.filter(t => isOverdue(t)).length);
 const completedTasks = computed(() => tasks.value.filter(t => t.status === 'completed').length);
+const openTasks = computed(() => tasks.value.filter(t => !['completed', 'cancelled'].includes(t.status)).length);
 
 const filteredTasks = computed(() => {
   let filtered = tasks.value;

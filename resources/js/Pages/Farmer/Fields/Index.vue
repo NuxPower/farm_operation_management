@@ -26,7 +26,7 @@
               </p>
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div class="rounded-xl bg-emerald-50 p-3">
                 <p class="text-xs font-medium text-emerald-700">Fields</p>
                 <p class="mt-1 text-xl font-bold text-emerald-950">{{ fields.length }}</p>
@@ -36,8 +36,12 @@
                 <p class="mt-1 text-xl font-bold text-sky-950">{{ formatAreaValue(totalFieldArea) }} ha</p>
               </div>
               <div class="rounded-xl bg-amber-50 p-3">
-                <p class="text-xs font-medium text-amber-700">Fallow</p>
-                <p class="mt-1 text-xl font-bold text-amber-950">{{ fallowFieldCount }}</p>
+                <p class="text-xs font-medium text-amber-700">Active</p>
+                <p class="mt-1 text-xl font-bold text-amber-950">{{ activePlantingCount }}</p>
+              </div>
+              <div class="rounded-xl bg-violet-50 p-3">
+                <p class="text-xs font-medium text-violet-700">Soil</p>
+                <p class="mt-1 truncate text-xl font-bold text-violet-950">{{ primarySoilLabel }}</p>
               </div>
             </div>
 
@@ -87,13 +91,6 @@
           </div>
         </div>
       </div>
-
-      <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryTile label="Total Field Area" :value="`${formatAreaValue(totalFieldArea)} ha`" :detail="`${fields.length} mapped fields`" tone="emerald" />
-        <SummaryTile label="Active Plantings" :value="activePlantingCount" :detail="`${activeAreaPercent}% of fields planted`" tone="blue" />
-        <SummaryTile label="Available Fields" :value="availableFieldCount" detail="No current crop" tone="amber" />
-        <SummaryTile label="Primary Soil" :value="primarySoilLabel" detail="Most common field soil" tone="violet" />
-      </section>
 
       <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_180px_180px_180px_auto]">
@@ -282,12 +279,7 @@ const totalFieldArea = computed(() => {
 })
 
 const activePlantingCount = computed(() => fields.value.filter(field => field.current_crop).length)
-const availableFieldCount = computed(() => fields.value.filter(field => !field.current_crop).length)
 const fallowFieldCount = computed(() => fields.value.filter(field => field.status === 'fallow' || !field.current_crop).length)
-const activeAreaPercent = computed(() => {
-  if (!fields.value.length) return 0
-  return Math.round((activePlantingCount.value / fields.value.length) * 100)
-})
 
 const primarySoilLabel = computed(() => {
   const counts = fields.value.reduce((acc, field) => {
@@ -437,38 +429,6 @@ const statusClass = (status) => {
     maintenance: 'bg-red-100 text-red-800'
   }
   return classes[status] || 'bg-blue-100 text-blue-800'
-}
-
-const summaryToneClass = {
-  emerald: 'border-emerald-100 bg-emerald-50 text-emerald-950',
-  blue: 'border-sky-100 bg-sky-50 text-sky-950',
-  amber: 'border-amber-100 bg-amber-50 text-amber-950',
-  violet: 'border-violet-100 bg-violet-50 text-violet-950'
-}
-
-const summaryLabelClass = {
-  emerald: 'text-emerald-700',
-  blue: 'text-sky-700',
-  amber: 'text-amber-700',
-  violet: 'text-violet-700'
-}
-
-const SummaryTile = {
-  props: {
-    label: String,
-    value: [String, Number],
-    detail: String,
-    tone: { type: String, default: 'emerald' }
-  },
-  setup(props) {
-    return () => h('div', {
-      class: ['rounded-2xl border p-5 shadow-sm', summaryToneClass[props.tone] || summaryToneClass.emerald]
-    }, [
-      h('p', { class: ['text-xs font-bold uppercase tracking-wide', summaryLabelClass[props.tone] || summaryLabelClass.emerald] }, props.label),
-      h('p', { class: 'mt-2 text-3xl font-bold tracking-tight' }, props.value),
-      h('p', { class: 'mt-1 text-sm font-medium opacity-70' }, props.detail)
-    ])
-  }
 }
 
 const miniToneClass = {

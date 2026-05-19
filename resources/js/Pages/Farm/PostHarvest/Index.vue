@@ -21,7 +21,11 @@
             <p class="mt-2 text-2xl font-bold text-gray-900">{{ pipelineStatus.is_complete ? 'Ready for marketplace' : pipelineStatus.next_step ? `Next: ${pipelineStatus.next_step}` : 'Processing review' }}</p>
             <p class="mt-2 text-sm leading-6 text-gray-500">{{ processes.length }} process record{{ processes.length === 1 ? '' : 's' }} logged for this harvest.</p>
           </div>
-          <div v-if="summary" class="grid grid-cols-3 gap-3">
+          <div v-if="summary" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div class="rounded-xl bg-sky-50 p-3">
+              <p class="text-xs font-medium text-sky-700">Harvest</p>
+              <p class="mt-1 text-lg font-bold text-sky-950">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
+            </div>
             <div class="rounded-xl bg-emerald-50 p-3">
               <p class="text-xs font-medium text-emerald-700">Output</p>
               <p class="mt-1 text-lg font-bold text-emerald-950">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
@@ -73,30 +77,6 @@
             </svg>
           </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div v-if="summary" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 border-l-4 border-blue-500">
-        <h3 class="text-sm font-medium text-gray-500">Original Harvest</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 border-l-4 border-emerald-500">
-        <h3 class="text-sm font-medium text-gray-500">Current Output</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 border-l-4 border-amber-500">
-        <h3 class="text-sm font-medium text-gray-500">Overall Recovery</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">{{ summary.overall_recovery_rate }}%</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 border-l-4 border-rose-500">
-        <h3 class="text-sm font-medium text-gray-500">Total Processing Cost</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">₱{{ formatNumber(summary.total_cost) }}</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 border-l-4 border-violet-500">
-        <h3 class="text-sm font-medium text-gray-500">Processing + Labor Cost</h3>
-        <p class="mt-1 text-2xl font-semibold text-gray-900">₱{{ formatNumber(totalOperationalCost) }}</p>
       </div>
     </div>
 
