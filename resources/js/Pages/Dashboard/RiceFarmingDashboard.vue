@@ -10,7 +10,7 @@
               Good day, {{ authStore.user?.name || 'Farmer' }}
             </h1>
             <p class="mt-4 max-w-3xl text-sm leading-6 text-white/75">
-              Plan field work, check local weather, track resources, review data, and move harvested rice toward buyers from one dashboard.
+              {{ dashboardExecutiveSummary }}
             </p>
             <div class="mt-6 flex flex-wrap gap-2">
               <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Planning</span>
@@ -703,6 +703,11 @@ const weatherSeverityClass = computed(() => {
   if (totalWeatherAlerts.value > 0) return 'bg-amber-100 text-amber-800';
   return 'bg-emerald-100 text-emerald-800';
 });
+
+const dashboardExecutiveSummary = computed(() =>
+  analyticsData.value?.executive_summary?.text ||
+  'Loading the latest farm operations summary from data analytics...'
+);
 
 const weatherSuitability = computed(() => {
   const weather = analyticsData.value?.weather || {};
