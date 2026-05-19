@@ -83,6 +83,50 @@
         </div>
       </div>
 
+      <!-- Weather Suitability -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div class="max-w-3xl">
+            <p class="text-sm font-semibold text-gray-500">Weather Suitability</p>
+            <h2 class="mt-1 text-2xl font-bold text-gray-900">{{ weatherSuitability.label }}</h2>
+            <p class="mt-2 text-sm leading-6 text-gray-600">{{ weatherSuitability.description }}</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span
+                class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
+                :class="weatherSuitability.badgeClass"
+              >
+                {{ weatherSuitability.scoreLabel }}
+              </span>
+              <span
+                v-for="tag in weatherSuitability.tags"
+                :key="tag"
+                class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-[40rem]">
+            <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Current</p>
+              <p class="mt-2 text-sm font-bold text-emerald-950">{{ weatherSuitability.currentLabel }}</p>
+              <p class="mt-1 text-xs leading-5 text-emerald-800">{{ weatherSuitability.currentNote }}</p>
+            </div>
+            <div class="rounded-xl border border-sky-100 bg-sky-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">7-Day Outlook</p>
+              <p class="mt-2 text-sm font-bold text-sky-950">{{ weatherSuitability.forecastLabel }}</p>
+              <p class="mt-1 text-xs leading-5 text-sky-800">{{ weatherSuitability.forecastNote }}</p>
+            </div>
+            <div class="rounded-xl border border-amber-100 bg-amber-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Action</p>
+              <p class="mt-2 text-sm font-bold text-amber-950">{{ weatherSuitability.actionLabel }}</p>
+              <p class="mt-1 text-xs leading-5 text-amber-800">{{ weatherSuitability.actionNote }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-6">
@@ -194,9 +238,17 @@
             </div>
           </div>
 
-          <!-- Weather Alerts -->
+          <!-- Weather Warnings -->
           <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4">Weather Alerts</h2>
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 class="text-xl font-semibold">7-Day Warnings</h2>
+                <p class="text-sm text-gray-500 mt-1">Forecast-based risks for the coming week</p>
+              </div>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                {{ weatherAlerts.length }} warning{{ weatherAlerts.length === 1 ? '' : 's' }}
+              </span>
+            </div>
             <div v-if="weatherAlerts.length > 0" class="space-y-4">
               <div
                 v-for="alert in weatherAlerts"
@@ -220,7 +272,7 @@
               <svg class="h-12 w-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p class="text-sm">No alerts — weather looks good for farming!</p>
+              <p class="text-sm">No forecast warnings — the next 7 days look manageable.</p>
             </div>
           </div>
         </div>
@@ -478,6 +530,8 @@ const forecast = computed(() => {
   return []
 })
 
+const forecastWindow = computed(() => forecast.value.slice(0, 7))
+
 // Weather alerts from store and generated from data
 const weatherAlerts = computed(() => {
   const alerts = []
@@ -543,14 +597,13 @@ const weatherAlerts = computed(() => {
       }
     }
     // 3. Scan forecast for upcoming conditions across the 7-day planning window
-    const forecastWindow = forecast.value.slice(0, 7)
-    if (forecastWindow.length > 0) {
+    if (forecastWindow.value.length > 0) {
       const rainDays = []
       const stormDays = []
       const heatDays = []
       const humidityDays = []
       
-      forecastWindow.forEach(day => {
+      forecastWindow.value.forEach(day => {
         const dateStr = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         const condition = (day.most_common_condition || day.condition || day.weather || '').toLowerCase()
         const rainChance = day.precipitation_probability ?? day.rain_chance ?? 0
@@ -620,6 +673,143 @@ const weatherAlerts = computed(() => {
     const severityScore = { high: 3, medium: 2, low: 1, info: 0, critical: 4 }
     return (severityScore[b.severity] || 0) - (severityScore[a.severity] || 0)
   })
+})
+
+const weatherSuitability = computed(() => {
+  const current = currentWeather.value || {}
+  const days = forecastWindow.value
+
+  let score = 100
+  const tags = []
+  const positives = []
+  const risks = []
+
+  const temp = Number(current.temperature ?? current.temp ?? 0)
+  const humidity = Number(current.humidity ?? 0)
+  const wind = Number(current.wind_speed ?? current.windSpeed ?? 0)
+  const condition = String(current.condition || current.conditions || current.weather || '').toLowerCase()
+
+  if (temp >= 25 && temp <= 32) {
+    positives.push('Temperature is in a rice-friendly range')
+  } else if (temp >= 20 && temp <= 35) {
+    score -= 8
+  } else {
+    score -= 18
+    risks.push('Temperature is outside the ideal range')
+  }
+
+  if (humidity >= 60 && humidity <= 80) {
+    positives.push('Humidity is within the preferred range')
+  } else if (humidity > 80 || humidity < 50) {
+    score -= 15
+    risks.push('Humidity is leaning toward disease or stress risk')
+  } else {
+    score -= 6
+  }
+
+  if (wind > 20) {
+    score -= 10
+    risks.push('Wind may disrupt spraying or field work')
+  }
+
+  if (condition.includes('rain') || condition.includes('storm')) {
+    score -= 12
+    risks.push('Current weather is wet or stormy')
+  }
+
+  let rainyDays = 0
+  let stormDays = 0
+  let heatDays = 0
+  let humidityRiskDays = 0
+
+  days.forEach(day => {
+    const dayCondition = String(day.condition || day.weather || day.most_common_condition || '').toLowerCase()
+    const rainChance = Number(day.rain_chance ?? day.precipitation_probability ?? 0)
+    const maxTemp = Number(day.high ?? day.temperature_max ?? day.max_temp ?? 0)
+    const dayHumidity = Number(day.humidity ?? 0)
+
+    if (dayCondition.includes('storm') || dayCondition.includes('thunder') || rainChance >= 70) stormDays += 1
+    if (dayCondition.includes('rain') || dayCondition.includes('drizzle') || rainChance >= 50) rainyDays += 1
+    if (maxTemp >= 35) heatDays += 1
+    if (dayHumidity >= 85) humidityRiskDays += 1
+  })
+
+  score -= stormDays * 12
+  score -= rainyDays * 6
+  score -= heatDays * 6
+  score -= humidityRiskDays * 5
+
+  score = Math.max(0, Math.min(100, Math.round(score)))
+
+  let label = 'Optimal farming weather conditions'
+  let description = 'Current weather is favorable for field work.'
+  let badgeClass = 'bg-emerald-100 text-emerald-800'
+  let currentLabel = 'Good conditions'
+  let currentNote = 'Current weather is workable for routine field activities.'
+  let forecastLabel = 'Low risk'
+  let forecastNote = 'The next 7 days do not show major weather disruption.'
+  let actionLabel = 'Proceed normally'
+  let actionNote = 'Keep monitoring the forecast before spraying or harvest work.'
+
+  if (score < 40) {
+    label = 'High weather risk'
+    description = 'Conditions are unstable. Delay sensitive operations where possible.'
+    badgeClass = 'bg-red-100 text-red-800'
+    currentLabel = 'Poor conditions'
+    currentNote = 'Current weather already carries operational risk.'
+    forecastLabel = 'High risk'
+    forecastNote = 'The 7-day outlook shows weather that can disrupt field work.'
+    actionLabel = 'Delay sensitive work'
+    actionNote = 'Prioritize drainage, protection, and timing changes.'
+  } else if (score < 75) {
+    label = 'Workable with caution'
+    description = 'Current weather is acceptable, but the forecast shows several risks.'
+    badgeClass = 'bg-amber-100 text-amber-800'
+    currentLabel = 'Mostly workable'
+    currentNote = 'Current weather is usable, but conditions are not ideal.'
+    forecastLabel = 'Moderate risk'
+    forecastNote = 'Plan around rain, humidity, or heat in the next week.'
+    actionLabel = 'Schedule carefully'
+    actionNote = 'Keep a flexible plan for labor, spraying, and drying.'
+  }
+
+  if (positives.length) {
+    tags.push(...positives.slice(0, 2))
+  }
+  if (risks.length) {
+    tags.push(...risks.slice(0, 2))
+  }
+  if (!tags.length) {
+    tags.push('Balanced current weather', 'Forecast is under control')
+  }
+
+  if (rainyDays > 0) {
+    forecastLabel = `${rainyDays} rain day${rainyDays === 1 ? '' : 's'}`
+  }
+  if (stormDays > 0) {
+    forecastLabel = `${stormDays} storm day${stormDays === 1 ? '' : 's'}`
+  }
+  if (heatDays > 0 && score >= 40) {
+    forecastNote = `${heatDays} hot day${heatDays === 1 ? '' : 's'} appear in the 7-day window.`
+  }
+  if (humidityRiskDays > 0 && score >= 40) {
+    currentNote = `${humidityRiskDays} day${humidityRiskDays === 1 ? '' : 's'} show disease-pressure humidity.`
+  }
+
+  return {
+    score,
+    label,
+    description,
+    badgeClass,
+    scoreLabel: `${score}/100 suitability`,
+    currentLabel,
+    currentNote,
+    forecastLabel,
+    forecastNote,
+    actionLabel,
+    actionNote,
+    tags
+  }
 })
 
 // Growing Degree Days calculation (base temperature 10°C for rice)

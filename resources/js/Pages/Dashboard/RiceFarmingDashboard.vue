@@ -66,6 +66,30 @@
         </div>
       </div>
 
+      <div class="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="max-w-3xl">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Weather Suitability</p>
+            <h2 class="mt-2 text-xl font-bold text-gray-950">{{ weatherSuitability.label }}</h2>
+            <p class="mt-2 text-sm leading-6 text-gray-600">{{ weatherSuitability.description }}</p>
+          </div>
+          <div class="flex flex-col items-start gap-2 lg:items-end">
+            <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="weatherSuitability.badgeClass">
+              {{ weatherSuitability.scoreLabel }}
+            </span>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="tag in weatherSuitability.tags"
+                :key="tag"
+                class="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="error" class="rounded-xl border border-rose-200 bg-rose-50 p-4">
         <div class="flex items-start gap-3">
           <ExclamationTriangleIcon class="mt-0.5 h-5 w-5 text-rose-600" />
@@ -678,6 +702,81 @@ const weatherSeverityClass = computed(() => {
   if (totalCriticalWeatherAlerts.value > 0) return 'bg-rose-100 text-rose-800';
   if (totalWeatherAlerts.value > 0) return 'bg-amber-100 text-amber-800';
   return 'bg-emerald-100 text-emerald-800';
+});
+
+const weatherSuitability = computed(() => {
+  const weather = analyticsData.value?.weather || {};
+  const avgTemp = Number(weather.avg_temperature ?? 0);
+  const avgHumidity = Number(weather.avg_humidity ?? 0);
+  const weatherAlert = Boolean(weather.weather_alert);
+
+  let score = 100;
+  const tags = [];
+
+  if (avgTemp >= 25 && avgTemp <= 32) {
+    score += 6;
+    tags.push('Temperature is in range');
+  } else if (avgTemp < 20 || avgTemp > 35) {
+    score -= 18;
+    tags.push('Temperature is outside the ideal range');
+  } else {
+    score -= 8;
+  }
+
+  if (avgHumidity >= 60 && avgHumidity <= 80) {
+    score += 6;
+    tags.push('Humidity is comfortable');
+  } else if (avgHumidity > 85 || avgHumidity < 50) {
+    score -= 15;
+    tags.push('Humidity may raise crop risk');
+  } else {
+    score -= 6;
+  }
+
+  if (weatherAlert) {
+    score -= 20;
+    tags.push('Current weather has an alert');
+  }
+
+  if (totalCriticalWeatherAlerts.value > 0) {
+    score -= 18;
+    tags.push('Forecast contains severe warnings');
+  } else if (totalWeatherAlerts.value > 0) {
+    score -= 10;
+    tags.push('Forecast needs attention');
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let label = 'Optimal farming weather conditions';
+  let description = 'Current weather and the near-term forecast are favorable for routine field work.';
+  let badgeClass = 'border-emerald-100 bg-emerald-50';
+  let labelClass = 'text-emerald-700';
+
+  if (score < 40) {
+    label = 'High weather risk';
+    description = 'Conditions are unstable. Delay sensitive operations and watch the forecast closely.';
+    badgeClass = 'border-rose-100 bg-rose-50';
+    labelClass = 'text-rose-700';
+  } else if (score < 75) {
+    label = 'Workable with caution';
+    description = 'The weather is usable, but the forecast suggests planning around a few risks.';
+    badgeClass = 'border-amber-100 bg-amber-50';
+    labelClass = 'text-amber-700';
+  }
+
+  if (!tags.length) {
+    tags.push('Stable current conditions', 'No major forecast disruption');
+  }
+
+  return {
+    score,
+    label,
+    description,
+    badgeClass,
+    labelClass,
+    tags: tags.slice(0, 3),
+  };
 });
 
 const weatherWarnings = computed(() =>
