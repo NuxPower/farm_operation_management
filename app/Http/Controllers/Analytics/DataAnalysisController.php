@@ -591,8 +591,19 @@ class DataAnalysisController extends Controller
         }
 
         // 13. Executive Summary & Action Suggestions (Generated)
-        // 13. Executive Summary & Action Suggestions (Generated)
-        $executiveSummary = $this->generateExecutiveSummary($salesData, $expensesData, $taskStats, $pestsData, $user);
+        $executiveSummary = $this->generateExecutiveSummary(
+            $salesData,
+            $expensesData,
+            $taskStats,
+            $pestsData,
+            $weatherData,
+            $fieldsData,
+            $nurseryData,
+            $inventoryData,
+            $failureData,
+            $weatherForecast,
+            $user
+        );
         $actionSuggestions = $this->generateActionSuggestions($taskStats, $salesData, $expensesData, $pestsData, $nurseryData, $weatherForecast, $inventoryData, $failureData, $user);
 
         return response()->json([
@@ -618,53 +629,105 @@ class DataAnalysisController extends Controller
     /**
      * Generate an executive summary based on analytics data
      */
-    private function generateExecutiveSummary($sales, $expenses, $tasks, $pests, $user = null): array
+    private function generateExecutiveSummary(
+        $sales,
+        $expenses,
+        $tasks,
+        $pests,
+        $weather,
+        $fields,
+        $nursery,
+        $inventory,
+        $failureData,
+        ?array $weatherForecast = null,
+        $user = null
+    ): array
     {
         $revenue = $sales['total_revenue'] ?? 0;
         $expenseTotal = $expenses['total_expenses'] ?? 0;
         $profit = $revenue - $expenseTotal;
 
         $tone = 'neutral';
-        $text = 'Farm operations are proceeding normally.';
+        $highlights = [];
+        $risks = [];
+
+        $weatherRisks = $this->summarizeWeatherRisk($weather, $weatherForecast);
+        if (!empty($weatherRisks)) {
+            $risks[] = 'Weather: ' . implode(' ', $weatherRisks);
+            $tone = 'concern';
+        } elseif (($weather['avg_temperature'] ?? null) !== null || ($weather['total_rainfall'] ?? null) !== null) {
+            $highlights[] = sprintf(
+                'Weather is being tracked at %.1f°C avg temperature, %.1fmm rainfall, and %.1f%% humidity over recent logs.',
+                (float) ($weather['avg_temperature'] ?? 0),
+                (float) ($weather['total_rainfall'] ?? 0),
+                (float) ($weather['avg_humidity'] ?? 0)
+            );
+        }
 
         if ($profit > 0 && $revenue > 0) {
             $margin = ($profit / $revenue) * 100;
             if ($margin > 20) {
-                $tone = 'positive';
-                $text = sprintf(
-                    'Strong financial performance with %.1f%% profit margin. Revenue of ₱%s with expenses at ₱%s.',
+                if ($tone !== 'concern') {
+                    $tone = 'positive';
+                }
+                $highlights[] = sprintf(
+                    'Financial performance is strong with a %.1f%% profit margin on ₱%s revenue.',
                     $margin,
-                    number_format($revenue, 0),
-                    number_format($expenseTotal, 0)
+                    number_format($revenue, 0)
                 );
             } else {
-                $tone = 'neutral';
-                $text = sprintf(
-                    'Moderate performance with %.1f%% profit margin. Consider reviewing expenses to improve profitability.',
+                $highlights[] = sprintf(
+                    'Financial performance is moderate with a %.1f%% profit margin.',
                     $margin
                 );
             }
         } elseif ($profit < 0) {
             $tone = 'concern';
-            $text = sprintf(
+            $risks[] = sprintf(
                 'Expenses (₱%s) currently exceed revenue (₱%s). Review cost management strategies.',
                 number_format($expenseTotal, 0),
                 number_format($revenue, 0)
             );
         }
 
-        // Add pest concerns
         if (($pests['active_incidents'] ?? 0) > 0) {
             $tone = 'concern';
-            $text .= sprintf(' There are %d active pest incidents requiring attention.', $pests['active_incidents']);
+            $risks[] = sprintf('%d active pest incident(s) require treatment follow-up.', $pests['active_incidents']);
         }
 
-        // Add task concerns
         if (($tasks['overdue_tasks'] ?? 0) > 0) {
-            $text .= sprintf(' %d tasks are overdue.', $tasks['overdue_tasks']);
+            $tone = 'concern';
+            $risks[] = sprintf('%d task(s) are overdue.', $tasks['overdue_tasks']);
+        } elseif (($tasks['pending_tasks'] ?? 0) > 0) {
+            $highlights[] = sprintf('%d pending task(s) remain in the operations queue.', $tasks['pending_tasks']);
         }
 
-        // Add cancelled order warning
+        if (($failureData['total_failed'] ?? 0) > 0) {
+            $tone = 'concern';
+            $risks[] = sprintf(
+                '%d failed planting(s) are recorded with ₱%s estimated crop loss.',
+                $failureData['total_failed'],
+                number_format($failureData['total_crop_loss_value'] ?? 0, 0)
+            );
+        }
+
+        if (($inventory['low_stock_count'] ?? 0) > 0 || ($inventory['expiring_soon_count'] ?? 0) > 0) {
+            $tone = 'concern';
+            $risks[] = sprintf(
+                'Inventory needs attention: %d low-stock item(s), %d expiring soon.',
+                $inventory['low_stock_count'] ?? 0,
+                $inventory['expiring_soon_count'] ?? 0
+            );
+        }
+
+        if (($nursery['ready_for_transplant'] ?? 0) > 0) {
+            $highlights[] = sprintf('%d seedling batch(es) are ready for transplanting.', $nursery['ready_for_transplant']);
+        }
+
+        if (($fields['utilization_rate'] ?? 0) > 0) {
+            $highlights[] = sprintf('Field utilization is %.1f%% across %.2f hectares.', $fields['utilization_rate'], $fields['total_area'] ?? 0);
+        }
+
         if ($user) {
             $autoCancelled = \App\Models\RiceOrder::whereHas('riceProduct', fn($q) => $q->where('farmer_id', $user->id))
                 ->where('status', \App\Models\RiceOrder::STATUS_CANCELLED)
@@ -672,14 +735,54 @@ class DataAnalysisController extends Controller
                 ->count();
             if ($autoCancelled > 0) {
                 $tone = 'concern';
-                $text .= sprintf(' Attention: %d orders were cancelled this week.', $autoCancelled);
+                $risks[] = sprintf('%d order(s) were cancelled this week.', $autoCancelled);
             }
         }
+
+        $summaryParts = array_merge(
+            array_slice($risks, 0, 3),
+            array_slice($highlights, 0, max(0, 3 - min(count($risks), 3)))
+        );
+
+        $text = empty($summaryParts)
+            ? 'Farm operations are proceeding normally across weather, production, inventory, tasks, and financial modules.'
+            : implode(' ', $summaryParts);
 
         return [
             'tone' => $tone,
             'text' => $text,
         ];
+    }
+
+    private function summarizeWeatherRisk(array $weather, ?array $weatherForecast): array
+    {
+        $risks = [];
+
+        if (!empty($weather['weather_alert'])) {
+            $risks[] = $weather['weather_alert'];
+        }
+
+        $temperature = $weather['avg_temperature'] ?? null;
+        if ($temperature !== null && (float) $temperature >= 35) {
+            $risks[] = sprintf('Recent average temperature is high at %.1f°C.', (float) $temperature);
+        }
+
+        $rainfall = $weather['total_rainfall'] ?? null;
+        if ($rainfall !== null && (float) $rainfall >= 80) {
+            $risks[] = sprintf('Recent rainfall is heavy at %.1fmm; check drainage and field access.', (float) $rainfall);
+        }
+
+        $humidity = $weather['avg_humidity'] ?? null;
+        if ($humidity !== null && (float) $humidity >= 85) {
+            $risks[] = sprintf('Recent humidity is high at %.1f%%; monitor disease pressure.', (float) $humidity);
+        }
+
+        $forecastSuggestions = $this->buildWeatherForecastSuggestions($weatherForecast);
+        if (!empty($forecastSuggestions)) {
+            $risks[] = $forecastSuggestions[0]['message'];
+        }
+
+        return array_slice($risks, 0, 2);
     }
 
     private function buildWeatherForecastSuggestions(?array $weatherForecast): array

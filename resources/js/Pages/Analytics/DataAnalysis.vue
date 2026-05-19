@@ -134,29 +134,29 @@
                     Recommended Actions
                   </h2>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
                   <div
                     v-for="(suggestion, index) in analyticsData.action_suggestions"
                     :key="index"
                     @click="navigateTo(suggestion.action_url)"
-                    class="group bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer relative overflow-hidden"
+                    class="group bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer relative overflow-hidden min-h-[172px]"
                   >
                     <div :class="[
                       'absolute top-0 left-0 w-full h-1',
-                      suggestion.priority === 'high' ? 'bg-rose-500' :
+                      ['urgent', 'high'].includes(suggestion.priority) ? 'bg-rose-500' :
                       suggestion.priority === 'medium' ? 'bg-amber-500' :
                       'bg-emerald-400'
                     ]"></div>
 
                     <div class="flex flex-col h-full">
-                      <div class="flex justify-between items-start mb-3">
-                        <svg class="w-6 h-6 text-gray-700 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div class="flex justify-between items-start gap-3 mb-3">
+                        <svg class="w-6 h-6 shrink-0 text-gray-700 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" :d="getSuggestionIcon(suggestion.icon)"></path>
                         </svg>
                         <span
                           :class="[
-                            'text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full',
-                            suggestion.priority === 'high' ? 'bg-rose-50 text-rose-700' :
+                            'text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full whitespace-nowrap',
+                            ['urgent', 'high'].includes(suggestion.priority) ? 'bg-rose-50 text-rose-700' :
                             suggestion.priority === 'medium' ? 'bg-amber-50 text-amber-700' :
                             'bg-emerald-50 text-emerald-700'
                           ]"
@@ -165,12 +165,12 @@
                         </span>
                       </div>
 
-                      <h3 class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{{ suggestion.category }}</h3>
-                      <p class="text-sm text-gray-500 mb-4 line-clamp-2 flex-grow">{{ suggestion.message }}</p>
+                      <h3 class="text-sm font-semibold text-gray-900 mb-1 break-words">{{ suggestion.category }}</h3>
+                      <p class="text-sm text-gray-500 mb-4 leading-relaxed break-words flex-grow">{{ suggestion.message }}</p>
 
-                      <div class="flex items-center text-xs font-medium text-emerald-600 group-hover:text-emerald-700 transition-colors">
-                        {{ suggestion.action_label }}
-                        <svg class="w-3 h-3 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                      <div class="flex items-center gap-1 text-xs font-medium text-emerald-600 group-hover:text-emerald-700 transition-colors">
+                        <span class="break-words">{{ suggestion.action_label }}</span>
+                        <svg class="w-3 h-3 shrink-0 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                       </div>
                     </div>
                   </div>

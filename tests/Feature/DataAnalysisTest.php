@@ -11,6 +11,7 @@ use App\Models\Expense;
 use App\Models\InventoryItem;
 use App\Models\SeedPlanting;
 use App\Models\RiceVariety;
+use App\Models\WeatherLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -251,6 +252,31 @@ class DataAnalysisTest extends TestCase
         $this->assertArrayHasKey('weather', $data);
         $this->assertArrayHasKey('weather_alert', $data['weather']);
         $this->assertStringContainsString('not configured', $data['weather']['weather_alert']);
+        $this->assertStringContainsString('Weather:', $data['executive_summary']['text']);
+    }
+
+    /** @test */
+    public function executive_summary_includes_weather_conditions()
+    {
+        WeatherLog::create([
+            'farm_id' => $this->farm->id,
+            'temperature' => 36.5,
+            'humidity' => 88.0,
+            'wind_speed' => 4.0,
+            'rainfall' => 12.5,
+            'conditions' => WeatherLog::CONDITION_CLEAR,
+            'recorded_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->farmer, 'sanctum')
+            ->getJson('/api/analytics/data-analysis');
+
+        $response->assertStatus(200);
+
+        $summary = $response->json('executive_summary.text');
+
+        $this->assertStringContainsString('Weather:', $summary);
+        $this->assertStringContainsString('temperature', $summary);
     }
 
     /** @test */
