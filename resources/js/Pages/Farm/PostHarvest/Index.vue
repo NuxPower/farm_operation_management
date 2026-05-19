@@ -2,41 +2,36 @@
   <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]">
   <div class="w-full mx-auto px-6 py-8 space-y-6">
     <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
-      <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
-        <div class="bg-[linear-gradient(135deg,#78350f_0%,#047857_52%,#0f766e_100%)] p-8 text-white">
+      <div class="grid grid-cols-1">
+        <div class="bg-[linear-gradient(135deg,#78350f_0%,#047857_52%,#0f766e_100%)] p-4 text-white">
           <p class="text-xs font-bold uppercase tracking-[0.24em] text-amber-100">Production Cycle</p>
-          <h1 class="mt-3 text-4xl font-bold leading-tight">Post-Harvest Processing</h1>
-          <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+          <h1 class="mt-2 text-3xl font-bold leading-tight">Post-Harvest Processing</h1>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-white/75">
             {{ harvest ? `Manage ${harvest.planting.rice_variety?.name || harvest.planting.crop_type} through threshing, drying, and milling.` : 'Manage processing steps after harvest before inventory and marketplace release.' }}
           </p>
-          <div class="mt-6 flex flex-wrap gap-2">
-            <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Threshing</span>
-            <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Drying</span>
-            <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Milling</span>
-          </div>
         </div>
-        <div class="flex flex-col justify-between gap-5 bg-white p-8">
+        <div class="flex flex-col gap-4 bg-white p-5">
           <div>
             <p class="text-sm font-semibold text-gray-500">Pipeline status</p>
-            <p class="mt-2 text-2xl font-bold text-gray-900">{{ pipelineStatus.is_complete ? 'Ready for marketplace' : pipelineStatus.next_step ? `Next: ${pipelineStatus.next_step}` : 'Processing review' }}</p>
-            <p class="mt-2 text-sm leading-6 text-gray-500">{{ processes.length }} process record{{ processes.length === 1 ? '' : 's' }} logged for this harvest.</p>
+            <p class="mt-1 text-xl font-bold text-gray-900">{{ pipelineStatus.is_complete ? 'Ready for marketplace' : pipelineStatus.next_step ? `Next: ${pipelineStatus.next_step}` : 'Processing review' }}</p>
+            <p class="mt-1 text-sm leading-6 text-gray-500">{{ processes.length }} process record{{ processes.length === 1 ? '' : 's' }} logged for this harvest.</p>
           </div>
-          <div v-if="summary" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div class="rounded-xl bg-sky-50 p-3">
-              <p class="text-xs font-medium text-sky-700">Harvest</p>
-              <p class="mt-1 text-lg font-bold text-sky-950">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
+          <div v-if="summary" class="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div class="min-w-0 rounded-md bg-sky-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-sky-700">Harvest</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-sky-950">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
             </div>
-            <div class="rounded-xl bg-emerald-50 p-3">
-              <p class="text-xs font-medium text-emerald-700">Output</p>
-              <p class="mt-1 text-lg font-bold text-emerald-950">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
+            <div class="min-w-0 rounded-md bg-emerald-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">Output</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-emerald-950">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
             </div>
-            <div class="rounded-xl bg-amber-50 p-3">
-              <p class="text-xs font-medium text-amber-700">Recovery</p>
-              <p class="mt-1 text-lg font-bold text-amber-950">{{ summary.overall_recovery_rate }}%</p>
+            <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Recovery</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-amber-950">{{ summary.overall_recovery_rate }}%</p>
             </div>
-            <div class="rounded-xl bg-rose-50 p-3">
-              <p class="text-xs font-medium text-rose-700">Cost</p>
-              <p class="mt-1 text-lg font-bold text-rose-950">₱{{ formatNumber(totalOperationalCost) }}</p>
+            <div class="min-w-0 rounded-md bg-rose-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-rose-700">Cost</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-rose-950">₱{{ formatNumber(totalOperationalCost) }}</p>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">

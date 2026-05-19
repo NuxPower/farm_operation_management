@@ -2,37 +2,32 @@
   <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]">
     <div class="w-full mx-auto px-6 py-8 space-y-6">
       <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
-        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
-          <div class="bg-[linear-gradient(135deg,#713f12_0%,#047857_52%,#14532d_100%)] p-8 text-white">
+        <div class="grid grid-cols-1">
+          <div class="bg-[linear-gradient(135deg,#713f12_0%,#047857_52%,#14532d_100%)] p-4 text-white">
             <p class="text-xs font-bold uppercase tracking-[0.24em] text-amber-100">Production Cycle</p>
-            <h1 class="mt-3 text-4xl font-bold leading-tight">Harvests</h1>
-            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+            <h1 class="mt-2 text-3xl font-bold leading-tight">Harvests</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-white/75">
               Log harvested output, quality notes, and processing readiness from every completed field cycle.
             </p>
-            <div class="mt-6 flex flex-wrap gap-2">
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Yield</span>
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Quality</span>
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Processing</span>
-            </div>
           </div>
-          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+          <div class="flex flex-col gap-4 bg-white p-5">
             <div>
               <p class="text-sm font-semibold text-gray-500">Harvest summary</p>
-              <p class="mt-2 text-2xl font-bold text-gray-900">{{ harvestStats.totalQuantity }} {{ harvestStats.unit }}</p>
-              <p class="mt-2 text-sm leading-6 text-gray-500">{{ harvestStats.total }} harvest{{ harvestStats.total === 1 ? '' : 's' }} recorded, {{ harvestStats.unprocessed }} awaiting processing.</p>
+              <p class="mt-1 text-xl font-bold text-gray-900">{{ harvestStats.totalQuantity }} {{ harvestStats.unit }}</p>
+              <p class="mt-1 text-sm leading-6 text-gray-500">{{ harvestStats.total }} harvest{{ harvestStats.total === 1 ? '' : 's' }} recorded, {{ harvestStats.unprocessed }} awaiting processing.</p>
             </div>
-            <div class="grid grid-cols-3 gap-3">
-              <div class="rounded-xl bg-emerald-50 p-3">
-                <p class="text-xs font-medium text-emerald-700">Records</p>
-                <p class="mt-1 text-xl font-bold text-emerald-950">{{ harvestStats.total }}</p>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="min-w-0 rounded-md bg-emerald-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">Records</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-emerald-950">{{ harvestStats.total }}</p>
               </div>
-              <div class="rounded-xl bg-amber-50 p-3">
-                <p class="text-xs font-medium text-amber-700">Unprocessed</p>
-                <p class="mt-1 text-xl font-bold text-amber-950">{{ harvestStats.unprocessed }}</p>
+              <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Unprocessed</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-amber-950">{{ harvestStats.unprocessed }}</p>
               </div>
-              <div class="rounded-xl bg-sky-50 p-3">
-                <p class="text-xs font-medium text-sky-700">Processed</p>
-                <p class="mt-1 text-xl font-bold text-sky-950">{{ harvestStats.processed }}</p>
+              <div class="min-w-0 rounded-md bg-sky-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-sky-700">Processed</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-sky-950">{{ harvestStats.processed }}</p>
               </div>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -217,7 +212,7 @@
                 </div>
 
                 <!-- Crop Variety -->
-                <div v-if="harvest.planting?.riceVariety" class="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <div v-if="harvest.planting?.riceVariety" class="mb-4 p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                   <div class="flex items-center gap-2">
                     <div class="h-6 w-6 bg-green-500 rounded-lg flex items-center justify-center">
                       <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +220,7 @@
                       </svg>
                     </div>
                     <div class="flex-1">
-                      <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Variety</p>
+                      <p class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide">Variety</p>
                       <p class="text-sm font-bold text-green-700">{{ harvest.planting.riceVariety.name }}</p>
                     </div>
                   </div>
@@ -241,7 +236,7 @@
                     </svg>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</dt>
+                    <dt class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide">Date</dt>
                     <dd class="text-sm font-semibold text-gray-900 mt-0.5">
                       {{ formatDate(harvest.harvest_date) }}
                     </dd>
@@ -254,7 +249,7 @@
                     </svg>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Crop</dt>
+                    <dt class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide">Crop</dt>
                     <dd class="text-sm font-semibold text-gray-700 mt-0.5 truncate">
                       {{ harvest.planting?.crop_type || harvest.planting?.riceVariety?.name || 'Rice' }}
                     </dd>
@@ -267,7 +262,7 @@
                     </svg>
                   </div>
                   <div class="flex-1">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Value</dt>
+                    <dt class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide">Total Value</dt>
                     <dd class="text-lg font-bold text-emerald-700 mt-0.5">{{ formatCurrency(harvest.total_value) }}</dd>
                   </div>
                 </div>
@@ -278,7 +273,7 @@
                     </svg>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Price/Unit</dt>
+                    <dt class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide">Price/Unit</dt>
                     <dd class="text-sm font-semibold text-gray-700 mt-0.5">{{ formatCurrency(harvest.price_per_unit) }}</dd>
                   </div>
                 </div>

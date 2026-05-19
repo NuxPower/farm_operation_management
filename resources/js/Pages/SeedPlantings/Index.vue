@@ -2,37 +2,32 @@
   <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f2_38%,#f8fafc_100%)]">
     <div class="w-full mx-auto px-6 py-8 space-y-6">
       <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
-        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
-          <div class="bg-[linear-gradient(135deg,#14532d_0%,#047857_52%,#0f766e_100%)] p-8 text-white">
+        <div class="grid grid-cols-1">
+          <div class="bg-[linear-gradient(135deg,#14532d_0%,#047857_52%,#0f766e_100%)] p-4 text-white">
             <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-100">Production Cycle</p>
-            <h1 class="mt-3 text-4xl font-bold leading-tight">Seedbed</h1>
-            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+            <h1 class="mt-2 text-3xl font-bold leading-tight">Seedbed</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-white/75">
               Track nursery batches from sowing to transplant readiness before they move into active field planting.
             </p>
-            <div class="mt-6 flex flex-wrap gap-2">
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Sowing</span>
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Germination</span>
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Transplant Ready</span>
-            </div>
           </div>
-          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+          <div class="flex flex-col gap-4 bg-white p-5">
             <div>
               <p class="text-sm font-semibold text-gray-500">Nursery status</p>
-              <p class="mt-2 text-2xl font-bold text-gray-900">{{ seedbedStats.ready }} ready batch{{ seedbedStats.ready === 1 ? '' : 'es' }}</p>
-              <p class="mt-2 text-sm leading-6 text-gray-500">{{ seedbedStats.total }} total sowing{{ seedbedStats.total === 1 ? '' : 's' }} under seedbed monitoring.</p>
+              <p class="mt-1 text-xl font-bold text-gray-900">{{ seedbedStats.ready }} ready batch{{ seedbedStats.ready === 1 ? '' : 'es' }}</p>
+              <p class="mt-1 text-sm leading-6 text-gray-500">{{ seedbedStats.total }} total sowing{{ seedbedStats.total === 1 ? '' : 's' }} under seedbed monitoring.</p>
             </div>
-            <div class="grid grid-cols-3 gap-3">
-              <div class="rounded-xl bg-emerald-50 p-3">
-                <p class="text-xs font-medium text-emerald-700">Ready</p>
-                <p class="mt-1 text-xl font-bold text-emerald-950">{{ seedbedStats.ready }}</p>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="min-w-0 rounded-md bg-emerald-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">Ready</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-emerald-950">{{ seedbedStats.ready }}</p>
               </div>
-              <div class="rounded-xl bg-amber-50 p-3">
-                <p class="text-xs font-medium text-amber-700">Growing</p>
-                <p class="mt-1 text-xl font-bold text-amber-950">{{ seedbedStats.growing }}</p>
+              <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Growing</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-amber-950">{{ seedbedStats.growing }}</p>
               </div>
-              <div class="rounded-xl bg-rose-50 p-3">
-                <p class="text-xs font-medium text-rose-700">Failed</p>
-                <p class="mt-1 text-xl font-bold text-rose-950">{{ seedbedStats.failed }}</p>
+              <div class="min-w-0 rounded-md bg-rose-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-rose-700">Failed</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-rose-950">{{ seedbedStats.failed }}</p>
               </div>
             </div>
             <div class="flex flex-wrap gap-2">

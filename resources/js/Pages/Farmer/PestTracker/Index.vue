@@ -2,37 +2,32 @@
   <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]">
     <div class="w-full mx-auto px-6 py-8 space-y-6">
       <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
-        <div class="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr]">
-          <div class="bg-[linear-gradient(135deg,#7f1d1d_0%,#b45309_52%,#14532d_100%)] p-8 text-white">
+        <div class="grid grid-cols-1">
+          <div class="bg-[linear-gradient(135deg,#7f1d1d_0%,#b45309_52%,#14532d_100%)] p-4 text-white">
             <p class="text-xs font-bold uppercase tracking-[0.24em] text-orange-100">Production Cycle</p>
-            <h1 class="mt-3 text-4xl font-bold leading-tight">Pest & Disease Tracker</h1>
-            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/75">
+            <h1 class="mt-2 text-3xl font-bold leading-tight">Pest & Disease Tracker</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-white/75">
               Record field incidents, treatment actions, and risk trends before they affect production.
             </p>
-            <div class="mt-6 flex flex-wrap gap-2">
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Detection</span>
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Treatment</span>
-              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Resolution</span>
-            </div>
           </div>
-          <div class="flex flex-col justify-between gap-5 bg-white p-8">
+          <div class="flex flex-col gap-4 bg-white p-5">
             <div>
               <p class="text-sm font-semibold text-gray-500">Protection status</p>
-              <p class="mt-2 text-2xl font-bold text-gray-900">{{ stats.active }} active incident{{ stats.active === 1 ? '' : 's' }}</p>
-              <p class="mt-2 text-sm leading-6 text-gray-500">{{ stats.total }} total reports, {{ stats.treated }} treated, {{ stats.resolved }} resolved.</p>
+              <p class="mt-1 text-xl font-bold text-gray-900">{{ stats.active }} active incident{{ stats.active === 1 ? '' : 's' }}</p>
+              <p class="mt-1 text-sm leading-6 text-gray-500">{{ stats.total }} total reports, {{ stats.treated }} treated, {{ stats.resolved }} resolved.</p>
             </div>
-            <div class="grid grid-cols-3 gap-3">
-              <div class="rounded-xl bg-rose-50 p-3">
-                <p class="text-xs font-medium text-rose-700">Active</p>
-                <p class="mt-1 text-xl font-bold text-rose-950">{{ stats.active }}</p>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="min-w-0 rounded-md bg-rose-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-rose-700">Active</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-rose-950">{{ stats.active }}</p>
               </div>
-              <div class="rounded-xl bg-amber-50 p-3">
-                <p class="text-xs font-medium text-amber-700">Treated</p>
-                <p class="mt-1 text-xl font-bold text-amber-950">{{ stats.treated }}</p>
+              <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Treated</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-amber-950">{{ stats.treated }}</p>
               </div>
-              <div class="rounded-xl bg-emerald-50 p-3">
-                <p class="text-xs font-medium text-emerald-700">Resolved</p>
-                <p class="mt-1 text-xl font-bold text-emerald-950">{{ stats.resolved }}</p>
+              <div class="min-w-0 rounded-md bg-emerald-50 p-2.5">
+                <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">Resolved</p>
+                <p class="mt-1 break-words text-lg font-bold leading-tight text-emerald-950">{{ stats.resolved }}</p>
               </div>
             </div>
             <button
@@ -150,7 +145,7 @@
 
               <!-- Treatment Costs -->
               <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Treatment Costs</p>
+                <p class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide mb-2">Treatment Costs</p>
                 <p class="text-xl font-bold text-gray-900">₱{{ formatNumber(analyticsData.treatment_costs.total) }}</p>
                 <div class="mt-2 space-y-1 text-sm">
                   <div class="flex justify-between text-gray-600">
@@ -166,7 +161,7 @@
 
               <!-- Top Recurring Pests -->
               <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Top Pests</p>
+                <p class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide mb-2">Top Pests</p>
                 <div v-if="analyticsData.top_pests?.length" class="space-y-2">
                   <div v-for="(pest, i) in analyticsData.top_pests" :key="i" class="flex items-center justify-between">
                     <span class="flex items-center gap-1.5 text-sm text-gray-700 truncate">
@@ -181,7 +176,7 @@
 
               <!-- Avg Resolution -->
               <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Avg. Resolution</p>
+                <p class="break-words text-[11px] font-semibold leading-tight text-gray-500 uppercase tracking-wide mb-2">Avg. Resolution</p>
                 <p class="text-xl font-bold text-gray-900">
                   {{ analyticsData.avg_resolution_days }}
                   <span class="text-sm font-normal text-gray-500">days</span>
@@ -316,7 +311,7 @@
                 </option>
               </select>
               
-              <div v-if="selectedPlanting" class="mt-2 p-3 bg-gray-50 rounded-lg text-sm border border-gray-100">
+              <div v-if="selectedPlanting" class="mt-2 p-2.5 bg-gray-50 rounded-lg text-sm border border-gray-100">
                 <p class="font-medium text-gray-700">Linked Crop:</p>
                 <div class="flex items-center gap-2 mt-1">
                    <span class="text-green-700 font-medium">{{ selectedPlanting.rice_variety?.name || selectedPlanting.crop_type }}</span>
