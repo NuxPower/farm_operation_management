@@ -749,6 +749,23 @@ const expensesList = computed(() => ensureArray(farmStore.expenses));
 const farmerOrders = computed(() => ensureArray(marketplaceStore.orders));
 const weatherHistoryRecords = computed(() => ensureArray(weatherStore.weatherHistory));
 
+const harvestUnit = computed(() => {
+  const unitCounts = harvests.value.reduce((acc, harvest) => {
+    const unit = harvest?.unit || 'bushels';
+    acc[unit] = (acc[unit] || 0) + 1;
+    return acc;
+  }, {});
+
+  const entries = Object.entries(unitCounts);
+  if (!entries.length) return 'bushels';
+
+  return entries.reduce((best, current) => (current[1] > best[1] ? current : best))[0];
+});
+
+const harvestAmount = (harvest) => {
+  return Number(harvest?.quantity ?? harvest?.yield ?? 0) || 0;
+};
+
 const netProfit = computed(() => {
   const revenue = analyticsData.value?.sales?.total_revenue ?? 0;
   const expenses = analyticsData.value?.expenses?.total_expenses ?? 0;
@@ -822,12 +839,11 @@ const yieldChartData = computed(() => {
 
   if (!ordered.length) return { labels: [], datasets: [] };
 
-  const unit = ordered[0]?.unit || 'kg';
   return {
     labels: ordered.map(h => formatLabelDate(h.harvest_date)),
     datasets: [{
-      label: `Yield (${unit})`,
-      data: ordered.map(h => Number(h?.yield) || 0),
+      label: `Yield (${harvestUnit.value})`,
+      data: ordered.map(h => harvestAmount(h)),
       borderColor: 'rgb(16, 185, 129)', // emerald-500
       backgroundColor: 'rgba(16, 185, 129, 0.1)',
       tension: 0.1,
@@ -839,8 +855,7 @@ const yieldChartData = computed(() => {
 const varietyChartData = computed(() => {
   const varietyTotals = harvests.value.reduce((acc, harvest) => {
     const variety = harvest?.planting?.crop_type || 'Unknown Variety';
-    const yieldValue = Number(harvest?.yield) || 0;
-    acc[variety] = (acc[variety] || 0) + yieldValue;
+    acc[variety] = (acc[variety] || 0) + harvestAmount(harvest);
     return acc;
   }, {});
 
@@ -853,7 +868,7 @@ const varietyChartData = computed(() => {
   return {
     labels,
     datasets: [{
-      label: 'Yield (kg)',
+      label: `Yield (${harvestUnit.value})`,
       data,
       backgroundColor: labels.map((_, index) => getColor(index)),
       borderRadius: 4
@@ -939,7 +954,7 @@ const weatherCorrelationData = computed(() => {
   harvests.value.forEach(harvest => {
     const day = formatLabelDate(harvest.harvest_date);
     if (!day) return;
-    dailyYields.set(day, (dailyYields.get(day) || 0) + Number(harvest.yield || 0));
+    dailyYields.set(day, (dailyYields.get(day) || 0) + harvestAmount(harvest));
   });
 
   const allDaysSet = new Set([...dailyRainfall.keys(), ...dailyYields.keys()]);
@@ -958,7 +973,7 @@ const weatherCorrelationData = computed(() => {
       },
       {
         type: 'line',
-        label: 'Harvest Yield (kg)',
+        label: `Harvest Yield (${harvestUnit.value})`,
         data: sortedDays.map(day => dailyYields.get(day) || 0),
         borderColor: 'rgb(16, 185, 129)', // emerald-500
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -1002,7 +1017,7 @@ const weatherChartOptions = {
       type: 'linear', 
       display: true, 
       position: 'left', 
-      title: { display: true, text: 'Yield (kg)' },
+      title: { display: true, text: `Yield (${harvestUnit.value})` },
       grid: { color: 'rgba(0,0,0,0.05)' } 
     },
     y1: { 
