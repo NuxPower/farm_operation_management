@@ -1,285 +1,246 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">Rice Fields</h1>
-          <p class="text-gray-500 mt-1">Track field boundaries, soil data, and readiness for planting.</p>
+  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f2_36%,#f8fafc_100%)] text-gray-900">
+    <div class="w-full px-6 py-8 space-y-7">
+      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+        <div class="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr]">
+          <div class="relative bg-[linear-gradient(135deg,#0f172a_0%,#14532d_48%,#0369a1_100%)] p-8 text-white">
+            <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-200">Field operations</p>
+            <h1 class="mt-3 max-w-3xl text-4xl font-bold leading-tight">Rice Fields</h1>
+            <p class="mt-4 max-w-3xl text-sm leading-6 text-white/75">
+              Monitor land use, active plantings, soil conditions, and field readiness from one focused workspace.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Boundaries</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Planting Status</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Soil</span>
+              <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">Irrigation</span>
+            </div>
+          </div>
+
+          <div class="flex flex-col justify-between gap-6 bg-white p-8">
+            <div>
+              <p class="text-sm font-semibold text-gray-500">Farm profile</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{{ farmName }}</p>
+              <p class="mt-2 text-sm leading-6 text-gray-500">
+                {{ activePlantingCount }} field{{ activePlantingCount === 1 ? '' : 's' }} currently planted across {{ formatAreaValue(totalFieldArea) }} hectares.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-xl bg-emerald-50 p-3">
+                <p class="text-xs font-medium text-emerald-700">Fields</p>
+                <p class="mt-1 text-xl font-bold text-emerald-950">{{ fields.length }}</p>
+              </div>
+              <div class="rounded-xl bg-sky-50 p-3">
+                <p class="text-xs font-medium text-sky-700">Area</p>
+                <p class="mt-1 text-xl font-bold text-sky-950">{{ formatAreaValue(totalFieldArea) }} ha</p>
+              </div>
+              <div class="rounded-xl bg-amber-50 p-3">
+                <p class="text-xs font-medium text-amber-700">Fallow</p>
+                <p class="mt-1 text-xl font-bold text-amber-950">{{ fallowFieldCount }}</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button
+                @click="goToFieldSetup"
+                class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5" />
+                </svg>
+                Add Field
+              </button>
+              <button
+                @click="openEditFarmModal"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Farm Details
+              </button>
+              <button
+                @click="refreshFields"
+                :disabled="loading"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-3">
-          <button
-             @click="openEditFarmModal"
-             class="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium w-full sm:w-auto"
-          >
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Edit Farm Details
-          </button>
-          <button
-            @click="refreshFields"
-            :disabled="loading"
-            class="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50 w-full sm:w-auto"
-          >
-            <svg
-              :class="['h-5 w-5', { 'animate-spin': loading }]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
-          <button
-            @click="goToFieldSetup"
-            class="flex items-center justify-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium w-full sm:w-auto"
-          >
-            <span class="text-xl leading-none">+</span> Add Field
-          </button>
+      </section>
+
+      <div v-if="error" class="rounded-xl border border-rose-200 bg-rose-50 p-4">
+        <div class="flex items-start gap-3">
+          <svg class="mt-0.5 h-5 w-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <div>
+            <p class="text-sm font-semibold text-rose-900">Fields could not be loaded</p>
+            <p class="mt-1 text-sm text-rose-700">{{ error }}</p>
+            <button @click="refreshFields" class="mt-2 text-sm font-semibold text-rose-800 hover:text-rose-900">Try again</button>
+          </div>
         </div>
       </div>
 
-      <!-- Filter Bar -->
-      <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-center">
-        <div class="flex-1 relative w-full">
-          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search by field name or location…"
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
-          />
+      <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryTile label="Total Field Area" :value="`${formatAreaValue(totalFieldArea)} ha`" :detail="`${fields.length} mapped fields`" tone="emerald" />
+        <SummaryTile label="Active Plantings" :value="activePlantingCount" :detail="`${activeAreaPercent}% of fields planted`" tone="blue" />
+        <SummaryTile label="Available Fields" :value="availableFieldCount" detail="No current crop" tone="amber" />
+        <SummaryTile label="Primary Soil" :value="primarySoilLabel" detail="Most common field soil" tone="violet" />
+      </section>
+
+      <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_180px_180px_180px_auto]">
+          <div class="relative">
+            <svg class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search field name or location"
+              class="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm font-medium text-gray-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+            />
+          </div>
+          <select v-model="soilFilter" class="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+            <option value="">All Soil Types</option>
+            <option v-for="soil in soilOptions" :key="soil" :value="soil">{{ formatDisplayKey(soil) }}</option>
+          </select>
+          <select v-model="statusFilter" class="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="fallow">Fallow</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+          <select v-model="cropFilter" class="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+            <option value="">All Crops</option>
+            <option v-for="crop in cropOptions" :key="crop" :value="crop">{{ formatDisplayKey(crop) }}</option>
+          </select>
+          <button
+            v-if="hasFilters"
+            @click="clearFilters"
+            class="h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+          >
+            Clear
+          </button>
         </div>
-        <select v-model="soilFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
-          <option value="">All Soil Types</option>
-          <option v-for="soil in soilOptions" :key="soil" :value="soil">{{ formatDisplayKey(soil) }}</option>
-        </select>
-        <select v-model="statusFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="fallow">Fallow</option>
-          <option value="maintenance">Maintenance</option>
-        </select>
-        <select v-model="cropFilter" class="w-full md:w-44 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-sm">
-          <option value="">All Crops</option>
-          <option v-for="crop in cropOptions" :key="crop" :value="crop">{{ formatDisplayKey(crop) }}</option>
-        </select>
-        <button
-          v-if="searchQuery || soilFilter || statusFilter || cropFilter"
-          @click="clearFilters"
-          class="whitespace-nowrap text-sm text-gray-500 hover:text-red-600 transition-colors px-3 py-2 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50"
-        >
-          ✕ Clear
+      </section>
+
+      <div v-if="loading" class="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+        <div v-for="n in 6" :key="n" class="animate-pulse rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div class="h-5 w-1/3 rounded bg-gray-200"></div>
+          <div class="mt-5 h-24 rounded-xl bg-gray-100"></div>
+          <div class="mt-5 grid grid-cols-3 gap-3">
+            <div class="h-16 rounded-xl bg-gray-100"></div>
+            <div class="h-16 rounded-xl bg-gray-100"></div>
+            <div class="h-16 rounded-xl bg-gray-100"></div>
+          </div>
+        </div>
+      </div>
+
+      <section v-else-if="fields.length === 0" class="rounded-2xl border border-dashed border-emerald-200 bg-white p-12 text-center shadow-sm">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
+          <svg class="h-8 w-8 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19l4-14 4 14m0 0l4-14 4 14M4 19h16" />
+          </svg>
+        </div>
+        <h2 class="mt-5 text-2xl font-bold text-gray-950">No fields yet</h2>
+        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+          Add your first field to start tracking planting schedules, weather context, and operational readiness.
+        </p>
+        <button @click="goToFieldSetup" class="mt-6 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+          Create First Field
         </button>
-      </div>
+      </section>
 
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <p class="text-sm text-red-700">{{ error }}</p>
-            <button
-              @click="refreshFields"
-              class="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      </div>
+      <section v-else-if="filteredFields.length === 0" class="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <h2 class="text-xl font-bold text-gray-950">No fields match your filters</h2>
+        <p class="mt-2 text-sm text-gray-500">Clear filters or search with a broader field name or location.</p>
+        <button @click="clearFilters" class="mt-5 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          Clear Filters
+        </button>
+      </section>
 
-      <div v-else-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div
-          v-for="n in 6"
-          :key="n"
-          class="bg-white rounded-lg shadow p-6 animate-pulse space-y-4"
+      <section v-else class="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+        <article
+          v-for="field in filteredFields"
+          :key="field.id"
+          class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
         >
-          <div class="h-6 bg-gray-200 rounded"></div>
-          <div class="space-y-2">
-            <div class="h-3 bg-gray-200 rounded"></div>
-            <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-            <div class="h-3 bg-gray-200 rounded w-2/4"></div>
-          </div>
-          <div class="h-10 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-
-      <div v-else>
-        <div v-if="fields.length === 0" class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100">
-          <div class="inline-flex items-center justify-center h-20 w-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl mb-6">
-            <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-          </div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">No fields yet</h2>
-          <p class="text-sm text-gray-600 mb-8 max-w-md mx-auto">
-            Add your first field to start tracking planting schedules, weather insights, and crop management.
-          </p>
-          <button
-            @click="goToFieldSetup"
-            class="inline-flex items-center px-6 py-3 text-sm font-semibold rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-          >
-            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Create Your First Field
-          </button>
-        </div>
-
-        <div v-else-if="filteredFields.length === 0 && fields.length > 0" class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-100">
-          <div class="text-5xl mb-4">🌾</div>
-          <h2 class="text-xl font-bold text-gray-900 mb-2">No fields match your filters</h2>
-          <p class="text-sm text-gray-500 mb-6">Try adjusting or clearing the filters above.</p>
-          <button @click="clearFilters" class="text-sm text-green-700 hover:underline font-medium">Clear filters</button>
-        </div>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <article
-            v-for="field in filteredFields"
-            :key="field.id"
-            class="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden"
-          >
-            <div class="p-6 h-full flex flex-col">
-              <!-- Header -->
-              <div class="flex items-start justify-between mb-5">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
-                    <div class="h-10 w-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                      <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 group-hover:text-green-700 transition-colors">{{ field.name }}</h3>
-                  </div>
-                  <div class="flex items-center text-xs text-gray-500 mb-3">
-                    <svg class="h-4 w-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          <div class="border-b border-gray-100 bg-[linear-gradient(135deg,#ffffff_0%,#f0fdf4_100%)] p-6">
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19l4-14 4 14m0 0l4-14 4 14M4 19h16" />
                     </svg>
-                    <span class="truncate">{{ formatLocation(field.location || field.address) }}</span>
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="truncate text-lg font-bold text-gray-950">{{ field.name }}</h3>
+                    <p class="mt-1 truncate text-sm text-gray-500">{{ formatLocation(field.location || field.address) }}</p>
                   </div>
                 </div>
-                <span
-                  class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
-                  :class="statusClass(field.status)"
+              </div>
+              <span class="shrink-0 rounded-full px-3 py-1 text-xs font-bold" :class="statusClass(field.status)">
+                {{ field.status ? statusLabel(field.status) : 'Active' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <div class="grid grid-cols-3 gap-3">
+              <MiniStat label="Area" :value="formatArea(field.size || field.area || field.field_size)" tone="emerald" />
+              <MiniStat label="Soil" :value="formatDisplayKey(field.soil_type) || 'Unset'" tone="amber" />
+              <MiniStat label="Irrigation" :value="formatDisplayKey(field.irrigation_type) || 'Unset'" tone="blue" />
+            </div>
+
+            <div class="mt-5 rounded-xl border p-4" :class="field.current_crop ? 'border-emerald-100 bg-emerald-50' : 'border-gray-100 bg-gray-50'">
+              <p class="text-xs font-bold uppercase tracking-wide" :class="field.current_crop ? 'text-emerald-700' : 'text-gray-500'">Current Planting</p>
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <router-link
+                  v-if="field.current_crop && field.current_planting_id"
+                  :to="`/plantings/${field.current_planting_id}`"
+                  class="text-sm font-bold text-emerald-950 hover:text-emerald-700 hover:underline"
                 >
-                  {{ field.status ? statusLabel(field.status) : 'Active' }}
+                  {{ formatDisplayKey(field.current_crop) }}
+                </router-link>
+                <span v-else class="text-sm font-bold" :class="field.current_crop ? 'text-emerald-950' : 'text-gray-500'">
+                  {{ field.current_crop ? formatDisplayKey(field.current_crop) : 'No current crop' }}
+                </span>
+                <span v-if="field.current_planting_status" class="rounded-full px-2 py-0.5 text-xs font-bold" :class="plantingStatusClass(field.current_planting_status)">
+                  {{ formatPlantingStatus(field.current_planting_status) }}
                 </span>
               </div>
+            </div>
 
-              <!-- Current Crop Highlight -->
-              <div v-if="field.current_crop" class="mb-5 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                <div class="flex items-center gap-2">
-                  <div class="h-8 w-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Current Planting</p>
-                    <div class="flex items-center gap-2">
-                      <router-link 
-                        v-if="field.current_planting_id"
-                        :to="`/plantings/${field.current_planting_id}`"
-                        class="text-sm font-bold text-green-700 hover:text-green-900 hover:underline"
-                      >
-                        {{ formatDisplayKey(field.current_crop) }}
-                      </router-link>
-                      <span v-else class="text-sm font-bold text-green-700">{{ formatDisplayKey(field.current_crop) }}</span>
-                      <span 
-                        v-if="field.current_planting_status"
-                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                        :class="plantingStatusClass(field.current_planting_status)"
-                      >
-                        {{ formatPlantingStatus(field.current_planting_status) }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Field Details Grid -->
-              <dl class="grid grid-cols-2 gap-4 mb-5">
-                <div class="flex items-start gap-2">
-                  <div class="mt-0.5">
-                    <svg class="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Size</dt>
-                    <dd class="text-sm font-bold text-gray-900 mt-0.5">
-                      {{ formatArea(field.size || field.area || field.field_size) }}
-                    </dd>
-                  </div>
-                </div>
-                <div class="flex items-start gap-2">
-                  <div class="mt-0.5">
-                    <svg class="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Soil</dt>
-                    <dd class="text-sm font-semibold text-gray-700 mt-0.5 truncate">
-                      {{ formatDisplayKey(field.soil_type) || 'Not set' }}
-                    </dd>
-                  </div>
-                </div>
-                <div v-if="!field.current_crop" class="flex items-start gap-2 col-span-2">
-                  <div class="mt-0.5">
-                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                    </svg>
-                  </div>
-                  <div class="flex-1">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Current Crop</dt>
-                    <dd class="text-sm font-semibold text-gray-400 mt-0.5">None</dd>
-                  </div>
-                </div>
-                <div class="flex items-start gap-2">
-                  <div class="mt-0.5">
-                    <svg class="h-4 w-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 002-2V6a1 1 0 011-1h2m6 0h2a1 1 0 011 1v3a2 2 0 002 2h1.945M15 21v-6a3 3 0 00-3-3 3 3 0 00-3 3v6m6 0H9" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Irrigation</dt>
-                    <dd class="text-sm font-semibold text-gray-700 mt-0.5 truncate">
-                      {{ formatDisplayKey(field.irrigation_type) || 'Not set' }}
-                    </dd>
-                  </div>
-                </div>
-              </dl>
-
-              <!-- Footer -->
-              <div class="mt-auto pt-4 border-t border-gray-200 flex justify-between items-center">
-                <div class="text-xs text-gray-400 flex items-center gap-1">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Updated {{ formatDate(field.updated_at || field.created_at) }}
-                </div>
+            <div class="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
+              <p class="text-xs font-medium text-gray-400">Updated {{ formatDate(field.updated_at || field.created_at) }}</p>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="field.id"
+                  @click="router.push(`/weather/fields/${field.id}`)"
+                  class="rounded-md border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
+                >
+                  Weather
+                </button>
                 <button
                   @click.stop="editField(field.id)"
-                  class="text-gray-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-indigo-50"
-                  title="Edit Field"
+                  class="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 >
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+                  Edit
                 </button>
               </div>
             </div>
-          </article>
-        </div>
-      </div>
+          </div>
+        </article>
+      </section>
     </div>
     <EditFarmModal
       :show="showEditFarmModal"
@@ -291,7 +252,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFarmStore } from '@/stores/farm'
 import EditFarmModal from '@/Components/Farm/EditFarmModal.vue'
@@ -306,6 +267,38 @@ const showEditFarmModal = ref(false)
 const fields = computed(() => farmStore.fields || [])
 const farmProfile = computed(() => farmStore.farmProfile)
 
+const farmName = computed(() => {
+  return farmProfile.value?.name || farmProfile.value?.farm?.name || 'Anibukid Farm'
+})
+
+const getFieldArea = (field) => {
+  const value = field?.size ?? field?.area ?? field?.field_size ?? 0
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+const totalFieldArea = computed(() => {
+  return fields.value.reduce((sum, field) => sum + getFieldArea(field), 0)
+})
+
+const activePlantingCount = computed(() => fields.value.filter(field => field.current_crop).length)
+const availableFieldCount = computed(() => fields.value.filter(field => !field.current_crop).length)
+const fallowFieldCount = computed(() => fields.value.filter(field => field.status === 'fallow' || !field.current_crop).length)
+const activeAreaPercent = computed(() => {
+  if (!fields.value.length) return 0
+  return Math.round((activePlantingCount.value / fields.value.length) * 100)
+})
+
+const primarySoilLabel = computed(() => {
+  const counts = fields.value.reduce((acc, field) => {
+    if (!field.soil_type) return acc
+    acc[field.soil_type] = (acc[field.soil_type] || 0) + 1
+    return acc
+  }, {})
+  const primary = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0]
+  return primary ? formatDisplayKey(primary) : 'Unset'
+})
+
 // Filters
 const searchQuery = ref('')
 const soilFilter = ref('')
@@ -319,6 +312,8 @@ const soilOptions = computed(() => [
 const cropOptions = computed(() => [
   ...new Set(fields.value.map(f => f.current_crop).filter(Boolean))
 ].sort())
+
+const hasFilters = computed(() => Boolean(searchQuery.value || soilFilter.value || statusFilter.value || cropFilter.value))
 
 const filteredFields = computed(() => {
   const search = searchQuery.value.toLowerCase().trim()
@@ -383,6 +378,12 @@ const formatArea = (value) => {
   return `${num.toFixed(1)} ha`
 }
 
+const formatAreaValue = (value) => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '0.0'
+  return num.toFixed(1)
+}
+
 const formatLocation = (location) => {
   if (!location) return 'Location not set'
   if (typeof location === 'string') return location
@@ -438,10 +439,62 @@ const statusClass = (status) => {
   return classes[status] || 'bg-blue-100 text-blue-800'
 }
 
+const summaryToneClass = {
+  emerald: 'border-emerald-100 bg-emerald-50 text-emerald-950',
+  blue: 'border-sky-100 bg-sky-50 text-sky-950',
+  amber: 'border-amber-100 bg-amber-50 text-amber-950',
+  violet: 'border-violet-100 bg-violet-50 text-violet-950'
+}
+
+const summaryLabelClass = {
+  emerald: 'text-emerald-700',
+  blue: 'text-sky-700',
+  amber: 'text-amber-700',
+  violet: 'text-violet-700'
+}
+
+const SummaryTile = {
+  props: {
+    label: String,
+    value: [String, Number],
+    detail: String,
+    tone: { type: String, default: 'emerald' }
+  },
+  setup(props) {
+    return () => h('div', {
+      class: ['rounded-2xl border p-5 shadow-sm', summaryToneClass[props.tone] || summaryToneClass.emerald]
+    }, [
+      h('p', { class: ['text-xs font-bold uppercase tracking-wide', summaryLabelClass[props.tone] || summaryLabelClass.emerald] }, props.label),
+      h('p', { class: 'mt-2 text-3xl font-bold tracking-tight' }, props.value),
+      h('p', { class: 'mt-1 text-sm font-medium opacity-70' }, props.detail)
+    ])
+  }
+}
+
+const miniToneClass = {
+  emerald: 'border-emerald-100 bg-emerald-50 text-emerald-950',
+  amber: 'border-amber-100 bg-amber-50 text-amber-950',
+  blue: 'border-sky-100 bg-sky-50 text-sky-950'
+}
+
+const MiniStat = {
+  props: {
+    label: String,
+    value: [String, Number],
+    tone: { type: String, default: 'emerald' }
+  },
+  setup(props) {
+    return () => h('div', {
+      class: ['min-w-0 rounded-xl border p-3', miniToneClass[props.tone] || miniToneClass.emerald]
+    }, [
+      h('p', { class: 'truncate text-xs font-bold uppercase tracking-wide opacity-70' }, props.label),
+      h('p', { class: 'mt-1 truncate text-sm font-bold' }, props.value)
+    ])
+  }
+}
+
 onMounted(() => {
   // Always refresh fields to get latest current_crop data
   refreshFields()
 })
 </script>
-
-
