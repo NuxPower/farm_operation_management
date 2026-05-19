@@ -589,7 +589,7 @@
               <!-- Weather Correlation Chart -->
               <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-center mb-6">
-                  <h3 class="text-lg font-bold text-gray-800">Yield & Rainfall Correlation</h3>
+                  <h3 class="text-lg font-bold text-gray-800">Monthly Yield & Rainfall Correlation</h3>
                   <span class="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-500 rounded">Climate Impact</span>
                 </div>
                 <div class="h-96">
@@ -1000,32 +1000,30 @@ const expenseChartData = computed(() => {
 });
 
 const weatherCorrelationData = computed(() => {
-  const dailyRainfall = new Map();
+  const rainfallByMonth = new Map();
   weatherHistoryRecords.value.forEach(record => {
-    const day = formatLabelDate(record.recorded_at);
-    if (!day) return;
-    dailyRainfall.set(day, (dailyRainfall.get(day) || 0) + Number(record.rainfall || 0));
+    const key = monthKey(record?.recorded_at);
+    if (!key) return;
+    rainfallByMonth.set(key, (rainfallByMonth.get(key) || 0) + (Number(record?.rainfall) || 0));
   });
 
-  const dailyYields = new Map();
+  const yieldByMonth = new Map();
   harvests.value.forEach(harvest => {
-    const day = formatLabelDate(harvest.harvest_date);
-    if (!day) return;
-    dailyYields.set(day, (dailyYields.get(day) || 0) + harvestAmount(harvest));
+    const key = monthKey(harvest?.harvest_date);
+    if (!key) return;
+    yieldByMonth.set(key, (yieldByMonth.get(key) || 0) + harvestAmount(harvest));
   });
 
-  const allDaysSet = new Set([...dailyRainfall.keys(), ...dailyYields.keys()]);
-  if (!allDaysSet.size) return { labels: [], datasets: [] };
-
-  const sortedDays = Array.from(allDaysSet).sort((a, b) => new Date(a) - new Date(b)).slice(-14);
+  const monthKeys = Array.from(new Set([...rainfallByMonth.keys(), ...yieldByMonth.keys()])).sort();
+  if (!monthKeys.length) return { labels: [], datasets: [] };
 
   return {
-    labels: sortedDays,
+    labels: monthKeys.map(monthLabelFromKey),
     datasets: [
       {
         type: 'bar',
         label: 'Rainfall (mm)',
-        data: sortedDays.map(day => dailyRainfall.get(day) || 0),
+        data: monthKeys.map(key => Number((rainfallByMonth.get(key) || 0).toFixed(2))),
         backgroundColor: 'rgba(59, 130, 246, 0.4)', // blue-500
         yAxisID: 'y1',
         borderRadius: 4
@@ -1033,7 +1031,7 @@ const weatherCorrelationData = computed(() => {
       {
         type: 'line',
         label: `Harvest Yield (${harvestUnit.value})`,
-        data: sortedDays.map(day => dailyYields.get(day) || 0),
+        data: monthKeys.map(key => Number((yieldByMonth.get(key) || 0).toFixed(2))),
         borderColor: 'rgb(16, 185, 129)', // emerald-500
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderWidth: 2,
