@@ -21,6 +21,7 @@ use App\Models\WeatherLog;
 use App\Models\Laborer;
 use App\Models\LaborWage;
 use App\Models\PostHarvestProcess;
+use App\Models\RiceProduct;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -133,6 +134,23 @@ class DataAnalysisController extends Controller
             })->where('due_date', '<', now())
                 ->where('status', '!=', Task::STATUS_COMPLETED)
                 ->count();
+
+            $taskStats['upcoming'] = Task::where(function ($q) use ($farmTaskScope) {
+                $farmTaskScope($q);
+            })
+                ->whereIn('status', [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS])
+                ->whereNotNull('due_date')
+                ->orderBy('due_date')
+                ->limit(5)
+                ->get(['id', 'task_type', 'description', 'status', 'due_date'])
+                ->map(fn($task) => [
+                    'id' => $task->id,
+                    'title' => ucfirst(str_replace('_', ' ', $task->task_type ?? 'Task')),
+                    'description' => $task->description,
+                    'status' => $task->status,
+                    'priority' => $task->due_date && $task->due_date->isPast() ? 'high' : 'medium',
+                    'due_date' => optional($task->due_date)->toDateString(),
+                ])->values();
         }
 
         // 5. Weather Data
@@ -163,7 +181,8 @@ class DataAnalysisController extends Controller
                 try {
                     $weatherForecast = $this->weatherService->getForecast(
                         (float) $weatherCoordValidation['coordinates']['lat'],
-                        (float) $weatherCoordValidation['coordinates']['lon']
+                        (float) $weatherCoordValidation['coordinates']['lon'],
+                        7
                     );
                 } catch (\Exception $e) {
                     Log::error("Weather forecast fetch failed for farm {$farm->id}: " . $e->getMessage());
@@ -327,7 +346,7 @@ class DataAnalysisController extends Controller
         $userItems = InventoryItem::where('user_id', $user->id);
         $allItems = (clone $userItems)->get();
 
-        $lowStockItems = $allItems->filter(fn($i) => $i->isLowStock());
+        $lowStockItems = $allItems->filter(fn($i) => $i->category !== InventoryItem::CATEGORY_PRODUCE && $i->isLowStock());
         $expiringSoon = (clone $userItems)
             ->whereNotNull('expiry_date')
             ->where('expiry_date', '<=', now()->addDays(30))
@@ -366,6 +385,25 @@ class DataAnalysisController extends Controller
             'total_value' => $dashboardData['overview']['total_inventory_value'] ?? round($allItems->sum(fn($i) => $i->current_stock * $i->unit_price), 2),
             'low_stock_count' => $lowStockItems->count(),
             'expiring_soon_count' => $expiringSoon->count(),
+            'low_stock_items' => $lowStockItems
+                ->take(5)
+                ->map(fn($item) => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'current_stock' => (float) $item->current_stock,
+                    'minimum_stock' => (float) $item->minimum_stock,
+                    'unit' => $item->unit,
+                ])->values(),
+            'expiring_items' => $expiringSoon
+                ->sortBy('expiry_date')
+                ->take(5)
+                ->map(fn($item) => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'expiry_date' => optional($item->expiry_date)->toDateString(),
+                    'current_stock' => (float) $item->current_stock,
+                    'unit' => $item->unit,
+                ])->values(),
             'by_category' => $byCategory,
             'historical_usage' => [
                 'total_consumed' => round($totalConsumed, 2),
@@ -461,6 +499,28 @@ class DataAnalysisController extends Controller
             }
         }
 
+        $marketplaceData = [
+            'active_listings' => RiceProduct::where('farmer_id', $user->id)
+                ->where('is_available', true)
+                ->where('quantity_available', '>', 0)
+                ->count(),
+            'total_products' => RiceProduct::where('farmer_id', $user->id)->count(),
+            'recent_products' => RiceProduct::where('farmer_id', $user->id)
+                ->with('riceVariety')
+                ->latest()
+                ->limit(5)
+                ->get()
+                ->map(fn($product) => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'variety' => $product->riceVariety->name ?? 'Rice',
+                    'quantity_available' => (float) $product->quantity_available,
+                    'unit' => $product->unit,
+                    'price_per_unit' => (float) $product->price_per_unit,
+                    'is_available' => (bool) $product->is_available,
+                ])->values(),
+        ];
+
         // 12. Failure Analysis (new)
         $failureData = [
             'total_failed'          => 0,
@@ -550,6 +610,7 @@ class DataAnalysisController extends Controller
             'post_harvest'       => $postHarvestData,
             'failure_analysis'   => $failureData,
             'financial_forecast' => $financialForecast,
+            'marketplace'        => $marketplaceData,
             'generated_at'       => now(),
         ]);
     }
@@ -608,6 +669,94 @@ class DataAnalysisController extends Controller
             'tone' => $tone,
             'text' => $text,
         ];
+    }
+
+    private function buildWeatherForecastSuggestions(?array $weatherForecast): array
+    {
+        $forecastDays = array_slice($weatherForecast['list'] ?? [], 0, 7);
+
+        if (empty($forecastDays)) {
+            return [];
+        }
+
+        $rainDays = [];
+        $stormDays = [];
+        $heatDays = [];
+        $humidityDays = [];
+
+        foreach ($forecastDays as $day) {
+            $condition = strtolower($day['weather'][0]['main'] ?? '');
+            $date = isset($day['dt'])
+                ? Carbon::createFromTimestamp($day['dt'])->format('M j')
+                : Carbon::parse($day['dt_txt'] ?? now())->format('M j');
+            $rainProbability = (float) ($day['pop'] ?? 0);
+            $humidity = (float) ($day['main']['humidity'] ?? 0);
+            $maxTemp = (float) ($day['main']['temp_max'] ?? $day['main']['temp'] ?? 0);
+
+            if (in_array($condition, ['stormy', 'thunderstorm'], true)) {
+                $stormDays[] = $date;
+            }
+
+            if (in_array($condition, ['rainy', 'rain'], true) || $rainProbability >= 0.5) {
+                $rainDays[] = $date;
+            }
+
+            if ($maxTemp >= 35) {
+                $heatDays[] = $date;
+            }
+
+            if ($humidity >= 85) {
+                $humidityDays[] = $date;
+            }
+        }
+
+        $suggestions = [];
+
+        if (!empty($stormDays)) {
+            $suggestions[] = [
+                'icon' => '⛈️',
+                'category' => 'Weather',
+                'message' => 'Storm risk appears in the 7-day forecast on ' . implode(', ', array_slice($stormDays, 0, 3)) . '. Secure equipment and avoid field operations during affected days.',
+                'priority' => 'high',
+                'action_label' => 'Review 7-Day Forecast',
+                'action_url' => '/weather',
+            ];
+        }
+
+        if (!empty($rainDays)) {
+            $suggestions[] = [
+                'icon' => '🌧️',
+                'category' => 'Weather',
+                'message' => 'Rain is likely within the next 7 days on ' . implode(', ', array_slice($rainDays, 0, 4)) . '. Check drainage and delay drying, spraying, or harvest work if needed.',
+                'priority' => empty($stormDays) ? 'high' : 'medium',
+                'action_label' => 'Plan Around Rain',
+                'action_url' => '/weather',
+            ];
+        }
+
+        if (!empty($heatDays)) {
+            $suggestions[] = [
+                'icon' => '🌡️',
+                'category' => 'Weather',
+                'message' => 'High temperature risk is forecast within 7 days on ' . implode(', ', array_slice($heatDays, 0, 4)) . '. Schedule irrigation checks and avoid peak heat labor where possible.',
+                'priority' => 'medium',
+                'action_label' => 'Check Heat Risk',
+                'action_url' => '/weather',
+            ];
+        }
+
+        if (!empty($humidityDays)) {
+            $suggestions[] = [
+                'icon' => '💧',
+                'category' => 'Weather',
+                'message' => 'High humidity is forecast within 7 days on ' . implode(', ', array_slice($humidityDays, 0, 4)) . '. Monitor disease pressure and avoid unnecessary wet-canopy operations.',
+                'priority' => 'medium',
+                'action_label' => 'Monitor Humidity',
+                'action_url' => '/weather',
+            ];
+        }
+
+        return array_slice($suggestions, 0, 3);
     }
 
     /**
@@ -670,28 +819,8 @@ class DataAnalysisController extends Controller
             }
         }
 
-        // Weather suggestion (Priority)
-        if ($weatherForecast) {
-            $todayForecast = $weatherForecast['list'][0] ?? null;
-            if ($todayForecast) {
-                $rainfall = $todayForecast['pop'] > 0 ? ($todayForecast['rain'] ?? 0) : 0; // Check structure
-                // Assuming OWM format might vary, but pop is probability.
-                // Let's rely on rain volume or description if available or simple conditions.
-
-                // Check if weather condition indicates rain/storm
-                $conditionCode = $todayForecast['weather'][0]['main'] ?? '';
-
-                if (in_array(strtolower($conditionCode), ['rainy', 'stormy', 'thunderstorm', 'rain'])) {
-                    $suggestions[] = [
-                        'icon' => '🌧️',
-                        'category' => 'Weather Alert',
-                        'message' => 'Rain is in the forecast. Check drainage and delay sensitive activities.',
-                        'priority' => 'high',
-                        'action_label' => 'View Forecast',
-                        'action_url' => '/weather',
-                    ];
-                }
-            }
+        foreach ($this->buildWeatherForecastSuggestions($weatherForecast) as $weatherSuggestion) {
+            $suggestions[] = $weatherSuggestion;
         }
 
         // Overdue tasks suggestion

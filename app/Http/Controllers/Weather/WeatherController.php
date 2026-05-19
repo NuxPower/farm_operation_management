@@ -215,7 +215,10 @@ class WeatherController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $alerts = $this->weatherService->getWeatherAlerts($farm);
+        $alerts = array_merge(
+            $this->weatherService->getWeatherAlerts($farm),
+            $this->getSevenDayForecastAlerts($farm)
+        );
 
         return response()->json([
             'farm' => $farm,
@@ -435,6 +438,173 @@ class WeatherController extends Controller
         }
 
         return response()->json($dashboardData);
+    }
+
+    private function getSevenDayForecastAlerts(Farm $farm): array
+    {
+        $coords = $farm->weather_coordinates;
+        $lat = $coords['lat'] ?? null;
+        $lon = $coords['lon'] ?? null;
+
+        if ($lat === null || $lon === null) {
+            return [];
+        }
+
+        try {
+            $forecastData = $this->colorfulCloudsService->getForecast((float) $lat, (float) $lon, 8, 'metric', 'en_US');
+            $dailyForecasts = !empty($forecastData)
+                ? $this->processColorfulCloudsForecast($forecastData, 7)
+                : [];
+
+            if (empty($dailyForecasts)) {
+                $fallbackForecast = $this->weatherService->getForecast((float) $lat, (float) $lon, 7);
+                $dailyForecasts = $fallbackForecast && isset($fallbackForecast['list'])
+                    ? $this->processForecastToDaily($fallbackForecast['list'], 7)
+                    : [];
+            }
+        } catch (\Exception $e) {
+            $fallbackForecast = $this->weatherService->getForecast((float) $lat, (float) $lon, 7);
+            $dailyForecasts = $fallbackForecast && isset($fallbackForecast['list'])
+                ? $this->processForecastToDaily($fallbackForecast['list'], 7)
+                : [];
+        }
+
+        return $this->buildForecastAlerts($dailyForecasts);
+    }
+
+    private function buildForecastAlerts(array $dailyForecasts): array
+    {
+        $forecastDays = array_slice($dailyForecasts, 0, 7);
+
+        if (empty($forecastDays)) {
+            return [];
+        }
+
+        $stormDays = [];
+        $rainDays = [];
+        $heatDays = [];
+        $humidityDays = [];
+        $windDays = [];
+
+        foreach ($forecastDays as $day) {
+            $label = $this->formatForecastAlertDate($day['date'] ?? $day['time'] ?? null);
+            $condition = strtolower($day['condition'] ?? $day['weather'] ?? $day['most_common_condition'] ?? '');
+            $weatherCode = (int) ($day['weather_code'] ?? $day['code'] ?? 0);
+            $rainChance = (float) ($day['precipitation_probability'] ?? $day['rain_chance'] ?? $day['precipitation_chance'] ?? 0);
+            $maxTemp = (float) ($day['high'] ?? $day['temperature_max'] ?? $day['max_temp'] ?? 0);
+            $humidity = (float) ($day['humidity'] ?? 0);
+            $windSpeed = (float) ($day['wind_speed'] ?? $day['wind'] ?? 0);
+
+            if (str_contains($condition, 'storm') || str_contains($condition, 'thunder') || ($weatherCode >= 200 && $weatherCode < 300)) {
+                $stormDays[] = $label;
+            }
+
+            if (str_contains($condition, 'rain') || str_contains($condition, 'drizzle') || $rainChance >= 50) {
+                $rainDays[] = $label;
+            }
+
+            if ($maxTemp >= 35) {
+                $heatDays[] = $label;
+            }
+
+            if ($humidity >= 85) {
+                $humidityDays[] = $label;
+            }
+
+            if ($windSpeed >= 15) {
+                $windDays[] = $label;
+            }
+        }
+
+        $alerts = [];
+
+        if (!empty($stormDays)) {
+            $alerts[] = $this->makeForecastAlert(
+                'forecast_storm',
+                'high',
+                '7-Day Storm Warning',
+                'Storm risk appears in the 7-day forecast on ' . implode(', ', array_slice($stormDays, 0, 4)) . '. Secure equipment and avoid field operations during affected days.',
+                'storm',
+                $stormDays,
+                'Secure loose materials, check drainage, and move sensitive operations away from storm days.'
+            );
+        }
+
+        if (!empty($rainDays)) {
+            $alerts[] = $this->makeForecastAlert(
+                'forecast_rain',
+                empty($stormDays) ? 'high' : 'medium',
+                '7-Day Rain Warning',
+                'Rain is likely within the next 7 days on ' . implode(', ', array_slice($rainDays, 0, 4)) . '. Delay drying, spraying, or harvest work if needed.',
+                'rain',
+                $rainDays,
+                'Check drainage and schedule field work around likely rain days.'
+            );
+        }
+
+        if (!empty($heatDays)) {
+            $alerts[] = $this->makeForecastAlert(
+                'forecast_heat',
+                'medium',
+                '7-Day Heat Warning',
+                'High temperature risk is forecast within 7 days on ' . implode(', ', array_slice($heatDays, 0, 4)) . '. Avoid peak heat labor and check irrigation.',
+                'temperature',
+                $heatDays,
+                'Schedule labor earlier in the day and maintain adequate field water where appropriate.'
+            );
+        }
+
+        if (!empty($humidityDays)) {
+            $alerts[] = $this->makeForecastAlert(
+                'forecast_humidity',
+                'medium',
+                '7-Day Humidity Disease Risk',
+                'High humidity is forecast within 7 days on ' . implode(', ', array_slice($humidityDays, 0, 4)) . '. Monitor rice blast and fungal disease pressure.',
+                'humidity',
+                $humidityDays,
+                'Inspect fields more frequently and avoid unnecessary wet-canopy operations.'
+            );
+        }
+
+        if (!empty($windDays)) {
+            $alerts[] = $this->makeForecastAlert(
+                'forecast_wind',
+                'medium',
+                '7-Day Wind Advisory',
+                'Strong wind risk is forecast within 7 days on ' . implode(', ', array_slice($windDays, 0, 4)) . '. Watch for lodging risk in mature rice.',
+                'wind',
+                $windDays,
+                'Secure lightweight materials and monitor mature fields for lodging.'
+            );
+        }
+
+        return array_slice($alerts, 0, 5);
+    }
+
+    private function makeForecastAlert(string $type, string $severity, string $title, string $message, string $category, array $dates, string $recommendation): array
+    {
+        return [
+            'id' => $type . '-' . md5(implode('|', $dates)),
+            'type' => $type,
+            'severity' => $severity,
+            'title' => $title,
+            'message' => $message,
+            'category' => $category,
+            'rice_specific' => true,
+            'recommendation' => $recommendation,
+            'forecast_dates' => array_values($dates),
+            'horizon_days' => 7,
+            'issued_at' => now()->toIso8601String(),
+        ];
+    }
+
+    private function formatForecastAlertDate(?string $date): string
+    {
+        if (!$date) {
+            return now('Asia/Manila')->format('M j');
+        }
+
+        return \Carbon\Carbon::parse($date, 'Asia/Manila')->format('M j');
     }
 
     /**

@@ -149,6 +149,40 @@ class DataAnalysisTest extends TestCase
     }
 
     /** @test */
+    public function data_analysis_excludes_produce_from_low_stock_inventory_alerts()
+    {
+        InventoryItem::create([
+            'user_id' => $this->farmer->id,
+            'name' => 'NSIC Rc222 - Dried Palay',
+            'category' => InventoryItem::CATEGORY_PRODUCE,
+            'unit' => 'dried_palay',
+            'current_stock' => 0,
+            'minimum_stock' => 0,
+            'unit_price' => 0,
+        ]);
+
+        InventoryItem::create([
+            'user_id' => $this->farmer->id,
+            'name' => 'Organic Fertilizer',
+            'category' => InventoryItem::CATEGORY_FERTILIZER,
+            'unit' => 'kg',
+            'current_stock' => 3,
+            'minimum_stock' => 5,
+            'unit_price' => 25,
+        ]);
+
+        $response = $this->actingAs($this->farmer, 'sanctum')
+            ->getJson('/api/analytics/data-analysis');
+
+        $response->assertStatus(200);
+
+        $data = $response->json('inventory');
+
+        $this->assertEquals(1, $data['low_stock_count']);
+        $this->assertEquals('Organic Fertilizer', $data['low_stock_items'][0]['name']);
+    }
+
+    /** @test */
     public function data_analysis_generates_action_suggestions()
     {
         $response = $this->actingAs($this->farmer, 'sanctum')

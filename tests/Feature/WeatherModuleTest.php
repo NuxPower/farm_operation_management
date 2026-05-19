@@ -104,4 +104,40 @@ class WeatherModuleTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_weather_alerts_include_seven_day_forecast_warnings()
+    {
+        $this->mock(WeatherService::class, function ($mock) {
+            $mock->shouldReceive('getWeatherAlerts')
+                ->withAnyArgs()
+                ->andReturn([]);
+        });
+
+        $this->mock(\App\Services\ColorfulCloudsWeatherService::class, function ($mock) {
+            $mock->shouldReceive('getForecast')
+                ->withAnyArgs()
+                ->andReturn([
+                    [
+                        'date' => now('Asia/Manila')->addDays(5)->toDateString(),
+                        'temperature' => 29,
+                        'temperature_high' => 31,
+                        'temperature_low' => 25,
+                        'humidity' => 78,
+                        'wind_speed' => 8,
+                        'conditions' => 'rain',
+                        'description' => 'Rain',
+                        'rain' => 6,
+                    ],
+                ]);
+        });
+
+        $response = $this->actingAs($this->farmer)
+            ->getJson("/api/weather/farms/{$this->farm->id}/alerts");
+
+        $response->assertStatus(200);
+
+        $titles = collect($response->json('alerts'))->pluck('title');
+
+        $this->assertTrue($titles->contains('7-Day Rain Warning'));
+    }
 }

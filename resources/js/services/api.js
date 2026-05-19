@@ -296,6 +296,8 @@ export const weatherAPI = {
   getForecast: (farmId, days = 7) => api.get(`/weather/farms/${farmId}/forecast`, { params: { days } }),
   getHistory: (farmId, days = 30) => api.get(`/weather/farms/${farmId}/history`, { params: { days } }),
   getAlerts: (farmId) => api.get(`/weather/farms/${farmId}/alerts`),
+  getDashboard: () => api.get('/weather/dashboard'),
+  getRiceDashboard: () => api.get('/weather/rice-dashboard'),
   updateWeather: (farmId, weatherData) => api.post(`/weather/farms/${farmId}/update`, weatherData),
   getRiceAnalytics: (farmId) => api.get(`/weather/farms/${farmId}/rice-analytics`),
   // ColorfulClouds Weather API proxy
@@ -437,6 +439,7 @@ export const dashboardAPI = {
 // Analytics API
 export const analyticsAPI = {
   getRiceFarmingAnalytics: (period = '12') => api.get(`/analytics/rice-farming?period=${period}`),
+  getDataAnalysis: (params = {}) => api.get('/analytics/data-analysis', { params }),
 };
 
 // Reports API

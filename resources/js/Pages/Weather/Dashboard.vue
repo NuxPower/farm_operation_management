@@ -542,43 +542,74 @@ const weatherAlerts = computed(() => {
         });
       }
     }
-    // 3. Scan forecast for upcoming conditions (Next 3-5 days)
-    if (weatherStore.forecast && weatherStore.forecast.length > 0) {
-      // iterate next 3 days
-      const upcomingDays = weatherStore.forecast.slice(0, 3);
+    // 3. Scan forecast for upcoming conditions across the 7-day planning window
+    const forecastWindow = forecast.value.slice(0, 7)
+    if (forecastWindow.length > 0) {
+      const rainDays = []
+      const stormDays = []
+      const heatDays = []
+      const humidityDays = []
       
-      upcomingDays.forEach(day => {
-        const dateStr = new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' });
-        const condition = (day.most_common_condition || day.condition || day.weather || '').toLowerCase();
-        const rainChance = day.precipitation_probability ?? day.rain_chance ?? 0;
-        const maxTemp = day.temperature?.max ?? day.high ?? 0;
+      forecastWindow.forEach(day => {
+        const dateStr = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const condition = (day.most_common_condition || day.condition || day.weather || '').toLowerCase()
+        const rainChance = day.precipitation_probability ?? day.rain_chance ?? 0
+        const maxTemp = day.temperature?.max ?? day.high ?? 0
+        const humidity = day.humidity ?? 0
         
-        // Rain Forecast
-        if ((condition.includes('rain') || condition.includes('storm') || rainChance > 50) && !hasAlert('Rain Expected')) {
-           alerts.push({
-             id: `forecast-rain-${day.date}`,
-             type: 'warning',
-             severity: 'medium',
-             title: 'Rain Expected',
-             description: `Rain forecast for ${dateStr}. Plan field activities accordingly.`,
-             issued_at: new Date().toISOString(),
-             icon: '🌧️'
-           });
-        }
-        
-        // Heat Forecast
-        if (maxTemp > 35 && !hasAlert('Extreme Heat Forecast')) {
-           alerts.push({
-             id: `forecast-heat-${day.date}`,
-             type: 'danger',
-             severity: 'medium',
-             title: 'Extreme Heat Forecast',
-             description: `High temperatures (>35°C) expected on ${dateStr}.`,
-             issued_at: new Date().toISOString(),
-             icon: '🌡️'
-           });
-        }
-      });
+        if (condition.includes('storm') || condition.includes('thunder')) stormDays.push(dateStr)
+        if (condition.includes('rain') || condition.includes('drizzle') || rainChance >= 50) rainDays.push(dateStr)
+        if (maxTemp >= 35) heatDays.push(dateStr)
+        if (humidity >= 85) humidityDays.push(dateStr)
+      })
+
+      if (stormDays.length && !hasAlert('7-Day Storm Warning')) {
+        alerts.push({
+          id: `forecast-storm-${stormDays.join('-')}`,
+          type: 'forecast_storm',
+          severity: 'high',
+          title: '7-Day Storm Warning',
+          description: `Storm risk appears within 7 days on ${stormDays.slice(0, 4).join(', ')}. Secure equipment and avoid field operations during affected days.`,
+          issued_at: new Date().toISOString(),
+          icon: '⛈️'
+        })
+      }
+
+      if (rainDays.length && !hasAlert('7-Day Rain Warning')) {
+        alerts.push({
+          id: `forecast-rain-${rainDays.join('-')}`,
+          type: 'forecast_rain',
+          severity: stormDays.length ? 'medium' : 'high',
+          title: '7-Day Rain Warning',
+          description: `Rain is likely within 7 days on ${rainDays.slice(0, 4).join(', ')}. Delay drying, spraying, or harvest work if needed.`,
+          issued_at: new Date().toISOString(),
+          icon: '🌧️'
+        })
+      }
+
+      if (heatDays.length && !hasAlert('7-Day Heat Warning')) {
+        alerts.push({
+          id: `forecast-heat-${heatDays.join('-')}`,
+          type: 'forecast_heat',
+          severity: 'medium',
+          title: '7-Day Heat Warning',
+          description: `High temperature risk is forecast within 7 days on ${heatDays.slice(0, 4).join(', ')}. Avoid peak heat labor and check irrigation.`,
+          issued_at: new Date().toISOString(),
+          icon: '🌡️'
+        })
+      }
+
+      if (humidityDays.length && !hasAlert('7-Day Humidity Disease Risk')) {
+        alerts.push({
+          id: `forecast-humidity-${humidityDays.join('-')}`,
+          type: 'forecast_humidity',
+          severity: 'medium',
+          title: '7-Day Humidity Disease Risk',
+          description: `High humidity is forecast within 7 days on ${humidityDays.slice(0, 4).join(', ')}. Monitor rice blast and fungal disease pressure.`,
+          issued_at: new Date().toISOString(),
+          icon: '💧'
+        })
+      }
     }
 
   } catch (e) {
@@ -635,7 +666,11 @@ const getAlertClass = (severity) => {
   const classes = {
     warning: 'bg-yellow-50 border-yellow-400',
     info: 'bg-blue-50 border-blue-400',
-    danger: 'bg-red-50 border-red-400'
+    danger: 'bg-red-50 border-red-400',
+    critical: 'bg-red-50 border-red-500',
+    high: 'bg-red-50 border-red-400',
+    medium: 'bg-yellow-50 border-yellow-400',
+    low: 'bg-blue-50 border-blue-400'
   }
   return classes[severity] || 'bg-gray-50 border-gray-400'
 }
@@ -656,6 +691,11 @@ const getAlertIcon = (typeOrSeverity) => {
     heavy_rain: '⚠️',
     storm: '⚠️',
     thunderstorm: '⚠️',
+    forecast_storm: '⛈️',
+    forecast_rain: '🌧️',
+    forecast_heat: '🌡️',
+    forecast_humidity: '💧',
+    forecast_wind: '💨',
     heat: '🚨',
     wind: '⚠️',
     cold: '⚠️',

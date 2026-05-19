@@ -89,30 +89,30 @@
               <form @submit.prevent="changePassword" class="space-y-6">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
-                  <input
+                  <PasswordInput
                     v-model="passwordForm.current_password"
-                    type="password"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autocomplete="current-password"
+                    input-class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                  <input
+                  <PasswordInput
                     v-model="passwordForm.new_password"
-                    type="password"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autocomplete="new-password"
+                    input-class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
-                  <input
+                  <PasswordInput
                     v-model="passwordForm.new_password_confirmation"
-                    type="password"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autocomplete="new-password"
+                    input-class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -232,6 +232,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
 import { useFormValidation } from '@/composables/useFormValidation'
+import PasswordInput from '@/Components/Forms/PasswordInput.vue'
 
 const authStore = useAuthStore()
 const { errors, rules, validateForm, sanitizeForm, clearErrors } = useFormValidation()

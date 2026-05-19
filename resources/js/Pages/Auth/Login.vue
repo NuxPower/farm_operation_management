@@ -107,14 +107,13 @@
                   Forgot password?
                 </router-link>
               </div>
-              <input
+              <PasswordInput
                 id="password"
                 v-model="form.password"
                 name="password"
-                type="password"
                 autocomplete="current-password"
                 required
-                class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-colors text-gray-900 text-sm"
+                input-class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-colors text-gray-900 text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -200,6 +199,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import PasswordInput from '@/Components/Forms/PasswordInput.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();

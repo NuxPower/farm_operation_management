@@ -14,7 +14,7 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth';
-import FarmerDashboard from '@/Pages/Farmer/Dashboard.vue';
+import FarmerDashboard from '@/Pages/Dashboard/RiceFarmingDashboard.vue';
 import BuyerDashboard from '@/Pages/Buyer/Dashboard.vue';
 
 const authStore = useAuthStore();

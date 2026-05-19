@@ -18,15 +18,15 @@
           </div>
           <div>
             <label for="password" class="sr-only">Password</label>
-            <input id="password" name="password" type="password" autocomplete="new-password" required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-              placeholder="Password" v-model="form.password">
+            <PasswordInput id="password" name="password" autocomplete="new-password" required
+              input-class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+              placeholder="Password" v-model="form.password" />
           </div>
           <div>
             <label for="password-confirm" class="sr-only">Confirm Password</label>
-            <input id="password-confirm" name="password_confirmation" type="password" autocomplete="new-password" required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-              placeholder="Confirm Password" v-model="form.password_confirmation">
+            <PasswordInput id="password-confirm" name="password_confirmation" autocomplete="new-password" required
+              input-class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+              placeholder="Confirm Password" v-model="form.password_confirmation" />
           </div>
         </div>
 
@@ -64,6 +64,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
+import PasswordInput from '@/Components/Forms/PasswordInput.vue';
 
 const route = useRoute();
 const router = useRouter();
