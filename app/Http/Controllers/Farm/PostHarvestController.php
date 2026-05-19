@@ -33,6 +33,7 @@ class PostHarvestController extends Controller
 
         $processes = $harvest->postHarvestProcesses()
             ->with(['task.laborer', 'task.laborerGroup', 'parentProcess'])
+            ->orderByLogicalType()
             ->orderBy('id')
             ->get();
 

@@ -392,7 +392,7 @@ class DataAnalysisController extends Controller
             $processes = PostHarvestProcess::with(['harvest.planting.riceVariety'])->whereHas('planting.field', function ($q) use ($farm) {
                 $q->where('farm_id', $farm->id);
             })->where('status', PostHarvestProcess::STATUS_COMPLETED)
-              ->orderBy('completed_date', 'asc')
+              ->orderByCompletionWithLogicalType('asc')
               ->get();
 
             $postHarvestData['total_processes'] = $processes->count();

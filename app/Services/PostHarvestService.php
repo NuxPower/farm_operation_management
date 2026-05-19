@@ -617,10 +617,22 @@ class PostHarvestService
     public function getProcessingSummary(Harvest $harvest): array
     {
         $processes = $harvest->postHarvestProcesses()
+            ->orderByLogicalType()
             ->orderBy('id')
             ->get();
 
-        $completed = $processes->where('status', PostHarvestProcess::STATUS_COMPLETED);
+        $completed = $processes
+            ->where('status', PostHarvestProcess::STATUS_COMPLETED)
+            ->sortBy(function (PostHarvestProcess $process) {
+                $logicalOrder = array_search($process->process_type, PostHarvestProcess::PIPELINE_ORDER, true);
+
+                return sprintf(
+                    '%s-%02d-%010d',
+                    $process->completed_date?->format('Y-m-d') ?? '',
+                    $logicalOrder === false ? 99 : $logicalOrder,
+                    $process->id
+                );
+            });
 
         $originalQuantity = (float) $harvest->quantity;
         $finalOutputQuantity = (float) ($completed->last()?->output_quantity ?? $originalQuantity);
@@ -679,4 +691,3 @@ class PostHarvestService
         ];
     }
 }
-

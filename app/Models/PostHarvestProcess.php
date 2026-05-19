@@ -149,6 +149,31 @@ class PostHarvestProcess extends Model
         return $query->where('status', self::STATUS_COMPLETED);
     }
 
+    public function scopeOrderByLogicalType($query, string $direction = 'asc')
+    {
+        $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+
+        return $query->orderByRaw(
+            "CASE process_type
+                WHEN ? THEN 1
+                WHEN ? THEN 2
+                WHEN ? THEN 3
+                ELSE 99
+            END {$direction}",
+            self::PIPELINE_ORDER
+        );
+    }
+
+    public function scopeOrderByCompletionWithLogicalType($query, string $direction = 'asc')
+    {
+        $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+
+        return $query
+            ->orderBy('completed_date', $direction)
+            ->orderByLogicalType($direction)
+            ->orderBy('id', $direction);
+    }
+
     // ─── Helpers ───
 
     /**

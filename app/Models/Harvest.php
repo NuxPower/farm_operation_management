@@ -93,7 +93,7 @@ class Harvest extends Model
     {
         return $this->postHarvestProcesses()
             ->where('status', PostHarvestProcess::STATUS_COMPLETED)
-            ->latest('completed_date')
+            ->orderByCompletionWithLogicalType('desc')
             ->first();
     }
 

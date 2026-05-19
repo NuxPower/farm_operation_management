@@ -282,7 +282,7 @@ class ReportService
         })
             ->where('status', PostHarvestProcess::STATUS_COMPLETED)
             ->where('completed_date', '>=', now()->subDays(7)->toDateString())
-            ->orderBy('completed_date', 'desc')
+            ->orderByCompletionWithLogicalType('desc')
             ->limit(5)
             ->get();
 

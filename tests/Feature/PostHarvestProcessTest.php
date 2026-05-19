@@ -89,6 +89,65 @@ class PostHarvestProcessTest extends TestCase
             ->assertJsonStructure(['summary', 'harvest']);
     }
 
+    public function test_post_harvest_processes_with_identical_completion_dates_sort_by_logical_type()
+    {
+        $completedDate = now()->toDateString();
+
+        PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_MILLING,
+            'input_quantity' => 800,
+            'input_unit' => 'kg',
+            'output_quantity' => 520,
+            'output_unit' => 'kg',
+            'process_date' => now(),
+            'completed_date' => $completedDate,
+            'status' => PostHarvestProcess::STATUS_COMPLETED,
+        ]);
+
+        PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_THRESHING,
+            'input_quantity' => 1000,
+            'input_unit' => 'kg',
+            'output_quantity' => 950,
+            'output_unit' => 'kg',
+            'process_date' => now(),
+            'completed_date' => $completedDate,
+            'status' => PostHarvestProcess::STATUS_COMPLETED,
+        ]);
+
+        PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_DRYING,
+            'input_quantity' => 950,
+            'input_unit' => 'kg',
+            'output_quantity' => 800,
+            'output_unit' => 'kg',
+            'process_date' => now(),
+            'completed_date' => $completedDate,
+            'status' => PostHarvestProcess::STATUS_COMPLETED,
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->getJson("/api/post-harvest/harvest/{$this->harvest->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('processes.0.process_type', PostHarvestProcess::TYPE_THRESHING)
+            ->assertJsonPath('processes.1.process_type', PostHarvestProcess::TYPE_DRYING)
+            ->assertJsonPath('processes.2.process_type', PostHarvestProcess::TYPE_MILLING)
+            ->assertJsonPath('summary.final_quantity', 520)
+            ->assertJsonPath('summary.final_unit', 'kg');
+
+        $this->assertSame(PostHarvestProcess::TYPE_MILLING, $this->harvest->getLatestProcess()->process_type);
+    }
+
     public function test_farmer_can_create_post_harvest_process()
     {
         $response = $this->actingAs($this->farmer)
