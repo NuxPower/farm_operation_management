@@ -1060,7 +1060,7 @@ const fetchAnalytics = async () => {
       marketplaceStore.fetchFarmerOrders(orderFilters)
     ]);
 
-    const farmId = farmStore.farmProfile?.id;
+    const farmId = farmStore.farmProfile?.id || farmStore.farmProfile?.farm?.id;
     if (farmId) {
       // Calculate days diff for weather history
       const diffTime = Math.abs(new Date(endDate.value) - new Date(startDate.value));
