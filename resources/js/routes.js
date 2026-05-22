@@ -357,13 +357,13 @@ const routes = [
   {
     path: '/buyer/products',
     name: 'buyer-products',
-    component: () => import('@/Pages/Buyer/Products.vue'),
+    redirect: '/marketplace',
     meta: { requiresAuth: true, roles: ['buyer'] }
   },
   {
     path: '/buyer/products/:id',
     name: 'buyer-product-detail',
-    component: () => import('@/Pages/Buyer/ProductDetail.vue'),
+    redirect: (to) => `/marketplace/products/${to.params.id}`,
     meta: { requiresAuth: true, roles: ['buyer'] }
   },
   {

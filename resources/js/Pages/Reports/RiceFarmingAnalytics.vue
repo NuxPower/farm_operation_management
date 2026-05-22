@@ -2,13 +2,13 @@
   <div class="p-6 w-full mx-auto">
     <!-- Header -->
     <div class="mb-8">
-      <div class="flex justify-between items-center">
-        <div>
+      <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div class="min-w-0">
           <h1 class="text-3xl font-bold text-gray-900">Rice Farming Analytics</h1>
           <p class="text-gray-600 mt-2">Comprehensive insights into your rice farming operations</p>
         </div>
         
-        <div class="flex items-center space-x-4">
+        <div class="flex flex-wrap items-center gap-3 self-start sm:self-auto">
           <select
             v-model="selectedPeriod"
             @change="loadAnalytics"

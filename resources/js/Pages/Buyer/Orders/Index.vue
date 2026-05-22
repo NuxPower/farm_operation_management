@@ -2,10 +2,10 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div class="min-w-0">
           <router-link
-            to="/buyer/products"
+            to="/marketplace"
             class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
           >
             <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@
         <div class="text-5xl mb-4">📦</div>
         <h3 class="text-lg font-medium text-gray-900">No orders found</h3>
         <p class="text-gray-500 mt-1">Start shopping to see your orders here</p>
-        <router-link to="/buyer/products" class="inline-flex items-center px-4 py-2 mt-4 bg-green-600 text-white rounded-lg hover:bg-green-700">
+        <router-link to="/marketplace" class="inline-flex items-center px-4 py-2 mt-4 bg-green-600 text-white rounded-lg hover:bg-green-700">
           Browse Products
         </router-link>
       </div>
@@ -436,4 +436,3 @@ onMounted(async () => {
   }
 })
 </script>
-

@@ -620,7 +620,7 @@ const submitPreOrder = () => placeOrder(true)
 const submitOrder = () => placeOrder(false)
 
 const goBack = () => {
-  router.push('/buyer/products')
+  router.push('/marketplace')
 }
 
 const formatDate = (date) => {
@@ -637,4 +637,3 @@ onMounted(() => {
   checkFavoriteStatus()
 })
 </script>
-

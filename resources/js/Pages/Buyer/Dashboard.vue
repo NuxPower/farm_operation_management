@@ -1,274 +1,262 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+  <div class="min-h-screen bg-slate-50">
+    <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <header class="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
-          <p class="text-gray-500 mt-1">Welcome back, {{ authStore.user?.name }}</p>
+          <p class="text-sm font-semibold uppercase tracking-wide text-emerald-700">Buyer Dashboard</p>
+          <h1 class="mt-1 text-3xl font-bold text-gray-950">Rice Marketplace</h1>
+          <p class="mt-2 max-w-2xl text-sm text-gray-600">
+            Welcome back, {{ authStore.user?.name }}. Track orders, review pickup updates, and continue shopping from local farmers.
+          </p>
         </div>
-      </div>
+        <router-link
+          to="/marketplace"
+          class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        >
+          <MagnifyingGlassIcon class="mr-2 h-5 w-5" />
+          Browse marketplace
+        </router-link>
+      </header>
 
-      <!-- Main Content -->
-      <!-- Quick Actions -->
-      <section class="mb-8">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section class="mb-5">
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <router-link
-            to="/buyer/products"
-            class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
+            v-for="action in quickActions"
+            :key="action.label"
+            :to="action.to"
+            class="group rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 sm:p-4"
           >
-            <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div :class="action.iconWrapClass" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10">
+                <component :is="action.icon" class="h-5 w-5" :class="action.iconClass" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-gray-950 group-hover:text-emerald-700">{{ action.label }}</p>
+                <p class="mt-0.5 truncate text-xs text-gray-500">{{ action.detail }}</p>
+              </div>
+              <ChevronRightIcon class="hidden h-4 w-4 shrink-0 text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-600 sm:block" />
             </div>
-            <p class="text-sm font-medium text-gray-900">Browse Rice Products</p>
-          </router-link>
-
-          <router-link
-            to="/cart"
-            class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
-          >
-            <div class="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 3h1.5l1.5 12h11.5l1.5-8h-14" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8.25 21a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM17.25 21a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-              </svg>
-            </div>
-            <p class="text-sm font-medium text-gray-900">View Cart</p>
-          </router-link>
-
-          <router-link
-            to="/orders"
-            class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
-          >
-            <div class="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <p class="text-sm font-medium text-gray-900">Order History</p>
-          </router-link>
-
-          <router-link
-            to="/profile"
-            class="bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition-shadow"
-          >
-            <div class="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <p class="text-sm font-medium text-gray-900">Profile</p>
           </router-link>
         </div>
       </section>
 
-      <!-- Welcome Section -->
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-2">
-          Fresh Rice Products
-        </h2>
-        <p class="text-gray-600">
-          Discover premium rice varieties from local farmers
-        </p>
-      </div>
-
-      <!-- Notifications Section -->
-      <div v-if="notifications.length > 0" class="mb-8">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Notifications</h3>
-        <div class="space-y-3">
-          <div
-            v-for="notification in notifications"
-            :key="notification.id"
-            class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start justify-between"
-          >
-            <div class="flex gap-3">
-              <div class="mt-1">
-                <svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-              </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <main class="space-y-6 xl:col-span-2">
+          <section class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4">
               <div>
-                <h4 class="text-sm font-medium text-blue-900">{{ notification.title }}</h4>
-                <p class="text-sm text-blue-700 mt-1">{{ notification.message }}</p>
-                <router-link
-                  v-if="notification.link"
-                  :to="notification.link"
-                  class="inline-block mt-2 text-xs font-medium text-blue-600 hover:text-blue-800 underline"
-                  @click="markAsRead(notification)"
-                >
-                  View Details
-                </router-link>
+                <h2 class="text-lg font-semibold text-gray-950">Available Products</h2>
+                <p class="text-sm text-gray-500">Fresh rice listings ready for order.</p>
+              </div>
+              <router-link to="/marketplace" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+                View all
+              </router-link>
+            </div>
+
+            <div v-if="loading" class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+              <div v-for="n in 4" :key="n" class="animate-pulse rounded-lg border border-gray-200 p-4">
+                <div class="mb-4 h-36 rounded bg-gray-200"></div>
+                <div class="mb-2 h-4 rounded bg-gray-200"></div>
+                <div class="h-4 w-2/3 rounded bg-gray-200"></div>
               </div>
             </div>
-            <button
-              @click="markAsRead(notification)"
-              class="text-blue-400 hover:text-blue-600"
-              title="Mark as read"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
 
-      <!-- Featured Products -->
-      <div class="mb-10">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Available Products</h3>
-          <router-link
-            to="/marketplace"
-            class="text-green-600 hover:text-green-700 text-sm font-medium"
-          >
-            View marketplace
-          </router-link>
-        </div>
-        <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div v-for="n in 4" :key="n" class="bg-white rounded-lg shadow p-6 animate-pulse">
-            <div class="h-32 bg-gray-200 rounded mb-4"></div>
-            <div class="h-4 bg-gray-200 rounded mb-2"></div>
-            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-          </div>
-        </div>
-
-        <div v-else-if="featuredProducts.length" class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div
-            v-for="product in featuredProducts"
-            :key="product.id"
-            class="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-            @click="viewProduct(product)"
-          >
-            <div class="p-3 md:p-6">
-              <div class="aspect-square rounded-lg mb-3 md:mb-4 overflow-hidden">
-                <img
-                  v-if="getProductImage(product)"
-                  :src="getProductImage(product)"
-                  :alt="product.name"
-                  class="w-full h-full object-cover"
-                  @error="handleImageError($event)"
-                />
-                <div v-else class="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
-                  <svg class="h-16 w-16 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
-              </div>
-              <h4 class="font-semibold text-gray-900 mb-2 break-words leading-snug text-sm md:text-base">{{ product.name }}</h4>
-              <p class="text-xs md:text-sm text-gray-600 mb-3 line-clamp-2 break-words">{{ getProductDescription(product) }}</p>
-              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span class="text-sm md:text-lg font-bold text-green-600 break-all">
-                  {{ formatCurrency(getProductPrice(product)) }}/{{ getProductUnit(product) }}
-                </span>
-                <span class="text-xs text-gray-500 whitespace-nowrap">
-                  {{ getProductQuantity(product) }} avail.
-                </span>
-              </div>
-              <button
-                @click.stop="addToCart(product)"
-                :disabled="addingToCartId === product.id"
-                class="w-full mt-4 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            <div v-else-if="featuredProducts.length" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
+              <article
+                v-for="product in featuredProducts"
+                :key="product.id"
+                class="overflow-hidden rounded-lg border border-gray-200 transition hover:border-emerald-300 hover:shadow-md"
               >
-                <span v-if="addingToCartId === product.id" class="flex items-center justify-center gap-2">
-                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Adding...
-                </span>
-                <span v-else>Add to Cart</span>
+                <button class="block w-full text-left" type="button" @click="viewProduct(product)">
+                  <div class="h-40 overflow-hidden bg-emerald-50 sm:h-36">
+                    <img
+                      v-if="getProductImage(product)"
+                      :src="getProductImage(product)"
+                      :alt="product.name"
+                      class="h-full w-full object-cover"
+                      @error="handleImageError"
+                    />
+                    <div v-else class="flex h-full w-full items-center justify-center">
+                      <SparklesIcon class="h-10 w-10 text-emerald-500" />
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <h3 class="line-clamp-1 text-sm font-semibold text-gray-950">{{ product.name }}</h3>
+                        <p class="mt-1 line-clamp-2 text-xs text-gray-500">{{ getProductDescription(product) }}</p>
+                      </div>
+                      <span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">
+                        {{ getProductQuantity(product) }} {{ getProductUnit(product) }}
+                      </span>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p class="text-lg font-bold text-emerald-700">{{ formatCurrency(getProductPrice(product)) }}</p>
+                        <p class="text-xs text-gray-500">per {{ getProductUnit(product) }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div class="border-t border-gray-100 p-4 pt-0">
+                  <button
+                    type="button"
+                    @click.stop="addToCart(product)"
+                    :disabled="addingToCartId === product.id || getProductQuantity(product) <= 0"
+                    class="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-gray-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ArrowPathIcon v-if="addingToCartId === product.id" class="mr-2 h-4 w-4 animate-spin" />
+                    <ShoppingBagIcon v-else class="mr-2 h-4 w-4" />
+                    {{ addingToCartId === product.id ? 'Adding' : 'Add to cart' }}
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="p-10 text-center">
+              <SparklesIcon class="mx-auto h-12 w-12 text-gray-300" />
+              <h3 class="mt-3 text-sm font-semibold text-gray-950">No products available</h3>
+              <p class="mt-1 text-sm text-gray-500">Fresh listings will appear here when farmers publish products.</p>
+              <router-link to="/marketplace" class="mt-5 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                Browse marketplace
+              </router-link>
+            </div>
+          </section>
+
+          <section class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-950">Recent Orders</h2>
+                <p class="text-sm text-gray-500">Latest marketplace activity.</p>
+              </div>
+              <router-link to="/buyer/orders" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+                View orders
+              </router-link>
+            </div>
+
+            <div v-if="recentOrders.length" class="divide-y divide-gray-100">
+              <button
+                v-for="order in recentOrders.slice(0, 5)"
+                :key="order.id"
+                type="button"
+                class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-50"
+                @click="viewOrder(order.id)"
+              >
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-gray-950">Order #{{ order.id }}</p>
+                  <p class="mt-1 truncate text-sm text-gray-500">
+                    {{ order.quantity || 1 }} {{ formatUnit(order.rice_product?.unit || order.unit || 'kg') }}
+                    · {{ order.rice_product?.name || order.product_name || 'Rice product' }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-400">{{ formatDate(order.created_at || order.order_date) }}</p>
+                </div>
+                <div class="shrink-0 text-right">
+                  <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="getOrderStatusClass(order.status)">
+                    {{ formatOrderStatus(order.status) }}
+                  </span>
+                  <p class="mt-2 text-sm font-semibold text-gray-950">{{ formatCurrency(order.total_amount || 0) }}</p>
+                </div>
               </button>
             </div>
-          </div>
-        </div>
-        <div v-else class="bg-white rounded-lg shadow p-8 text-center">
-          <svg class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-2-2h-3.5a3.5 3.5 0 00-7 0H4a2 2 0 00-2 2v6" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 13h20l-1.5 7.5a2 2 0 01-2 1.5H5.5a2 2 0 01-2-1.5L2 13z" />
-          </svg>
-          <p class="text-gray-600 mb-4">No products available yet. Check back soon!</p>
-          <router-link
-            to="/marketplace"
-            class="text-green-600 hover:text-green-700 font-medium"
-          >
-            Explore marketplace
-          </router-link>
-        </div>
-      </div>
 
-      <!-- Recent Orders -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Recent Orders</h3>
-          <router-link
-            to="/orders"
-            class="text-green-600 hover:text-green-700 text-sm font-medium"
-          >
-            View all orders
-          </router-link>
-        </div>
-
-        <div v-if="recentOrders.length > 0" class="bg-white rounded-lg shadow">
-          <div class="divide-y divide-gray-200">
-            <div
-              v-for="order in recentOrders.slice(0, 5)"
-              :key="order.id"
-              class="p-6 hover:bg-gray-50 transition-colors"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <h4 class="text-sm font-medium text-gray-900">
-                    Order #{{ order.id.toString().slice(-6) }}
-                  </h4>
-                  <p class="text-sm text-gray-500">
-                    {{ order.quantity || 1 }} {{ formatUnit(order.rice_product?.unit) || 'kg' }} - {{ order.rice_product?.name || 'Product' }}
-                  </p>
-                  <p class="text-xs text-gray-400">
-                    {{ formatDate(order.created_at) }}
-                  </p>
-                </div>
-                <div class="text-right">
-                  <span
-                    :class="getOrderStatusClass(order.status)"
-                    class="inline-flex px-2 py-1 text-xs font-medium rounded-full"
-                  >
-                    {{ order.status }}
-                  </span>
-                  <p class="text-sm font-medium text-gray-900 mt-1">
-                    {{ formatCurrency(order.total_amount) }}
-                  </p>
-                </div>
-              </div>
+            <div v-else class="p-10 text-center">
+              <DocumentTextIcon class="mx-auto h-12 w-12 text-gray-300" />
+              <h3 class="mt-3 text-sm font-semibold text-gray-950">No orders yet</h3>
+              <p class="mt-1 text-sm text-gray-500">Orders will show here after checkout.</p>
+              <router-link to="/marketplace" class="mt-5 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                Start shopping
+              </router-link>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
 
-        <div v-else class="bg-white rounded-lg shadow p-8 text-center">
-          <svg class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          <p class="text-gray-600 mb-4">No orders yet</p>
-          <router-link
-            to="/marketplace"
-            class="text-green-600 hover:text-green-700 font-medium"
-          >
-            Start shopping
-          </router-link>
-        </div>
+        <aside class="space-y-6">
+          <section class="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-950">Notifications</h2>
+                <p class="text-sm text-gray-500">{{ notifications.length }} unread update{{ notifications.length === 1 ? '' : 's' }}</p>
+              </div>
+              <button
+                v-if="notifications.length"
+                type="button"
+                class="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                @click="markAllNotificationsRead"
+              >
+                Clear all
+              </button>
+            </div>
+
+            <div v-if="notifications.length" class="divide-y divide-gray-100">
+              <article v-for="notification in notifications.slice(0, 5)" :key="notification.id" class="p-5">
+                <div class="flex items-start gap-3">
+                  <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                    <BellIcon class="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <h3 class="text-sm font-semibold text-gray-950">{{ notification.title }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ notification.message }}</p>
+                    <div class="mt-3 flex items-center gap-3">
+                      <button
+                        v-if="getNotificationRoute(notification)"
+                        type="button"
+                        class="text-sm font-semibold text-blue-700 hover:text-blue-800"
+                        @click="openNotification(notification)"
+                      >
+                        View details
+                      </button>
+                      <button
+                        type="button"
+                        class="text-sm font-semibold text-gray-500 hover:text-gray-700"
+                        @click="markAsRead(notification)"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="p-8 text-center">
+              <BellIcon class="mx-auto h-10 w-10 text-gray-300" />
+              <p class="mt-3 text-sm font-semibold text-gray-950">No unread notifications</p>
+              <p class="mt-1 text-sm text-gray-500">Pickup and order updates will appear here.</p>
+            </div>
+          </section>
+
+          <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="text-lg font-semibold text-gray-950">Next Best Action</h2>
+            <p class="mt-1 text-sm text-gray-500">{{ nextAction.detail }}</p>
+            <router-link
+              :to="nextAction.to"
+              class="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              <component :is="nextAction.icon" class="mr-2 h-5 w-5" />
+              {{ nextAction.label }}
+            </router-link>
+          </section>
+        </aside>
       </div>
-
     </div>
-
-
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api, { riceMarketplaceAPI, riceVarietiesAPI, cartAPI, notificationsAPI } from '@/services/api';
+import {
+  ArrowPathIcon,
+  BellIcon,
+  ChevronRightIcon,
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  ShoppingBagIcon,
+  ShoppingCartIcon,
+  SparklesIcon,
+  UserCircleIcon,
+} from '@heroicons/vue/24/outline';
+import { notificationsAPI } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { useMarketplaceStore } from '@/stores/marketplace';
 import { formatCurrency, formatUnit } from '@/utils/format';
@@ -281,51 +269,146 @@ const loading = ref(false);
 const notifications = ref([]);
 const addingToCartId = ref(null);
 
+const availableProducts = computed(() => {
+  const products = marketplaceStore.products?.data || marketplaceStore.products || [];
+  return Array.isArray(products) ? products : [];
+});
+
+const featuredProducts = computed(() => availableProducts.value.slice(0, 4));
+const recentOrders = computed(() => Array.isArray(marketplaceStore.orders) ? marketplaceStore.orders : []);
+
+const pendingOrdersCount = computed(() => recentOrders.value.filter((order) => {
+  return ['pending', 'confirmed', 'accepted', 'ready_for_pickup', 'negotiating'].includes(order.status);
+}).length);
+
+const quickActions = computed(() => [
+  {
+    label: 'Browse Rice Products',
+    detail: `${availableProducts.value.length} listings available`,
+    to: '/marketplace',
+    icon: MagnifyingGlassIcon,
+    iconWrapClass: 'bg-emerald-50',
+    iconClass: 'text-emerald-600',
+  },
+  {
+    label: 'Shopping Cart',
+    detail: `${marketplaceStore.cartItemsCount} item${marketplaceStore.cartItemsCount === 1 ? '' : 's'} in cart`,
+    to: '/cart',
+    icon: ShoppingBagIcon,
+    iconWrapClass: 'bg-blue-50',
+    iconClass: 'text-blue-600',
+  },
+  {
+    label: 'Order History',
+    detail: `${recentOrders.value.length} recent order${recentOrders.value.length === 1 ? '' : 's'}`,
+    to: '/buyer/orders',
+    icon: DocumentTextIcon,
+    iconWrapClass: 'bg-violet-50',
+    iconClass: 'text-violet-600',
+  },
+  {
+    label: 'Profile',
+    detail: 'Account and contact details',
+    to: '/profile',
+    icon: UserCircleIcon,
+    iconWrapClass: 'bg-gray-100',
+    iconClass: 'text-gray-600',
+  },
+]);
+
+const nextAction = computed(() => {
+  if (marketplaceStore.cartItemsCount > 0) {
+    return {
+      label: 'Review cart',
+      detail: 'You have items waiting for checkout.',
+      to: '/cart',
+      icon: ShoppingCartIcon,
+    };
+  }
+
+  if (pendingOrdersCount.value > 0) {
+    return {
+      label: 'Track orders',
+      detail: 'You have active orders with farmer updates.',
+      to: '/buyer/orders',
+      icon: DocumentTextIcon,
+    };
+  }
+
+  return {
+    label: 'Browse products',
+    detail: 'Find fresh rice varieties from local farmers.',
+    to: '/marketplace',
+    icon: MagnifyingGlassIcon,
+  };
+});
+
 const fetchNotifications = async () => {
   try {
     const response = await notificationsAPI.getAll({ unread_only: true });
-    notifications.value = response.data.notifications.data || [];
+    const payload = response.data?.notifications;
+    notifications.value = payload?.data || payload || [];
   } catch (error) {
     console.error('Failed to fetch notifications:', error);
+    notifications.value = [];
   }
 };
 
 const markAsRead = async (notification) => {
   try {
     await notificationsAPI.markAsRead(notification.id);
-    notifications.value = notifications.value.filter(n => n.id !== notification.id);
+    notifications.value = notifications.value.filter((item) => item.id !== notification.id);
   } catch (error) {
     console.error('Failed to mark notification as read:', error);
   }
 };
 
-// Toast notification state removed in favor of global notifications
-
-const deriveProducts = (source) => {
-  if (!source) return [];
-  if (Array.isArray(source?.data)) {
-    return source.data;
+const markAllNotificationsRead = async () => {
+  try {
+    await notificationsAPI.markAllAsRead();
+    notifications.value = [];
+  } catch (error) {
+    console.error('Failed to mark all notifications as read:', error);
   }
-  return Array.isArray(source) ? source : [];
 };
 
-const availableProducts = computed(() => {
-  const primary = deriveProducts(marketplaceStore.products);
-  if (primary.length) return primary;
-  return marketplaceStore.farmerProducts || [];
-});
+const getNotificationRoute = (notification) => {
+  const orderId = notification?.data?.order_id || notification?.data?.rice_order_id;
+  const link = notification?.link;
 
-const featuredProducts = computed(() => {
-  const list = availableProducts.value;
-  if (list.length) return list.slice(0, 8);
-  const fallback = marketplaceStore.riceProducts || [];
-  return fallback.slice(0, 8);
-});
-const recentOrders = computed(() => marketplaceStore.orders);
+  if (orderId) {
+    return `/buyer/orders/${orderId}`;
+  }
+
+  if (!link) return null;
+
+  if (link.startsWith('/marketplace/orders')) {
+    return link.replace('/marketplace/orders', '/buyer/orders');
+  }
+
+  if (link.startsWith('/orders')) {
+    return link.replace('/orders', '/buyer/orders');
+  }
+
+  if (link === '/buyer/products') {
+    return '/marketplace';
+  }
+
+  return link;
+};
+
+const openNotification = async (notification) => {
+  const route = getNotificationRoute(notification);
+  await markAsRead(notification);
+
+  if (route) {
+    router.push(route);
+  }
+};
 
 const addToCart = async (product) => {
-  if (addingToCartId.value) return;
-  
+  if (addingToCartId.value || getProductQuantity(product) <= 0) return;
+
   addingToCartId.value = product.id;
   try {
     await marketplaceStore.addToCart(product, 1);
@@ -340,66 +423,71 @@ const viewProduct = (product) => {
   router.push(`/marketplace/products/${product.id}`);
 };
 
+const viewOrder = (orderId) => {
+  router.push(`/buyer/orders/${orderId}`);
+};
+
 const getOrderStatusClass = (status) => {
   const classes = {
-    pending: 'bg-yellow-100 text-yellow-800',
+    pending: 'bg-amber-100 text-amber-800',
+    negotiating: 'bg-purple-100 text-purple-800',
+    accepted: 'bg-blue-100 text-blue-800',
     confirmed: 'bg-blue-100 text-blue-800',
-    processing: 'bg-purple-100 text-purple-800',
-    shipped: 'bg-indigo-100 text-indigo-800',
+    ready_for_pickup: 'bg-emerald-100 text-emerald-800',
+    completed: 'bg-green-100 text-green-800',
     delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800'
+    cancelled: 'bg-red-100 text-red-800',
+    expired: 'bg-red-100 text-red-800',
   };
-  return classes[status] || 'bg-gray-100 text-gray-800';
+  return classes[status] || 'bg-gray-100 text-gray-700';
+};
+
+const formatOrderStatus = (status = 'pending') => {
+  return String(status).replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
 const formatDate = (date) => {
+  if (!date) return 'No date';
   return new Date(date).toLocaleDateString();
 };
 
 const getProductPrice = (product) => {
-  return product.price_per_unit ?? product.price ?? product.unit_price ?? 0;
+  return Number(product.price_per_unit ?? product.price ?? product.unit_price ?? 0);
 };
 
 const getProductQuantity = (product) => {
-  return product.quantity_available ?? product.quantity ?? product.available_quantity ?? 0;
+  return Number(product.quantity_available ?? product.quantity ?? product.available_quantity ?? 0);
 };
 
 const getProductUnit = (product) => {
-  return formatUnit(product.unit ?? product.unit_type ?? 'unit');
+  return formatUnit(product.unit ?? product.unit_type ?? 'kg');
 };
 
 const getProductDescription = (product) => {
-  return product.description || product.summary || 'Premium rice variety';
+  return product.description || product.summary || product.rice_variety?.name || 'Premium rice variety';
 };
 
 const getProductImage = (product) => {
-  // Check for images array (from API response)
-  if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+  if (Array.isArray(product.images) && product.images.length > 0) {
     return product.images[0];
   }
-  // Check for single image property
-  if (product.image) {
-    return product.image;
-  }
-  // Check for thumbnail
-  if (product.thumbnail) {
-    return product.thumbnail;
-  }
-  return null;
+
+  return product.image || product.thumbnail || null;
 };
 
 const handleImageError = (event) => {
-  // Hide broken image and let v-else show the fallback
   event.target.style.display = 'none';
 };
 
 onMounted(async () => {
   loading.value = true;
+
   try {
     await Promise.all([
-      marketplaceStore.fetchProducts(),
+      marketplaceStore.fetchProducts({ per_page: 8 }),
       marketplaceStore.fetchOrders(),
-      fetchNotifications()
+      marketplaceStore.fetchCart(),
+      fetchNotifications(),
     ]);
   } catch (error) {
     console.error('Failed to load buyer dashboard data:', error);
@@ -408,7 +496,3 @@ onMounted(async () => {
   }
 });
 </script>
-
-<style scoped>
-
-</style>

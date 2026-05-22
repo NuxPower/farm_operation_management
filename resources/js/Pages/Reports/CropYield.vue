@@ -2,12 +2,12 @@
   <div class="crop-yield-reports-page">
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
+      <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start mb-8">
+        <div class="min-w-0">
           <h1 class="text-3xl font-bold text-gray-900">Crop Yield Reports</h1>
           <p class="text-gray-600 mt-2">Analyze your crop production and yield data</p>
         </div>
-        <div class="flex space-x-3">
+        <div class="flex flex-wrap gap-3 self-start sm:self-auto">
           <div class="relative">
             <button
               @click="showExportMenu = !showExportMenu"

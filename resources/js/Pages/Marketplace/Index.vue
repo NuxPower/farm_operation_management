@@ -2,17 +2,17 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
+      <div class="mb-8 flex items-start justify-between gap-4">
+        <div class="min-w-0 flex-1">
           <h1 class="text-3xl font-bold text-gray-800">Rice Marketplace</h1>
           <p class="text-gray-500 mt-1">Browse and purchase premium rice products</p>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="flex shrink-0 items-start justify-end gap-3">
           <!-- Only show cart for authenticated buyers -->
           <router-link 
             v-if="authStore.isAuthenticated && authStore.user?.role === 'buyer'"
             to="/cart"
-            class="relative p-2 text-gray-500 hover:text-gray-700 transition-colors bg-white rounded-lg border border-gray-300"
+            class="relative inline-flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 transition-colors hover:text-gray-700"
           >
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 4h13M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
@@ -28,7 +28,7 @@
           <router-link
             v-if="!authStore.isAuthenticated"
             to="/login"
-            class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            class="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 sm:text-base"
           >
             <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -38,19 +38,41 @@
         </div>
       </div>
 
-      <!-- Main Content -->
       <div>
-      <!-- Search and Filters -->
-      <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Search Products</label>
+      <section class="mb-4 rounded-lg border border-gray-200 bg-white shadow-sm sm:mb-6">
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="px-4 pt-4 sm:px-5 sm:pt-5">
+            <h2 class="text-base font-semibold text-gray-950">Rice Products</h2>
+            <p class="text-sm text-gray-500">{{ productCountLabel }}</p>
+          </div>
+          <div class="flex gap-2 px-4 sm:px-5 sm:pt-5">
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:w-auto"
+              @click="filtersOpen = !filtersOpen"
+            >
+              <svg class="mr-2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18M6 12h12M10 20h4" />
+              </svg>
+              {{ filtersOpen ? 'Hide filters' : 'Show filters' }}
+              <span v-if="activeFilterCount" class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                {{ activeFilterCount }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div v-show="filtersOpen" class="border-t border-gray-100 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div class="md:col-span-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <div class="relative">
               <input
-                v-model="searchQuery"
+                v-model="filters.search"
                 type="text"
-                placeholder="Search for rice varieties..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+                placeholder="Product, description, farmer..."
+                class="w-full rounded-md border border-gray-300 py-2 pl-10 pr-4 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                @input="debounceLoadProducts"
               />
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,36 +81,115 @@
               </div>
             </div>
           </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Rice Variety</label>
-            <select 
-              v-model="filters.variety" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              v-model="filters.production_status"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-green-500"
+              @change="loadProducts()"
             >
-              <option value="">All Varieties</option>
-              <option value="IR64">IR64</option>
-              <option value="Jasmine">Jasmine Rice</option>
-              <option value="Arborio">Arborio Rice</option>
-              <option value="Sticky Rice">Sticky Rice</option>
-              <option value="Wild Rice">Wild Rice</option>
+              <option value="">All Statuses</option>
+              <option v-for="(label, value) in filterOptions.production_statuses" :key="value" :value="value">
+                {{ label }}
+              </option>
             </select>
           </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-            <select 
-              v-model="filters.sortBy" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500"
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Rice Variety</label>
+            <select
+              v-model="filters.variety_id"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-green-500"
+              @change="loadProducts()"
             >
-              <option value="name">Name</option>
-              <option value="price_low">Price: Low to High</option>
-              <option value="price_high">Price: High to Low</option>
-              <option value="newest">Newest First</option>
+              <option value="">All Varieties</option>
+              <option v-for="variety in filterOptions.varieties" :key="variety.id" :value="variety.id">
+                {{ variety.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Quality Grade</label>
+            <select
+              v-model="filters.quality_grade"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-green-500"
+              @change="loadProducts()"
+            >
+              <option value="">All Grades</option>
+              <option v-for="(label, value) in filterOptions.grades" :key="value" :value="value">
+                {{ label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+            <select
+              v-model="filters.sort"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-green-500"
+              @change="loadProducts()"
+            >
+              <option value="created_at:desc">Newest</option>
+              <option value="price:asc">Price: Low to High</option>
+              <option value="price:desc">Price: High to Low</option>
+              <option value="rating:desc">Highest Rated</option>
+              <option value="available_from:asc">Available Soonest</option>
+              <option value="quantity:desc">Most Stock</option>
             </select>
           </div>
         </div>
-      </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Min Price</label>
+            <input
+              v-model.number="filters.min_price"
+              type="number"
+              min="0"
+              placeholder="₱ Min"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-green-500"
+              @change="loadProducts()"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Max Price</label>
+            <input
+              v-model.number="filters.max_price"
+              type="number"
+              min="0"
+              placeholder="₱ Max"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-green-500"
+              @change="loadProducts()"
+            />
+          </div>
+
+          <div class="flex items-end md:col-span-3">
+            <label class="flex min-h-10 items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700">
+              <input
+                v-model="filters.is_organic"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                @change="loadProducts()"
+              />
+              Organic only
+            </label>
+          </div>
+
+          <div class="flex items-end gap-2 md:col-span-5 md:justify-end">
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 md:w-auto"
+              @click="clearFilters"
+            >
+              Reset filters
+            </button>
+          </div>
+        </div>
+        </div>
+      </section>
 
       <!-- Products Grid -->
       <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -99,9 +200,9 @@
         </div>
       </div>
 
-      <div v-else-if="filteredProducts.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div v-else-if="products.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <div 
-          v-for="product in filteredProducts" 
+          v-for="product in products" 
           :key="product.id"
           class="bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
           @click="viewProduct(product)"
@@ -136,12 +237,24 @@
                 {{ product.farmer?.name || 'Local Farmer' }}
               </div>
 
-              <!-- Quality Grade -->
-              <div class="flex items-center mb-2">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span class="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-800">
-                  Grade {{ product.quality_grade || 'A' }}
+                  {{ formatGrade(product.quality_grade) }}
+                </span>
+                <span
+                  class="text-xs font-medium px-2 py-1 rounded-full"
+                  :class="getStatusClass(product.production_status)"
+                >
+                  {{ formatStatus(product.production_status) }}
+                </span>
+                <span v-if="product.is_organic" class="text-xs font-medium px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                  Organic
                 </span>
               </div>
+
+              <p v-if="product.production_status === 'in_production' && product.available_from" class="text-xs text-gray-500">
+                Available from {{ formatDate(product.available_from) }}
+              </p>
             </div>
 
             <!-- Price and Availability -->
@@ -150,7 +263,8 @@
                 {{ formatCurrency(product.price_per_unit) }}/{{ formatUnit(product.unit) || 'kg' }}
               </span>
               <span class="text-sm text-gray-500 whitespace-nowrap">
-                {{ product.quantity_available || 0 }} {{ formatUnit(product.unit) || 'kg' }} available
+                <template v-if="product.production_status === 'in_production'">Pre-order</template>
+                <template v-else>{{ product.quantity_available || 0 }} {{ formatUnit(product.unit) || 'kg' }} available</template>
               </span>
             </div>
 
@@ -158,11 +272,11 @@
             <div class="space-y-2">
               <button 
                 type="button"
-                @click.stop="addToCart(product)"
-                :disabled="!product.quantity_available || product.quantity_available <= 0"
+                @click.stop="handlePrimaryProductAction(product)"
+                :disabled="product.production_status !== 'in_production' && (!product.quantity_available || product.quantity_available <= 0)"
                 class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {{ !product.quantity_available || product.quantity_available <= 0 ? 'Out of Stock' : (!authStore.isAuthenticated ? 'Login to Add' : 'Add to Cart') }}
+                {{ getPrimaryActionLabel(product) }}
               </button>
               <button 
                 type="button"
@@ -193,25 +307,25 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="filteredProducts.length > 0" class="mt-8 flex justify-center">
+      <div v-if="pagination && pagination.total > pagination.per_page" class="mt-8 flex justify-center">
         <nav class="flex items-center space-x-2">
           <button 
             type="button"
-            @click="currentPage--"
-            :disabled="currentPage === 1"
+            @click="loadProducts(pagination.current_page - 1)"
+            :disabled="pagination.current_page === 1"
             class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
           
           <span class="px-3 py-2 text-sm font-medium text-gray-700">
-            Page {{ currentPage }} of {{ totalPages }}
+            Page {{ pagination.current_page }} of {{ pagination.last_page }}
           </span>
           
           <button 
             type="button"
-            @click="currentPage++"
-            :disabled="currentPage === totalPages"
+            @click="loadProducts(pagination.current_page + 1)"
+            :disabled="pagination.current_page === pagination.last_page"
             class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
@@ -322,70 +436,66 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useMarketplaceStore } from '@/stores/marketplace';
 import { useAuthStore } from '@/stores/auth';
 import { formatCurrency, formatUnit } from '@/utils/format';
 
 const router = useRouter();
+const route = useRoute();
 const marketplaceStore = useMarketplaceStore();
 const authStore = useAuthStore();
 
 const loading = ref(false);
-const searchQuery = ref('');
-const currentPage = ref(1);
-const itemsPerPage = 12;
+const searchTimeout = ref(null);
+const filtersOpen = ref(true);
 
 const filters = ref({
-  variety: '',
-  sortBy: 'name'
+  search: '',
+  production_status: '',
+  variety_id: '',
+  quality_grade: '',
+  min_price: null,
+  max_price: null,
+  is_organic: false,
+  sort: 'created_at:desc',
 });
 
-const products = computed(() => marketplaceStore.riceProducts);
-const filteredProducts = computed(() => {
-  let filtered = products.value;
-
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(product => 
-      product.name.toLowerCase().includes(query) ||
-      product.description?.toLowerCase().includes(query) ||
-      product.farmer?.name?.toLowerCase().includes(query)
-    );
-  }
-
-  // Variety filter
-  if (filters.value.variety) {
-    filtered = filtered.filter(product => 
-      product.name.toLowerCase().includes(filters.value.variety.toLowerCase())
-    );
-  }
-
-  // Sort
-  switch (filters.value.sortBy) {
-    case 'price_low':
-      filtered.sort((a, b) => a.price - b.price);
-      break;
-    case 'price_high':
-      filtered.sort((a, b) => b.price - a.price);
-      break;
-    case 'newest':
-      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      break;
-    default:
-      filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  // Pagination
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return filtered.slice(start, end);
+const filterOptions = ref({
+  varieties: [],
+  grades: {
+    premium: 'Premium',
+    grade_a: 'Grade A',
+    grade_b: 'Grade B',
+    commercial: 'Commercial',
+  },
+  production_statuses: {
+    available: 'Available',
+    in_production: 'In Production',
+  },
 });
 
-const totalPages = computed(() => {
-  return Math.ceil(products.value.length / itemsPerPage);
+const products = computed(() => marketplaceStore.products || []);
+const pagination = computed(() => marketplaceStore.productsPagination);
+const productCountLabel = computed(() => {
+  if (pagination.value?.total !== undefined) {
+    return `${pagination.value.total} product${pagination.value.total === 1 ? '' : 's'}`;
+  }
+
+  return `${products.value.length} product${products.value.length === 1 ? '' : 's'}`;
+});
+const activeFilterCount = computed(() => {
+  return [
+    filters.value.search?.trim(),
+    filters.value.production_status,
+    filters.value.variety_id,
+    filters.value.quality_grade,
+    filters.value.min_price !== null && filters.value.min_price !== '',
+    filters.value.max_price !== null && filters.value.max_price !== '',
+    filters.value.is_organic,
+    filters.value.sort !== 'created_at:desc',
+  ].filter(Boolean).length;
 });
 
 // Toast notification state
@@ -408,6 +518,79 @@ const showToast = (message, type = 'success') => {
   }, 3000);
 };
 
+const buildProductParams = (page = 1) => {
+  const [sortBy, sortOrder] = filters.value.sort.split(':');
+  const params = {
+    page,
+    per_page: 12,
+    sort_by: sortBy || 'created_at',
+    sort_order: sortOrder || 'desc',
+  };
+
+  if (filters.value.search?.trim()) {
+    params.search = filters.value.search.trim();
+  }
+
+  if (filters.value.production_status) {
+    params.production_status = filters.value.production_status;
+  }
+
+  if (filters.value.variety_id) {
+    params.variety_id = filters.value.variety_id;
+  }
+
+  if (filters.value.quality_grade) {
+    params.quality_grade = filters.value.quality_grade;
+  }
+
+  if (filters.value.min_price !== null && filters.value.min_price !== '') {
+    params.min_price = filters.value.min_price;
+  }
+
+  if (filters.value.max_price !== null && filters.value.max_price !== '') {
+    params.max_price = filters.value.max_price;
+  }
+
+  if (filters.value.is_organic) {
+    params.is_organic = 1;
+  }
+
+  return params;
+};
+
+const loadProducts = async (page = 1) => {
+  loading.value = true;
+
+  try {
+    const response = await marketplaceStore.fetchProducts(buildProductParams(page));
+    const options = response?.filters;
+
+    if (options) {
+      const buyerStatuses = Object.fromEntries(
+        Object.entries(options.production_statuses || filterOptions.value.production_statuses)
+          .filter(([value]) => ['available', 'in_production'].includes(value))
+      );
+
+      filterOptions.value = {
+        varieties: options.varieties || [],
+        grades: options.grades || filterOptions.value.grades,
+        production_statuses: buyerStatuses,
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load products:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const debounceLoadProducts = () => {
+  clearTimeout(searchTimeout.value);
+  searchTimeout.value = setTimeout(() => {
+    loadProducts(1);
+  }, 400);
+};
+
 const addToCart = (product) => {
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
@@ -418,6 +601,15 @@ const addToCart = (product) => {
   selectedProduct.value = product;
   selectedQuantity.value = 1;
   showQuantityModal.value = true;
+};
+
+const handlePrimaryProductAction = (product) => {
+  if (product.production_status === 'in_production') {
+    viewProduct(product);
+    return;
+  }
+
+  addToCart(product);
 };
 
 const confirmAddToCart = async () => {
@@ -442,28 +634,60 @@ const viewProduct = (product) => {
 };
 
 const clearFilters = () => {
-  searchQuery.value = '';
   filters.value = {
-    variety: '',
-    sortBy: 'name'
+    search: '',
+    production_status: '',
+    variety_id: '',
+    quality_grade: '',
+    min_price: null,
+    max_price: null,
+    is_organic: false,
+    sort: 'created_at:desc',
   };
-  currentPage.value = 1;
+  loadProducts(1);
 };
 
-// Reset pagination when filters change
-watch([searchQuery, filters], () => {
-  currentPage.value = 1;
-});
+const formatGrade = (grade) => {
+  return filterOptions.value.grades?.[grade] || 'Grade A';
+};
+
+const formatStatus = (status) => {
+  return filterOptions.value.production_statuses?.[status] || 'Available';
+};
+
+const getStatusClass = (status) => {
+  const classes = {
+    available: 'bg-blue-100 text-blue-800',
+    in_production: 'bg-amber-100 text-amber-800',
+  };
+
+  return classes[status] || 'bg-gray-100 text-gray-700';
+};
+
+const formatDate = (date) => {
+  if (!date) return '';
+
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const getPrimaryActionLabel = (product) => {
+  if (!authStore.isAuthenticated) return 'Login to Add';
+  if (product.production_status === 'in_production') return 'Pre-order';
+  if (!product.quantity_available || product.quantity_available <= 0) return 'Out of Stock';
+  return 'Add to Cart';
+};
 
 onMounted(async () => {
-  loading.value = true;
-  try {
-    await marketplaceStore.fetchProducts();
-  } catch (error) {
-    console.error('Failed to load products:', error);
-  } finally {
-    loading.value = false;
+  if (route.query.variety) {
+    filters.value.variety_id = route.query.variety;
+    filtersOpen.value = true;
   }
+
+  await loadProducts();
 });
 
 const getProductImage = (product) => {

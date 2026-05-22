@@ -2,12 +2,12 @@
   <div class="orders-page">
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
+      <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div class="min-w-0">
           <h1 class="text-3xl font-bold text-gray-900">Orders</h1>
           <p class="text-gray-600 mt-2">Track your purchase and sales history</p>
         </div>
-        <div class="flex space-x-3">
+        <div class="flex flex-wrap gap-3 self-start sm:self-center">
           <button
             @click="viewMarketplace"
             class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"

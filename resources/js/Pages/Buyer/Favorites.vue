@@ -2,10 +2,10 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div class="min-w-0">
           <router-link
-            to="/buyer/products"
+            to="/marketplace"
             class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-800 transition-colors mb-4"
           >
             <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

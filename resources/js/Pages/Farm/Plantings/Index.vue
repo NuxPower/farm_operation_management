@@ -2,14 +2,14 @@
   <div class="plantings-page">
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
+      <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start mb-8">
+        <div class="min-w-0">
           <h1 class="text-3xl font-bold text-gray-900">Plantings</h1>
           <p class="text-gray-600 mt-2">Track and manage your crop plantings</p>
         </div>
         <button
           @click="showCreateModal = true"
-          class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          class="self-start bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 sm:self-auto"
         >
           Add New Planting
         </button>

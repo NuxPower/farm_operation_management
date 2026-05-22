@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div class="min-w-0">
           <h1 class="text-3xl font-bold text-gray-800">Rice Products</h1>
           <p class="text-gray-500 mt-1">Browse available rice products and pre-order options</p>
         </div>
@@ -372,7 +372,6 @@ onMounted(() => {
   overflow: hidden;
 }
 </style>
-
 
 
 

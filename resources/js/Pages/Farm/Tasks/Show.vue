@@ -31,8 +31,8 @@
       <!-- Content -->
       <div v-else>
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
+      <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start mb-8">
+        <div class="min-w-0">
           <nav class="text-sm text-gray-500 mb-2">
             <router-link to="/tasks" class="hover:text-gray-700">Tasks</router-link>
             <span class="mx-2">/</span>
@@ -41,7 +41,7 @@
           <h1 class="text-3xl font-bold text-gray-900">{{ task.title }}</h1>
           <p class="text-gray-600 mt-2">{{ task.description }}</p>
         </div>
-        <div class="flex space-x-3">
+        <div class="flex flex-wrap gap-3 self-start sm:self-auto">
           <button
             @click="toggleTaskCompletion"
             :class="task.completed ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'"

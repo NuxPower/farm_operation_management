@@ -2,12 +2,12 @@
   <div class="min-h-screen bg-gray-50">
     <div class="container mx-auto px-4 py-8">
       <!-- Standard Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div class="min-w-0">
           <h1 class="text-3xl font-bold text-gray-800">Shopping Cart</h1>
           <p class="text-gray-500 mt-1">Review your rice products before checkout</p>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center gap-4 self-start md:self-center">
           <span class="text-sm text-gray-600">
             {{ marketplaceStore.cartItemsCount }} items
           </span>

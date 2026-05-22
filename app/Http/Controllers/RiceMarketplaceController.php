@@ -93,7 +93,13 @@ class RiceMarketplaceController extends Controller
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('farmer', function ($farmerQuery) use ($search) {
+                            $farmerQuery->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('riceVariety', function ($varietyQuery) use ($search) {
+                            $varietyQuery->where('name', 'like', "%{$search}%");
+                        });
                 });
             }
 
