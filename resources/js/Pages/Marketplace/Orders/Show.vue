@@ -792,6 +792,35 @@ const activeNegotiation = computed(() => {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
 })
 
+const legacyOfferNegotiation = computed(() => {
+  if (!order.value || order.value.status !== 'negotiating' || !order.value.offer_price) {
+    return null
+  }
+
+  return {
+    id: `legacy-offer-${order.value.id}`,
+    rice_order_id: order.value.id,
+    proposer_id: order.value.buyer_id,
+    proposed_price: order.value.offer_price,
+    status: 'pending',
+    created_at: order.value.created_at || order.value.order_date,
+    proposer: order.value.buyer,
+    type: 'negotiation',
+    is_legacy_offer: true,
+  }
+})
+
+const setNegotiations = (items = []) => {
+  const loaded = Array.isArray(items) ? items : []
+
+  if (!loaded.length && legacyOfferNegotiation.value) {
+    negotiations.value = [legacyOfferNegotiation.value]
+    return
+  }
+
+  negotiations.value = loaded
+}
+
 // Computed: Can user negotiate on this order?
 const canNegotiate = computed(() => {
   if (!order.value) return false
@@ -847,9 +876,10 @@ const loadNegotiations = async () => {
   if (!order.value) return
   try {
     const response = await riceMarketplaceAPI.getNegotiations(order.value.id)
-    negotiations.value = response.data.negotiations || []
+    setNegotiations(response.data.negotiations || [])
   } catch (err) {
     console.error('Failed to load negotiations:', err)
+    setNegotiations([])
   }
 }
 
@@ -876,7 +906,11 @@ const acceptNegotiationProposal = async (negotiation) => {
   
   negotiationProcessing.value = true
   try {
-    await riceMarketplaceAPI.respondToNegotiation(negotiation.id, 'accept')
+    if (negotiation.is_legacy_offer) {
+      await axios.post(`/api/rice-marketplace/orders/${order.value.id}/negotiate`, { action: 'accept' })
+    } else {
+      await riceMarketplaceAPI.respondToNegotiation(negotiation.id, 'accept')
+    }
     await loadOrderData(order.value.id)
     alert('Price accepted! The order price has been updated.')
   } catch (err) {
@@ -892,7 +926,11 @@ const rejectNegotiationProposal = async (negotiation) => {
   
   negotiationProcessing.value = true
   try {
-    await riceMarketplaceAPI.respondToNegotiation(negotiation.id, 'reject')
+    if (negotiation.is_legacy_offer) {
+      await axios.post(`/api/rice-marketplace/orders/${order.value.id}/negotiate`, { action: 'reject' })
+    } else {
+      await riceMarketplaceAPI.respondToNegotiation(negotiation.id, 'reject')
+    }
     await loadOrderData(order.value.id)
   } catch (err) {
     alert(err.response?.data?.message || 'Failed to reject proposal')
@@ -914,11 +952,15 @@ const submitCounter = async () => {
   
   negotiationProcessing.value = true
   try {
-    await riceMarketplaceAPI.respondToNegotiation(
-      selectedNegotiation.value.id, 
-      'counter', 
-      parseFloat(counterPrice.value)
-    )
+    if (selectedNegotiation.value.is_legacy_offer) {
+      await riceMarketplaceAPI.proposeNegotiation(order.value.id, parseFloat(counterPrice.value))
+    } else {
+      await riceMarketplaceAPI.respondToNegotiation(
+        selectedNegotiation.value.id,
+        'counter',
+        parseFloat(counterPrice.value)
+      )
+    }
     showCounterModal.value = false
     counterPrice.value = ''
     selectedNegotiation.value = null
@@ -1185,7 +1227,11 @@ const loadOrderData = async (id) => {
   try {
     const response = await riceMarketplaceAPI.getOrderById(id)
     order.value = response.data.order
-    await loadMessages()
+    setNegotiations(order.value.negotiations || [])
+    await Promise.all([
+      loadMessages(),
+      loadNegotiations(),
+    ])
   } catch (err) {
     error.value = err.userMessage || err.response?.data?.message || 'Failed to load order'
   } finally {
@@ -1201,8 +1247,6 @@ const loadMessages = async () => {
     const response = await riceMarketplaceAPI.getOrderMessages(order.value.id)
     // Sort messages: Oldest at the top, Newest at the bottom
     messages.value = (response.data.messages || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-    // Also load negotiations
-    await loadNegotiations()
     scrollToBottom()
   } catch (err) {
     messageError.value = err.userMessage || err.response?.data?.message || 'Failed to load messages'

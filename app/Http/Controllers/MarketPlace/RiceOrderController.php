@@ -85,7 +85,13 @@ class RiceOrderController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $order->load(['buyer', 'riceProduct.farmer', 'riceProduct.riceVariety', 'messages']);
+        $order->load([
+            'buyer',
+            'riceProduct.farmer',
+            'riceProduct.riceVariety',
+            'messages',
+            'negotiations.proposer:id,name,profile_picture',
+        ]);
 
         return response()->json(['order' => $order]);
     }
