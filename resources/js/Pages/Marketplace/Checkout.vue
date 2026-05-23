@@ -94,7 +94,64 @@
           </div>
           
           <!-- Price Negotiation -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 class="text-lg font-medium text-gray-900">Price Negotiation</h3>
+                <p class="text-sm text-gray-500 mt-1">Submit a lower per-unit offer for any item in this checkout.</p>
+              </div>
+              <button
+                type="button"
+                @click="clearOfferPrices"
+                class="text-sm text-gray-500 hover:text-red-600"
+                v-if="hasOfferPrices"
+              >
+                Clear offers
+              </button>
+            </div>
 
+            <div class="space-y-4">
+              <div
+                v-for="item in marketplaceStore.cart"
+                :key="`offer-${item.id}`"
+                class="rounded-lg border border-gray-200 p-4"
+              >
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0">
+                    <div class="font-medium text-gray-900 truncate">{{ item.name }}</div>
+                    <div class="text-sm text-gray-500">
+                      Listed: {{ formatCurrency(item.price) }}/{{ formatUnit(item.unit) }} · Qty {{ item.quantity }}
+                    </div>
+                  </div>
+                  <div class="w-full sm:w-48">
+                    <label :for="`offer-${item.id}`" class="block text-xs font-medium text-gray-600 mb-1">
+                      Offer per unit
+                    </label>
+                    <input
+                      :id="`offer-${item.id}`"
+                      :value="offerPrices[item.id] || ''"
+                      @input="setOfferPrice(item.id, $event.target.value)"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      :max="Math.max(Number(item.price) - 0.01, 0.01)"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      placeholder="Optional"
+                    />
+                    <p v-if="getOfferError(item)" class="text-xs text-red-600 mt-1">
+                      {{ getOfferError(item) }}
+                    </p>
+                  </div>
+                </div>
+                <div v-if="getValidOffer(item)" class="mt-3 rounded-md bg-orange-50 border border-orange-200 px-3 py-2 text-sm text-orange-800">
+                  Proposed subtotal: {{ formatCurrency(getValidOffer(item) * item.quantity) }}
+                  <span class="text-orange-600">
+                    ({{ formatCurrency((item.price - getValidOffer(item)) * item.quantity) }} below list)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
         </div>
 
@@ -111,8 +168,12 @@
               
               <div class="border-t border-gray-200 pt-4">
                 <div class="flex justify-between text-sm mb-2">
-                  <span class="text-gray-600">Subtotal</span>
+                  <span class="text-gray-600">List Subtotal</span>
                   <span class="text-gray-900">{{ formatCurrency(marketplaceStore.cartTotal) }}</span>
+                </div>
+                <div v-if="hasOfferPrices" class="flex justify-between text-sm mb-2">
+                  <span class="text-gray-600">Proposed Subtotal</span>
+                  <span class="text-orange-700 font-medium">{{ formatCurrency(proposedSubtotal) }}</span>
                 </div>
                 <div class="flex justify-between text-sm mb-2">
                   <span class="text-gray-600">Shipping</span>
@@ -164,7 +225,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMarketplaceStore } from '@/stores/marketplace';
 import { useAuthStore } from '@/stores/auth';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, formatUnit } from '@/utils/format';
 import ConfirmationModal from '@/Components/UI/ConfirmationModal.vue';
 import { useFormValidation } from '@/composables/useFormValidation';
 
@@ -195,6 +256,7 @@ const form = ref({
   notes: '',
   preferred_pickup_date: ''
 });
+const offerPrices = ref({});
 
 // Computed: minimum pickup date (tomorrow)
 const minPickupDate = computed(() => {
@@ -214,8 +276,58 @@ const shippingCost = computed(() => {
 });
 
 const totalAmount = computed(() => {
-  return marketplaceStore.cartTotal + shippingCost.value;
+  return proposedSubtotal.value + shippingCost.value;
 });
+
+const hasOfferPrices = computed(() => Object.keys(normalizedOfferPrices.value).length > 0);
+
+const normalizedOfferPrices = computed(() => {
+  return Object.entries(offerPrices.value).reduce((offers, [cartItemId, price]) => {
+    if (price !== null && price !== '') {
+      offers[cartItemId] = Number(price);
+    }
+    return offers;
+  }, {});
+});
+
+const proposedSubtotal = computed(() => {
+  return marketplaceStore.cart.reduce((total, item) => {
+    return total + (getValidOffer(item) || item.price) * item.quantity;
+  }, 0);
+});
+
+const setOfferPrice = (cartItemId, value) => {
+  offerPrices.value = {
+    ...offerPrices.value,
+    [cartItemId]: value,
+  };
+};
+
+const clearOfferPrices = () => {
+  offerPrices.value = {};
+};
+
+const getValidOffer = (item) => {
+  const offer = Number(offerPrices.value[item.id]);
+  if (!offer || offer <= 0 || offer >= Number(item.price)) return null;
+  return offer;
+};
+
+const getOfferError = (item) => {
+  const rawOffer = offerPrices.value[item.id];
+  if (rawOffer === undefined || rawOffer === null || rawOffer === '') return '';
+
+  const offer = Number(rawOffer);
+  if (!offer || offer <= 0) return 'Enter an amount greater than zero.';
+  if (offer >= Number(item.price)) return 'Offer must be lower than the listed price.';
+  return '';
+};
+
+const getOfferErrors = () => {
+  return marketplaceStore.cart
+    .map(getOfferError)
+    .filter(Boolean);
+};
 
 const confirmOrder = () => {
   // Basic validation before showing confirmation
@@ -235,10 +347,18 @@ const confirmOrder = () => {
     return;
   }
 
+  const offerErrors = getOfferErrors();
+  if (offerErrors.length) {
+    error.value = offerErrors[0];
+    return;
+  }
+
   error.value = null;
   confirmTitle.value = 'Confirm Purchase';
   
-  confirmMessage.value = `Are you sure you want to place this order? Total amount is ${formatCurrency(totalAmount.value)}.`;
+  confirmMessage.value = hasOfferPrices.value
+    ? `Submit this order with price negotiation offers? Proposed total is ${formatCurrency(totalAmount.value)}.`
+    : `Are you sure you want to place this order? Total amount is ${formatCurrency(totalAmount.value)}.`;
   
   showConfirmModal.value = true;
 };
@@ -255,7 +375,7 @@ const submitOrder = async () => {
       delivery_method: form.value.delivery_method,
       payment_method: form.value.payment_method,
       notes: form.value.notes,
-      offer_price: null,
+      offer_prices: normalizedOfferPrices.value,
       preferred_pickup_date: form.value.preferred_pickup_date
     });
 

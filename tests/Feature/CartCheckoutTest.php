@@ -172,4 +172,66 @@ class CartCheckoutTest extends TestCase
             'status' => PriceNegotiation::STATUS_PENDING,
         ]);
     }
+
+    /** @test */
+    public function checkout_with_per_item_offer_prices_creates_per_order_negotiations()
+    {
+        $secondProduct = RiceProduct::create([
+            'farmer_id' => $this->farmer->id,
+            'rice_variety_id' => $this->product->rice_variety_id,
+            'inventory_item_id' => $this->inventoryItem->id,
+            'name' => 'Second Test Rice Product',
+            'description' => 'Another test description',
+            'quantity_available' => 50,
+            'price_per_unit' => 80,
+            'unit' => 'kg',
+            'quality_grade' => RiceProduct::GRADE_PREMIUM,
+            'production_status' => RiceProduct::STATUS_AVAILABLE,
+            'is_available' => true,
+            'harvest_date' => now()->subDays(10),
+        ]);
+
+        $firstCartItem = CartItem::create([
+            'buyer_id' => $this->buyer->id,
+            'rice_product_id' => $this->product->id,
+            'quantity' => 10
+        ]);
+
+        $secondCartItem = CartItem::create([
+            'buyer_id' => $this->buyer->id,
+            'rice_product_id' => $secondProduct->id,
+            'quantity' => 5
+        ]);
+
+        $response = $this->actingAs($this->buyer)
+            ->postJson('/api/rice-marketplace/cart/checkout', [
+                'delivery_address' => ['address' => '123 Buyer St'],
+                'delivery_method' => 'pickup',
+                'payment_method' => 'cash',
+                'offer_prices' => [
+                    $firstCartItem->id => 50,
+                    $secondCartItem->id => 70,
+                ],
+            ]);
+
+        $response->assertStatus(200);
+
+        $firstOrder = RiceOrder::where('rice_product_id', $this->product->id)->latest()->first();
+        $secondOrder = RiceOrder::where('rice_product_id', $secondProduct->id)->latest()->first();
+
+        $this->assertEquals(RiceOrder::STATUS_NEGOTIATING, $firstOrder->status);
+        $this->assertEquals(RiceOrder::STATUS_NEGOTIATING, $secondOrder->status);
+
+        $this->assertDatabaseHas('price_negotiations', [
+            'rice_order_id' => $firstOrder->id,
+            'proposed_price' => 50,
+            'status' => PriceNegotiation::STATUS_PENDING,
+        ]);
+
+        $this->assertDatabaseHas('price_negotiations', [
+            'rice_order_id' => $secondOrder->id,
+            'proposed_price' => 70,
+            'status' => PriceNegotiation::STATUS_PENDING,
+        ]);
+    }
 }

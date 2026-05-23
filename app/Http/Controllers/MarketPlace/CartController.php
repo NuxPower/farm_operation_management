@@ -148,6 +148,8 @@ class CartController extends Controller
             'payment_method' => 'required|string',
             'notes' => 'nullable|string',
             'offer_price' => 'nullable|numeric|min:0.01',
+            'offer_prices' => 'nullable|array',
+            'offer_prices.*' => 'nullable|numeric|min:0.01',
         ]);
 
         $cartItems = CartItem::where('buyer_id', Auth::id())
@@ -160,9 +162,27 @@ class CartController extends Controller
 
         $orders = [];
         $offerPrice = $request->input('offer_price');
+        $offerPrices = collect($request->input('offer_prices', []))
+            ->filter(fn($price) => $price !== null && $price !== '')
+            ->mapWithKeys(fn($price, $cartItemId) => [(int) $cartItemId => (float) $price]);
         $checkoutGroupId = Str::uuid()->toString();
 
-        DB::transaction(function () use ($cartItems, $request, &$orders, $offerPrice, $checkoutGroupId) {
+        foreach ($offerPrices as $cartItemId => $price) {
+            $cartItem = $cartItems->firstWhere('id', $cartItemId);
+
+            if (!$cartItem) {
+                return response()->json(['message' => 'Invalid negotiated cart item.'], 422);
+            }
+
+            $unitPrice = (float) ($cartItem->riceProduct->price_per_unit ?? 0);
+            if ($price >= $unitPrice) {
+                return response()->json([
+                    'message' => "Offer for {$cartItem->riceProduct->name} must be lower than the listed price."
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($cartItems, $request, &$orders, $offerPrice, $offerPrices, $checkoutGroupId) {
             foreach ($cartItems as $item) {
                 $product = $item->riceProduct;
 
@@ -175,10 +195,11 @@ class CartController extends Controller
 
                 // Determine if negotiation is active
                 $unitPrice = $product->price_per_unit;
-                $isNegotiating = $offerPrice && (float) $offerPrice < (float) $unitPrice;
+                $itemOfferPrice = $offerPrices->get($item->id, $offerPrice);
+                $isNegotiating = $itemOfferPrice && (float) $itemOfferPrice < (float) $unitPrice;
                 $orderStatus = $isNegotiating ? RiceOrder::STATUS_NEGOTIATING : RiceOrder::STATUS_PENDING;
                 $totalAmount = $isNegotiating
-                    ? $item->quantity * $offerPrice
+                    ? $item->quantity * $itemOfferPrice
                     : $item->quantity * $unitPrice;
 
                 // Create order
@@ -187,7 +208,7 @@ class CartController extends Controller
                     'rice_product_id' => $product->id,
                     'quantity' => $item->quantity,
                     'unit_price' => $unitPrice,
-                    'offer_price' => $offerPrice,
+                    'offer_price' => $isNegotiating ? $itemOfferPrice : null,
                     'total_amount' => $totalAmount,
                     'status' => $orderStatus,
                     'payment_status' => RiceOrder::PAYMENT_PENDING,
@@ -212,14 +233,14 @@ class CartController extends Controller
                     PriceNegotiation::create([
                         'rice_order_id' => $order->id,
                         'proposer_id' => Auth::id(),
-                        'proposed_price' => $offerPrice,
+                        'proposed_price' => $itemOfferPrice,
                         'status' => PriceNegotiation::STATUS_PENDING,
                     ]);
                 }
 
                 // Notify farmer
                 $notificationMessage = $isNegotiating
-                    ? "You have a new price negotiation for {$item->quantity} {$product->unit} of {$product->name}. Offered: ₱{$offerPrice}/{$product->unit}"
+                    ? "You have a new price negotiation for {$item->quantity} {$product->unit} of {$product->name}. Offered: ₱{$itemOfferPrice}/{$product->unit}"
                     : "You have a new order for {$item->quantity} {$product->unit} of {$product->name}";
 
                 \App\Models\Notification::notify(
