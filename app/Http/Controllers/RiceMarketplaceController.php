@@ -659,15 +659,27 @@ class RiceMarketplaceController extends Controller
             }
 
             if ($request->action === 'accept') {
-                // Accept negotiation: Update unit price and total amount, set status to pending
-                $order->update([
-                    'unit_price' => $order->offer_price,
-                    // Total amount is already updated in createOrder but safe to recalculate or keep as is
-                    'status' => RiceOrder::STATUS_PENDING,
-                    'farmer_notes' => 'Price negotiation accepted.',
-                ]);
+                $activeNegotiation = $order->getActiveNegotiation();
+
+                if ($activeNegotiation) {
+                    $activeNegotiation->accept('Price negotiation accepted by farmer.');
+                    $order->fresh()->update([
+                        'farmer_notes' => 'Price negotiation accepted.',
+                    ]);
+                } else {
+                    // Accept legacy offer_price negotiation: update unit price and set status to pending.
+                    $order->update([
+                        'unit_price' => $order->offer_price,
+                        'total_amount' => $order->offer_price * $order->quantity,
+                        'status' => RiceOrder::STATUS_PENDING,
+                        'farmer_notes' => 'Price negotiation accepted.',
+                    ]);
+                }
             } else {
-                // Reject negotiation: Cancel order
+                $activeNegotiation = $order->getActiveNegotiation();
+                $activeNegotiation?->reject('Price negotiation rejected by farmer.');
+
+                // Reject negotiation: cancel order.
                 $order->cancel('Price negotiation rejected by farmer.');
             }
 

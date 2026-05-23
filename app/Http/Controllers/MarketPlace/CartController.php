@@ -4,6 +4,7 @@ namespace App\Http\Controllers\MarketPlace;
 
 use App\Http\Controllers\Controller;
 use App\Models\CartItem;
+use App\Models\PriceNegotiation;
 use App\Models\RiceProduct;
 use App\Models\RiceOrder;
 use Illuminate\Http\Request;
@@ -204,6 +205,15 @@ class CartController extends Controller
                         'product_id' => $product->id,
                         'order_id' => $order->id,
                         'quantity' => $item->quantity,
+                    ]);
+                }
+
+                if ($isNegotiating) {
+                    PriceNegotiation::create([
+                        'rice_order_id' => $order->id,
+                        'proposer_id' => Auth::id(),
+                        'proposed_price' => $offerPrice,
+                        'status' => PriceNegotiation::STATUS_PENDING,
                     ]);
                 }
 

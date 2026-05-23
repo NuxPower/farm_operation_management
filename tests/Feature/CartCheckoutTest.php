@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\InventoryItem;
+use App\Models\PriceNegotiation;
+use App\Models\RiceOrder;
 use App\Models\RiceProduct;
 use App\Models\RiceVariety;
 use App\Models\CartItem;
@@ -139,5 +141,35 @@ class CartCheckoutTest extends TestCase
 
         // inventory_item_id should now be auto-linked
         $this->assertEquals($inventoryItem->id, $product->fresh()->inventory_item_id, 'Product should auto-link to inventory item');
+    }
+
+    /** @test */
+    public function checkout_with_offer_price_creates_chat_negotiation()
+    {
+        CartItem::create([
+            'buyer_id' => $this->buyer->id,
+            'rice_product_id' => $this->product->id,
+            'quantity' => 10
+        ]);
+
+        $response = $this->actingAs($this->buyer)
+            ->postJson('/api/rice-marketplace/cart/checkout', [
+                'delivery_address' => ['address' => '123 Buyer St'],
+                'delivery_method' => 'pickup',
+                'payment_method' => 'cash',
+                'offer_price' => 50,
+            ]);
+
+        $response->assertStatus(200);
+
+        $order = RiceOrder::where('buyer_id', $this->buyer->id)->latest()->first();
+
+        $this->assertEquals(RiceOrder::STATUS_NEGOTIATING, $order->status);
+        $this->assertDatabaseHas('price_negotiations', [
+            'rice_order_id' => $order->id,
+            'proposer_id' => $this->buyer->id,
+            'proposed_price' => 50,
+            'status' => PriceNegotiation::STATUS_PENDING,
+        ]);
     }
 }

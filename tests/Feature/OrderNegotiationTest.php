@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\RiceOrder;
 use App\Models\RiceProduct;
 use App\Models\RiceVariety;
+use App\Models\PriceNegotiation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -111,6 +112,12 @@ class OrderNegotiationTest extends TestCase
 
         $this->assertEquals($offerPrice, $this->order->offer_price, 'Offer price should be saved');
         $this->assertEquals(RiceOrder::STATUS_NEGOTIATING, $this->order->status, 'Order status should be negotiating');
+        $this->assertDatabaseHas('price_negotiations', [
+            'rice_order_id' => $this->order->id,
+            'proposer_id' => $this->buyer->id,
+            'proposed_price' => $offerPrice,
+            'status' => PriceNegotiation::STATUS_PENDING,
+        ]);
 
         // 2. Farmer accepts negotiation
         $response = $this->actingAs($this->farmer)
@@ -123,6 +130,10 @@ class OrderNegotiationTest extends TestCase
 
         $this->assertEquals(RiceOrder::STATUS_PENDING, $this->order->status, 'Order status should be pending after acceptance');
         $this->assertEquals($offerPrice, $this->order->unit_price, 'Unit price should be updated to offer price');
+        $this->assertDatabaseHas('price_negotiations', [
+            'rice_order_id' => $this->order->id,
+            'status' => PriceNegotiation::STATUS_ACCEPTED,
+        ]);
 
         echo "\nNegotiation Test Passed!\n";
     }
@@ -156,5 +167,9 @@ class OrderNegotiationTest extends TestCase
         $order->refresh();
 
         $this->assertEquals(RiceOrder::STATUS_CANCELLED, $order->status, 'Order should be cancelled after rejection');
+        $this->assertDatabaseHas('price_negotiations', [
+            'rice_order_id' => $order->id,
+            'status' => PriceNegotiation::STATUS_REJECTED,
+        ]);
     }
 }

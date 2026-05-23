@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\MarketPlace;
 
 use App\Http\Controllers\Controller;
+use App\Models\PriceNegotiation;
 use App\Models\RiceOrder;
 use App\Models\RiceProduct;
 use Illuminate\Http\Request;
@@ -161,6 +162,13 @@ class RiceOrderController extends Controller
                 $order->update([
                     'status' => RiceOrder::STATUS_NEGOTIATING,
                     'total_amount' => $request->quantity * $request->input('offer_price'),
+                ]);
+
+                PriceNegotiation::create([
+                    'rice_order_id' => $order->id,
+                    'proposer_id' => Auth::id(),
+                    'proposed_price' => $request->input('offer_price'),
+                    'status' => PriceNegotiation::STATUS_PENDING,
                 ]);
             }
 
