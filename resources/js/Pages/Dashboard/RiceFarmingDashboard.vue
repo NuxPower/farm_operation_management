@@ -558,16 +558,14 @@ const MetricTile = defineComponent({
       green: 'bg-green-50 text-green-700',
     }[props.tone] || 'bg-gray-50 text-gray-700'));
 
-    return () => h('div', { class: 'group rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_46px_rgba(15,23,42,0.11)]' }, [
-      h('div', { class: 'flex items-start justify-between gap-4' }, [
-        h('div', [
-          h('p', { class: 'text-sm font-medium text-gray-500' }, props.label),
-          h('p', { class: 'mt-2 text-3xl font-bold text-gray-900' }, String(props.value ?? 0)),
-          h('p', { class: 'mt-1 text-xs text-gray-500' }, props.detail),
-        ]),
-        h('div', { class: `rounded-xl p-3 transition group-hover:scale-105 ${toneClass.value}` }, [
-          h(props.icon, { class: 'h-5 w-5' }),
-        ]),
+    return () => h('div', { class: 'group relative overflow-hidden rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_46px_rgba(15,23,42,0.11)]' }, [
+      h('div', { class: 'min-w-0 pr-12' }, [
+        h('p', { class: 'text-sm font-medium text-gray-500' }, props.label),
+        h('p', { class: 'mt-2 break-words text-3xl font-bold leading-tight text-gray-900' }, String(props.value ?? 0)),
+        h('p', { class: 'mt-1 text-xs text-gray-500' }, props.detail),
+      ]),
+      h('div', { class: `absolute right-5 top-5 rounded-xl p-3 transition group-hover:scale-105 ${toneClass.value}` }, [
+        h(props.icon, { class: 'h-5 w-5' }),
       ]),
     ]);
   },
