@@ -201,7 +201,7 @@
              <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Share Amount ({{ form.data.unit || 'Units' }})</label>
                 <input
-                  v-model.number="form.data.harvester_share"
+                  :value="harvesterShareDisplay"
                   type="number"
                   readonly
                    class="w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
@@ -209,11 +209,11 @@
                 />
              </div>
              <div>
-                 <label class="block text-sm font-semibold text-gray-700 mb-2">Your Net Share</label>
-                 <div class="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700 font-bold">
-                    {{ (form.data.quantity - (form.data.harvester_share || 0)).toFixed(2) }} {{ form.data.unit }}
-                 </div>
-             </div>
+	                 <label class="block text-sm font-semibold text-gray-700 mb-2">Your Net Share</label>
+	                 <div class="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700 font-bold">
+	                    {{ netShareDisplay }}
+	                 </div>
+	             </div>
           </div>
         </section>
         
@@ -385,6 +385,22 @@ const form = ref({
   processing: false,
 })
 
+const hasHarvestQuantity = computed(() => {
+  return Number(form.value.data.quantity || 0) > 0
+})
+
+const harvesterShareDisplay = computed(() => {
+  if (!hasHarvestQuantity.value) return ''
+  return Number(form.value.data.harvester_share || 0).toFixed(2)
+})
+
+const netShareDisplay = computed(() => {
+  if (!hasHarvestQuantity.value) return `Enter harvest quantity`
+
+  const netShare = Number(form.value.data.quantity || 0) - Number(form.value.data.harvester_share || 0)
+  return `${netShare.toFixed(2)} ${form.value.data.unit}`
+})
+
 // Watch for the modal to open and reset the form
 watch(() => props.show, async (newVal) => {
   if (newVal) {
@@ -452,12 +468,12 @@ const applyTaskSharePercentage = (plantingId) => {
 
 // Auto-calculate harvester share
 watch(() => [form.value.data.quantity, form.value.data.harvester_share_percentage], ([qty, pct]) => {
-   if (qty && pct) {
-      const share = (parseFloat(qty) * (parseFloat(pct) / 100));
-      form.value.data.harvester_share = parseFloat(share.toFixed(2));
-   } else {
-      form.value.data.harvester_share = 0;
-   }
+	 if (qty && pct) {
+	    const share = (parseFloat(qty) * (parseFloat(pct) / 100));
+	    form.value.data.harvester_share = parseFloat(share.toFixed(2));
+	 } else {
+	    form.value.data.harvester_share = '';
+	 }
 })
 
 const submitForm = async () => {

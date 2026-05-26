@@ -315,7 +315,12 @@ const getStatusClass = (status) => {
 };
 
 const isOverdue = (task) => {
-  return new Date(task.due_date) < new Date() && task.status !== 'completed';
+  if (!task?.due_date || ['completed', 'cancelled'].includes(task.status)) return false;
+
+  const dueDate = new Date(task.due_date);
+  if (Number.isNaN(dueDate.getTime())) return false;
+
+  return dueDate < new Date();
 };
 
 const formatDate = (date) => {

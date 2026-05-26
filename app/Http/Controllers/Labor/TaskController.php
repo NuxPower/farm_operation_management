@@ -490,7 +490,11 @@ class TaskController extends Controller
     private function ensureDueDateCompletion(Task $task, $user): array
     {
         // A task is only overdue if its due date is strictly before today (ignoring time)
-        if ($task->status !== Task::STATUS_COMPLETED && $task->due_date && Carbon::parse($task->due_date)->startOfDay()->lt(Carbon::now()->startOfDay())) {
+        if (
+            !in_array($task->status, [Task::STATUS_COMPLETED, Task::STATUS_CANCELLED], true)
+            && $task->due_date
+            && Carbon::parse($task->due_date)->startOfDay()->lt(Carbon::now()->startOfDay())
+        ) {
             $task->update(['status' => Task::STATUS_COMPLETED]);
             return $this->createLaborExpensesForTask($task, $user, null, $task->due_date);
         }

@@ -65,22 +65,22 @@
 
             <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <p class="text-sm text-gray-500">Linked planting</p>
+                <p class="text-sm text-gray-500">Task location</p>
                 <p class="text-base font-medium text-gray-900 mt-1">
-                  {{ plantingSummary }}
+                  {{ locationSummary }}
                 </p>
-                <p v-if="task.planting?.field" class="text-sm text-gray-500">
-                  Field: {{ task.planting.field.name }}
+                <p v-if="locationSubtext" class="text-sm text-gray-500">
+                  {{ locationSubtext }}
                 </p>
               </div>
 
               <div>
-                <p class="text-sm text-gray-500">Assigned laborer</p>
+                <p class="text-sm text-gray-500">Assignment</p>
                 <p class="text-base font-medium text-gray-900 mt-1">
-                  {{ task.laborer?.name || 'Unassigned' }}
+                  {{ assignmentSummary }}
                 </p>
-                <p v-if="task.laborer?.contact" class="text-sm text-gray-500">
-                  {{ task.laborer.contact }}
+                <p v-if="assignmentSubtext" class="text-sm text-gray-500">
+                  {{ assignmentSubtext }}
                 </p>
               </div>
               </div>
@@ -88,17 +88,31 @@
             <div class="px-6 py-5 border-t border-gray-100">
                 <p class="text-sm text-gray-500 mb-2">Payment Details</p>
                 
-                <div v-if="task.payment_type === 'piece_rate'" class="bg-emerald-50 rounded-lg p-3 border border-emerald-100 inline-block min-w-[200px]">
+                <div v-if="isSharePayment" class="bg-orange-50 rounded-lg p-3 border border-orange-100 inline-block min-w-[200px]">
+                     <p class="text-sm font-medium text-orange-900">Produce Share</p>
+                     <p class="text-lg font-bold text-orange-700 mt-1">
+                       {{ formattedSharePercentage }}
+                       <span class="text-sm font-normal text-orange-600">of harvest</span>
+                     </p>
+                     <p class="text-xs text-orange-700 mt-1">
+                       Share amount is calculated from the recorded harvest quantity.
+                     </p>
+                </div>
+
+                <div v-else-if="isPieceRatePayment" class="bg-emerald-50 rounded-lg p-3 border border-emerald-100 inline-block min-w-[200px]">
                     <div class="flex items-center justify-between gap-4">
                         <div>
                             <p class="text-sm font-medium text-emerald-900">Piece Rate</p>
-                            <p class="text-xs text-emerald-700 mt-0.5">
+                            <p v-if="hasPieceRateQuantity" class="text-xs text-emerald-700 mt-0.5">
                                 {{ formatNumber(task.quantity) }} {{ task.unit || 'units' }} × {{ formatCurrency(task.unit_price) }}
+                            </p>
+                            <p v-else class="text-xs text-emerald-700 mt-0.5">
+                                Quantity will be filled from the recorded harvest.
                             </p>
                         </div>
                         <div class="text-right">
                             <p class="text-xs text-emerald-600 uppercase font-bold tracking-wider">Total</p>
-                            <p class="text-lg font-bold text-emerald-700">{{ formatCurrency(task.wage_amount) }}</p>
+                            <p class="text-lg font-bold text-emerald-700">{{ hasPieceRateQuantity ? formatCurrency(task.wage_amount) : 'Pending' }}</p>
                         </div>
                     </div>
                 </div>
@@ -106,11 +120,6 @@
                 <div v-else-if="task.payment_type === 'wage'" class="bg-gray-50 rounded-lg p-3 border border-gray-200 inline-block">
                     <p class="text-sm font-medium text-gray-900">Standard Wage</p>
                     <p class="text-lg font-bold text-gray-700 mt-1">{{ formatCurrency(task.wage_amount) }}</p>
-                </div>
-
-                <div v-else-if="task.payment_type === 'share'" class="bg-orange-50 rounded-lg p-3 border border-orange-100 inline-block">
-                     <p class="text-sm font-medium text-orange-900">Revenue Share</p>
-                     <p class="text-lg font-bold text-orange-700 mt-1">{{ task.revenue_share_percentage }}% <span class="text-sm font-normal text-orange-600">of harvest</span></p>
                 </div>
 
                 <div v-else class="text-sm text-gray-500 italic">
@@ -240,10 +249,58 @@ const formattedUpdatedAt = computed(() => {
   return new Date(task.value.updated_at).toLocaleString()
 })
 
-const plantingSummary = computed(() => {
-  if (!task.value?.planting) return 'No planting linked'
-  const planting = task.value.planting
-  return planting.crop_type || `Planting #${planting.id}`
+const locationSummary = computed(() => {
+  if (task.value?.planting) {
+    const planting = task.value.planting
+    return planting.crop_type || `Planting #${planting.id}`
+  }
+
+  if (task.value?.field) {
+    return task.value.field.name || `Field #${task.value.field.id}`
+  }
+
+  return 'No field linked'
+})
+
+const locationSubtext = computed(() => {
+  if (task.value?.planting?.field) {
+    return `Field: ${task.value.planting.field.name}`
+  }
+
+  if (task.value?.field) {
+    return 'Field-wide task'
+  }
+
+  return ''
+})
+
+const assignmentSummary = computed(() => {
+  if (task.value?.laborer) return task.value.laborer.name
+  if (task.value?.laborer_group) return task.value.laborer_group.name
+  if (task.value?.laborerGroup) return task.value.laborerGroup.name
+  return 'Unassigned'
+})
+
+const assignmentSubtext = computed(() => {
+  if (task.value?.laborer?.contact) return task.value.laborer.contact
+  if (task.value?.laborer_group || task.value?.laborerGroup) return 'Laborer group'
+  return ''
+})
+
+const isSharePayment = computed(() => {
+  return task.value?.payment_type === 'share' ||
+    (!!task.value?.revenue_share_percentage && !hasPieceRateQuantity.value)
+})
+
+const isPieceRatePayment = computed(() => task.value?.payment_type === 'piece_rate')
+
+const hasPieceRateQuantity = computed(() => {
+  return Number(task.value?.quantity || 0) > 0 && Number(task.value?.unit_price || 0) > 0
+})
+
+const formattedSharePercentage = computed(() => {
+  const percentage = Number(task.value?.revenue_share_percentage || 0)
+  return `${percentage.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
 })
 
 const taskTitle = computed(() => {
@@ -328,4 +385,3 @@ watch(taskId, (newId, oldId) => {
   }
 })
 </script>
-

@@ -117,7 +117,7 @@ class Task extends Model
     public function isOverdue(): bool
     {
         return $this->due_date < Carbon::now() &&
-            $this->status !== self::STATUS_COMPLETED;
+            !in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_CANCELLED], true);
     }
 
     /**

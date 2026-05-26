@@ -171,8 +171,7 @@
                 <div>
                   <p class="text-sm font-semibold text-gray-900">{{ getTaskTypeLabel(task.task_type) }}</p>
                   <p class="text-xs text-gray-500">
-                    {{ task.planting?.crop_type || 'Unlinked Planting' }}
-                    <span v-if="task.planting?.field?.name"> • {{ task.planting.field.name }}</span>
+                    {{ taskLocationLabel(task) }}
                   </p>
                 </div>
                 <span
@@ -193,8 +192,8 @@
                     </svg>
                     Due {{ formatLongDate(task.due_date) }}
                   </span>
-                  <span v-if="task.assigned_to && task.laborer">
-                    Assigned: {{ task.laborer.name }}
+                  <span v-if="taskAssignmentLabel(task)">
+                    Assigned: {{ taskAssignmentLabel(task) }}
                   </span>
                 </div>
                 <button
@@ -324,6 +323,24 @@ const getStatusDotClass = (status) => {
   return colors[status] || 'bg-gray-300';
 };
 
+const taskLocationLabel = (task) => {
+  if (task.planting) {
+    const crop = task.planting.crop_type || `Planting #${task.planting.id}`;
+    const field = task.planting.field?.name;
+    return field ? `${crop} - ${field}` : crop;
+  }
+
+  if (task.field) {
+    return `${task.field.name || `Field #${task.field.id}`} - field-wide`;
+  }
+
+  return 'No field linked';
+};
+
+const taskAssignmentLabel = (task) => {
+  return task.laborer?.name || task.laborer_group?.name || task.laborerGroup?.name || '';
+};
+
 const viewTask = (taskId) => {
   router.push(`/tasks/${taskId}`);
 };
@@ -353,4 +370,3 @@ onMounted(async () => {
   }
 });
 </script>
-
