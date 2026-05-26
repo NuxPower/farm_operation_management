@@ -6,6 +6,8 @@ use App\Models\Farm;
 use App\Models\Field;
 use App\Models\Harvest;
 use App\Models\InventoryItem;
+use App\Models\Laborer;
+use App\Models\LaborWage;
 use App\Models\Planting;
 use App\Models\PostHarvestProcess;
 use App\Models\RiceVariety;
@@ -172,6 +174,25 @@ class PostHarvestProcessTest extends TestCase
         ]);
     }
 
+    public function test_threshing_input_cannot_exceed_net_harvest_quantity()
+    {
+        $this->harvest->update([
+            'quantity' => 1000,
+            'harvester_share' => 200,
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson('/api/post-harvest', [
+                'harvest_id' => $this->harvest->id,
+                'process_type' => PostHarvestProcess::TYPE_THRESHING,
+                'process_date' => now()->toDateString(),
+                'input_quantity' => 900,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Input quantity cannot exceed the available net harvest quantity (800).');
+    }
+
     public function test_completing_process_deducts_and_adds_inventory_with_expense()
     {
         $process = PostHarvestProcess::create([
@@ -240,6 +261,85 @@ class PostHarvestProcessTest extends TestCase
             'reference_id' => $process->id,
             'transaction_type' => 'in',
             'quantity' => 820
+        ]);
+    }
+
+    public function test_completing_process_requires_sufficient_source_inventory()
+    {
+        $process = PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_DRYING,
+            'input_quantity' => 1200,
+            'input_unit' => 'kg',
+            'process_date' => now(),
+            'status' => PostHarvestProcess::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson("/api/post-harvest/{$process->id}/complete", [
+                'output_quantity' => 900,
+                'output_unit' => 'kg',
+                'completed_date' => now()->toDateString(),
+            ]);
+
+        $response->assertStatus(422);
+
+        $this->assertDatabaseHas('post_harvest_processes', [
+            'id' => $process->id,
+            'status' => PostHarvestProcess::STATUS_PENDING,
+        ]);
+
+        $this->assertDatabaseMissing('inventory_items', [
+            'user_id' => $this->farmer->id,
+            'name' => 'NSIC Rc222 - Dried Palay (Grade A)',
+            'current_stock' => 900,
+        ]);
+    }
+
+    public function test_deleting_pending_process_cleans_up_linked_labor_records()
+    {
+        $laborer = Laborer::factory()->create([
+            'user_id' => $this->farmer->id,
+            'rate' => 500,
+            'rate_type' => 'per_task',
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson('/api/post-harvest', [
+                'harvest_id' => $this->harvest->id,
+                'process_type' => PostHarvestProcess::TYPE_THRESHING,
+                'process_date' => now()->toDateString(),
+                'input_quantity' => 1000,
+                'assign_laborers' => true,
+                'assigned_to' => $laborer->id,
+                'payment_type' => Task::PAYMENT_TYPE_WAGE,
+                'wage_amount' => 500,
+            ]);
+
+        $response->assertStatus(201);
+
+        $processId = $response->json('process.id');
+        $taskId = $response->json('process.task_id');
+
+        $this->assertNotNull($taskId);
+        $this->assertDatabaseHas('labor_wages', ['task_id' => $taskId]);
+        $this->assertDatabaseHas('expenses', [
+            'related_entity_type' => Expense::ENTITY_TYPE_TASK,
+            'related_entity_id' => $taskId,
+        ]);
+
+        $this->actingAs($this->farmer)
+            ->deleteJson("/api/post-harvest/{$processId}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('post_harvest_processes', ['id' => $processId]);
+        $this->assertDatabaseMissing('tasks', ['id' => $taskId]);
+        $this->assertEquals(0, LaborWage::where('task_id', $taskId)->count());
+        $this->assertDatabaseMissing('expenses', [
+            'related_entity_type' => Expense::ENTITY_TYPE_TASK,
+            'related_entity_id' => $taskId,
         ]);
     }
 

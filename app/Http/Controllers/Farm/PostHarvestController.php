@@ -279,7 +279,11 @@ class PostHarvestController extends Controller
         }
 
         $harvest = $process->harvest;
-        $process->delete();
+        try {
+            $this->service->deleteProcess($process);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'message' => 'Process deleted successfully',

@@ -58,11 +58,12 @@ class PostHarvestService
                 $data['parent_process_id'] = $parentProcess->id;
             }
         } else {
-            // First step (threshing) — use harvest quantity
-            if (isset($data['input_quantity']) && $data['input_quantity'] > $harvest->quantity) {
-                throw new \InvalidArgumentException('Input quantity cannot exceed the available harvest quantity (' . $harvest->quantity . ').');
+            // First step (threshing) uses the farmer's net processable quantity.
+            $availableHarvestQuantity = $this->getNetHarvestQuantity($harvest);
+            if (isset($data['input_quantity']) && $data['input_quantity'] > $availableHarvestQuantity) {
+                throw new \InvalidArgumentException('Input quantity cannot exceed the available net harvest quantity (' . $availableHarvestQuantity . ').');
             }
-            $data['input_quantity'] = $data['input_quantity'] ?? $harvest->quantity;
+            $data['input_quantity'] = $data['input_quantity'] ?? $availableHarvestQuantity;
             $data['input_unit'] = $harvest->unit;
         }
 
@@ -246,6 +247,14 @@ class PostHarvestService
         }
     }
 
+    private function getNetHarvestQuantity(Harvest $harvest): float
+    {
+        $grossQuantity = (float) ($harvest->quantity ?? 0);
+        $harvesterShare = (float) ($harvest->harvester_share ?? 0);
+
+        return max(0, round($grossQuantity - $harvesterShare, 2));
+    }
+
     /**
      * Complete a post-harvest process:
      * 1. Calculate weight loss
@@ -357,19 +366,15 @@ class PostHarvestService
                     'notes' => ucfirst($process->process_type) . " processing — deducted from {$sourceItemName}",
                     'transaction_date' => now(),
                 ]);
-            } else {
-                Log::warning('Post-harvest: insufficient stock to deduct from source inventory', [
-                    'process_id' => $process->id,
-                    'item_name' => $sourceItemName,
-                    'requested' => $inputQty,
-                    'available' => $sourceItem->current_stock,
-                ]);
+            }
+
+            if (!$deducted) {
+                throw new \InvalidArgumentException(
+                    "Insufficient {$sourceItemName} inventory. Available: {$sourceItem->current_stock}, requested: {$inputQty}."
+                );
             }
         } else {
-            Log::info('Post-harvest: no source inventory item found to deduct from', [
-                'process_id' => $process->id,
-                'expected_name' => $sourceItemName,
-            ]);
+            throw new \InvalidArgumentException("Source inventory item not found for {$sourceItemName}.");
         }
 
         // ── 2. Add to output inventory ──
@@ -486,6 +491,28 @@ class PostHarvestService
             'related_entity_id' => $process->id,
             'planting_id' => $process->planting_id,
         ]);
+    }
+
+    public function deleteProcess(PostHarvestProcess $process): void
+    {
+        DB::transaction(function () use ($process) {
+            $task = $process->task;
+
+            if ($task) {
+                if ($task->status === Task::STATUS_COMPLETED) {
+                    throw new \InvalidArgumentException('Cannot delete this process because its linked labor task is already completed.');
+                }
+
+                $task->laborWages()->delete();
+                Expense::where('related_entity_type', Expense::ENTITY_TYPE_TASK)
+                    ->where('related_entity_id', $task->id)
+                    ->delete();
+
+                $task->delete();
+            }
+
+            $process->delete();
+        });
     }
 
     public function syncProcessingExpense(PostHarvestProcess $process, float $cost): void
