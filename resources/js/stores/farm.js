@@ -211,11 +211,11 @@ export const useFarmStore = defineStore('farm', {
     },
 
     // --- PLANTING ACTIONS ---
-    async fetchPlantings() {
+    async fetchPlantings(params = {}) {
       this.loading = true;
       this.error = null;
       try {
-        const response = await plantingsAPI.getAll();
+        const response = await plantingsAPI.getAll(params);
         if (!response.data || !Array.isArray(response.data.plantings)) {
           console.warn('Invalid plantings data received, using empty array');
           this.plantings = [];

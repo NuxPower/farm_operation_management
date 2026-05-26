@@ -11,6 +11,7 @@ class SeedPlanting extends Model
     protected $fillable = [
         'user_id',
         'rice_variety_id',
+        'inventory_item_id',
         'planting_date',
         'expected_transplant_date',
         'quantity',
@@ -42,6 +43,11 @@ class SeedPlanting extends Model
     public function riceVariety(): BelongsTo
     {
         return $this->belongsTo(RiceVariety::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
     }
 
     public function plantings(): HasMany

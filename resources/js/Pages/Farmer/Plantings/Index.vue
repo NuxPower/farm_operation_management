@@ -587,7 +587,7 @@ const refreshPlantings = async () => {
   loading.value = true
   error.value = null
   try {
-    await farmStore.fetchPlantings()
+    await farmStore.fetchPlantings({ status: 'all' })
   } catch (err) {
     console.error('Failed to load plantings:', err)
     error.value = err.userMessage || err.response?.data?.message || 'Unable to load plantings.'

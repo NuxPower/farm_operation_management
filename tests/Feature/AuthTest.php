@@ -41,6 +41,7 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/login', [
             'login_id' => $user->email,
             'password' => $password,
+            'accept_tos' => true,
         ]);
 
         $response->assertStatus(200); // API returns 200 OK

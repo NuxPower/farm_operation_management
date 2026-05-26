@@ -92,25 +92,6 @@
                 Field size cannot exceed available farm area
               </p>
             </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Current / Planned Crop
-              </label>
-              <select
-                v-model="form.current_crop"
-                class="w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 transition"
-              >
-                <option value="">Select crop or variety</option>
-                <optgroup label="Rice Varieties">
-                  <option v-for="variety in riceVarieties" :key="variety.id" :value="variety.name">
-                    {{ variety.name }}
-                  </option>
-                </optgroup>
-                <optgroup label="Other Crops">
-                  <option value="other">Other (specify in notes)</option>
-                </optgroup>
-              </select>
-            </div>
           </div>
 
           <div>
@@ -555,9 +536,8 @@ onMounted(async () => {
 const populateForm = (field) => {
   form.name = field.name
   form.nickname = field.nickname || ''
-  form.description = field.notes || field.description || '' // 'notes' is mapped to description/notes
+  form.description = field.description || ''
   form.size = field.size || field.field_size || field.area
-  form.current_crop = field.current_crop || ''
   form.soil_type = field.soil_type || ''
   form.water_source = field.water_source || ''
   form.irrigation_type = field.irrigation_type || ''
@@ -575,6 +555,9 @@ const populateForm = (field) => {
         form.location.lat = parseFloat(field.location.lat || field.location.latitude)
         form.location.lon = parseFloat(field.location.lon || field.location.longitude)
         form.location.address = field.location.address || ''
+        form.location.province = field.location.province || ''
+        form.location.city = field.location.city || ''
+        form.location.barangay = field.location.barangay || ''
         
         // If we have detailed location codes (unlikely unless stored individually)
         // Usually stored as address string or json.
@@ -695,7 +678,6 @@ const form = reactive({
   nickname: '',
   description: '',
   size: '',
-  current_crop: '',
   soil_type: '',
 
   water_source: '',
@@ -712,6 +694,9 @@ const form = reactive({
     provinceCode: '',
     cityCode: '',
     barangayCode: '',
+    province: '',
+    city: '',
+    barangay: '',
     address: '',
     lat: '',
     lon: '',
@@ -727,7 +712,6 @@ const completionScore = computed(() => {
   ]
   const optional = [
     form.description,
-    form.current_crop,
     form.water_source,
     form.planting_method,
     form.target_yield,
@@ -812,8 +796,47 @@ const geocodeLocation = async (barangay, city, province) => {
   }
 }
 
+let leafletPromise = null
+
+const ensureLeaflet = () => {
+  if (typeof L !== 'undefined') return Promise.resolve()
+  if (leafletPromise) return leafletPromise
+
+  leafletPromise = new Promise((resolve, reject) => {
+    if (!document.querySelector('link[data-leaflet-css]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
+      link.crossOrigin = ''
+      link.dataset.leafletCss = 'true'
+      document.head.appendChild(link)
+    }
+
+    const existingScript = document.querySelector('script[data-leaflet-js]')
+    if (existingScript) {
+      existingScript.addEventListener('load', resolve, { once: true })
+      existingScript.addEventListener('error', reject, { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
+    script.crossOrigin = ''
+    script.dataset.leafletJs = 'true'
+    script.onload = resolve
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+
+  return leafletPromise
+}
+
 const initMap = () => {
-  if (mapContainer.value && !map) {
+  if (!mapContainer.value || map) return
+
+  ensureLeaflet().then(() => {
     // Default to PH coords or farm location
     const defaultLat = form.location.lat || 8.157
     const defaultLon = form.location.lon || 125.128
@@ -834,7 +857,10 @@ const initMap = () => {
        form.location.lon = parseFloat(e.latlng.lng.toFixed(6))
        updateMapMarker()
     })
-  }
+  }).catch((err) => {
+    console.error('Failed to load map assets', err)
+    error.value = 'Map could not be loaded. You can still enter coordinates manually.'
+  })
 }
 
 const updateMapMarker = () => {
@@ -857,6 +883,11 @@ const updateMapMarker = () => {
 }
 
 const submitField = async () => {
+  if (!form.name || !form.size || !form.soil_type || form.location.lat === '' || form.location.lon === '') {
+    error.value = 'Please complete all required fields before saving.'
+    return
+  }
+
   if (parseFloat(form.size) > availableFarmAreaWithCurrent.value) {
     error.value = `Field size cannot exceed available farm area (${availableFarmAreaWithCurrent.value.toFixed(2)} ha).`
     return
@@ -883,19 +914,43 @@ const submitField = async () => {
   loading.value = true
 
   try {
+    let provinceName = form.location.province || null
+    let cityName = form.location.city || null
+    let barangayName = form.location.barangay || null
+
+    if (!isLocationLocked.value) {
+      provinceName = provinces.value.find(p => p.code === form.location.provinceCode)?.name || null
+      cityName = cities.value.find(c => c.code === form.location.cityCode)?.name || null
+      barangayName = barangays.value.find(b => b.code === form.location.barangayCode)?.name || null
+
+      if (!form.location.address) {
+        form.location.address = [barangayName, cityName, provinceName].filter(Boolean).join(', ')
+      }
+    }
+
     const payload = {
-       ...form,
-       // Flatten location if needed, or backend expects nested 'location'
-       // Controller logic seemed to expect 'location' as string?
-       // Let's check FieldController handling again.
-       // It expects 'location' as value.
-       // If I send object, Laravel might cast to string or JSON.
-       // 'location' => $request->location ?? $request->input('location.address')
-       location: form.location.address,
-       latitude: form.location.lat,
-       longitude: form.location.lon,
-       
-       // Handle other fields
+       name: form.name,
+       nickname: form.nickname || null,
+       size: form.size,
+       soil_type: form.soil_type,
+       water_source: form.water_source || null,
+       irrigation_type: form.irrigation_type || null,
+       water_access: form.water_access || null,
+       drainage_quality: form.drainage_quality || null,
+       planting_method: form.planting_method || null,
+       cropping_seasons: form.cropping_seasons || null,
+       target_yield: form.target_yield || null,
+       previous_crop: form.previous_crop || null,
+       infrastructure_notes: form.infrastructure_notes || null,
+       notes: [form.description, form.notes].filter(Boolean).join('\n\n') || null,
+       location: {
+          address: form.location.address,
+          lat: Number(form.location.lat),
+          lon: Number(form.location.lon),
+          province: provinceName,
+          city: cityName,
+          barangay: barangayName,
+       },
     }
     
     await farmStore.updateField(fieldId, payload)

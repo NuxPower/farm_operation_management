@@ -241,7 +241,7 @@ export const fieldsAPI = {
 
 // Plantings API
 export const plantingsAPI = {
-  getAll: () => api.get('/plantings'),
+  getAll: (params = {}) => api.get('/plantings', { params }),
   getById: (id) => api.get(`/plantings/${id}`),
   create: (plantingData) => api.post('/plantings', plantingData),
   update: (id, plantingData) => api.put(`/plantings/${id}`, plantingData),

@@ -89,7 +89,7 @@
                 class="relative flex items-center p-4 cursor-pointer rounded-xl border-2 transition-all duration-200 group hover:shadow-md"
                 :class="sourceType === 'direct' ? 'border-emerald-500 bg-white shadow-md' : 'border-gray-200 bg-white/50 text-gray-500 hover:border-emerald-200'"
               >
-                <input type="radio" v-model="sourceType" value="direct" class="sr-only">
+                <input type="radio" v-model="sourceType" value="direct" class="sr-only" :disabled="isEditMode">
                 <div class="h-10 w-10 rounded-full flex items-center justify-center mr-4 transition-colors"
                   :class="sourceType === 'direct' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'"
                 >
@@ -108,7 +108,7 @@
                 class="relative flex items-center p-4 cursor-pointer rounded-xl border-2 transition-all duration-200 group hover:shadow-md"
                 :class="sourceType === 'nursery' ? 'border-emerald-500 bg-white shadow-md' : 'border-gray-200 bg-white/50 text-gray-500 hover:border-emerald-200'"
               >
-                <input type="radio" v-model="sourceType" value="nursery" class="sr-only">
+                <input type="radio" v-model="sourceType" value="nursery" class="sr-only" :disabled="isEditMode">
                 <div class="h-10 w-10 rounded-full flex items-center justify-center mr-4 transition-colors"
                   :class="sourceType === 'nursery' ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'"
                 >
@@ -132,6 +132,7 @@
                   <select
                     id="inventory_item_id"
                     v-model="form.data.inventory_item_id"
+                    :disabled="isEditMode"
                     class="w-full rounded-xl border-gray-300 pl-4 pr-10 py-3 shadow-sm bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium text-gray-800 appearance-none"
                     :class="{ 'border-red-500': form.errors.inventory_item_id }"
                   >
@@ -163,6 +164,7 @@
                   <select
                     id="seed_planting_id"
                     v-model="form.data.seed_planting_id"
+                    :disabled="isEditMode"
                     class="w-full rounded-xl border-gray-300 pl-4 pr-10 py-3 shadow-sm bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium text-gray-800 appearance-none"
                     :class="{ 'border-red-500': form.errors.seed_planting_id }"
                   >
@@ -655,8 +657,8 @@ const getInitialFormData = () => {
     season: defaultSeason,
     status: defaultStatus,
     notes: props.planting?.notes || null,
-    inventory_item_id: '', // Add inventory item tracking
-    seed_planting_id: '', // Add seed planting source
+    inventory_item_id: props.planting?.inventory_item_id || '',
+    seed_planting_id: props.planting?.seed_planting_id || '',
     failure_category: props.planting?.failure_category || '',
     failure_reason: props.planting?.failure_reason || '',
   }
@@ -675,7 +677,8 @@ const selectedInventoryItem = computed(() => {
 });
 
 // Source Type state
-const sourceType = ref('direct');
+const getSourceType = () => props.planting?.seed_planting_id ? 'nursery' : 'direct'
+const sourceType = ref(getSourceType());
 const readySeedPlantings = ref([]);
 
 // Fetch ready seed plantings
@@ -683,10 +686,21 @@ const fetchReadySeedPlantings = async () => {
   try {
     const response = await axios.get('/api/seed-plantings/ready');
     readySeedPlantings.value = response.data;
+    addCurrentSeedPlantingOption()
   } catch (error) {
     console.error('Error fetching ready seed plantings:', error);
   }
 };
+
+const addCurrentSeedPlantingOption = () => {
+  const currentSeedPlanting = props.planting?.seed_planting
+  if (!currentSeedPlanting?.id) return
+
+  const exists = readySeedPlantings.value.some(p => Number(p.id) === Number(currentSeedPlanting.id))
+  if (!exists) {
+    readySeedPlantings.value = [currentSeedPlanting, ...readySeedPlantings.value]
+  }
+}
 
 const selectedSeedPlanting = computed(() => {
    if (!form.value.data.seed_planting_id) return null;
@@ -774,6 +788,8 @@ watch(() => form.value.data.inventory_item_id, (newId) => {
 watch(() => props.planting, () => {
   form.value.data = getInitialFormData()
   form.value.errors = {}
+  sourceType.value = getSourceType()
+  addCurrentSeedPlantingOption()
   harvestDateManuallyChanged.value = false // Reset manual change flag
 })
 

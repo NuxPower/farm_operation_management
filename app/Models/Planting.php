@@ -14,6 +14,7 @@ class Planting extends Model
     protected $fillable = [
         'field_id',
         'seed_planting_id',
+        'inventory_item_id',
         'rice_variety_id',
         'crop_type',
         'planting_date',
@@ -123,6 +124,11 @@ class Planting extends Model
     public function seedPlanting(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(SeedPlanting::class);
+    }
+
+    public function inventoryItem(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
     }
 
     /**

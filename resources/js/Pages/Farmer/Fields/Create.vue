@@ -88,25 +88,6 @@
                 Field size cannot exceed available farm area
               </p>
             </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Current / Planned Crop
-              </label>
-              <select
-                v-model="form.current_crop"
-                class="w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 transition"
-              >
-                <option value="">Select crop or variety</option>
-                <optgroup label="Rice Varieties">
-                  <option v-for="variety in riceVarieties" :key="variety.id" :value="variety.name">
-                    {{ variety.name }}
-                  </option>
-                </optgroup>
-                <optgroup label="Other Crops">
-                  <option value="other">Other (specify in notes)</option>
-                </optgroup>
-              </select>
-            </div>
           </div>
 
           <div>
@@ -481,7 +462,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import LoadingSpinner from '@/Components/UI/LoadingSpinner.vue'
@@ -496,16 +477,6 @@ const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } =
 
 const loading = ref(false)
 const error = ref('')
-
-onMounted(() => {
-  if (isLocationLocked.value) {
-    setStaticAddress()
-  }
-  loadProvinces()
-  initMap()
-  farmStore.fetchFarmProfile()
-  farmStore.fetchFields()
-})
 
 const totalFarmArea = computed(() => {
   // Check for nested user_profile structure first (standard API response)
@@ -628,7 +599,6 @@ const form = reactive({
   nickname: '',
   description: '',
   size: '',
-  current_crop: '',
   soil_type: '',
 
   water_source: '',
@@ -668,7 +638,6 @@ const completionScore = computed(() => {
   ]
   const optional = [
     form.description,
-    form.current_crop,
     form.water_source,
     form.planting_method,
     form.target_yield,
@@ -842,7 +811,7 @@ const submitField = async () => {
 
   const payload = {
     name: form.name,
-    description: form.description || null,
+    nickname: form.nickname || null,
     size: parseNumber(form.size),
     soil_type: form.soil_type,
 
@@ -854,9 +823,8 @@ const submitField = async () => {
     cropping_seasons: form.cropping_seasons || null,
     target_yield: parseNumber(form.target_yield),
     previous_crop: form.previous_crop || null,
-    current_crop: form.current_crop || null,
     infrastructure_notes: form.infrastructure_notes || null,
-    notes: form.notes || null,
+    notes: [form.description, form.notes].filter(Boolean).join('\n\n') || null,
     location: {
       address: form.location.address,
       lat: parseNumber(form.location.lat),
@@ -879,7 +847,7 @@ const submitField = async () => {
 }
 
 const initMap = () => {
-  if (!mapContainer.value) return
+  if (!mapContainer.value || map) return
 
   // Default to Philippines center (Manila area)
   const defaultLat = 14.5995
@@ -909,6 +877,8 @@ const initMap = () => {
   }
 
   function createMap() {
+    if (map) return
+
     // Initialize map centered on Philippines or Managok if locked
     map = L.map(mapContainer.value).setView([defaultLat, defaultLon], 6)
 
@@ -963,7 +933,16 @@ const updateMapMarker = () => {
 }
 
 onMounted(async () => {
-  loadProvinces()
+  if (isLocationLocked.value) {
+    setStaticAddress()
+  }
+
+  await Promise.all([
+    loadProvinces(),
+    farmStore.fetchFarmProfile(),
+    farmStore.fetchFields(),
+  ])
+
   // Fetch rice varieties if not already loaded
   if (marketplaceStore.riceVarieties.length === 0) {
     try {
@@ -978,4 +957,3 @@ onMounted(async () => {
   }, 100)
 })
 </script>
-

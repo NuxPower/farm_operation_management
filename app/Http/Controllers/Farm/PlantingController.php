@@ -30,13 +30,13 @@ class PlantingController extends Controller
         });
 
         // Filter out harvested/failed plantings by default unless status is specified
-        if ($request->has('status')) {
+        if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
-        } else {
+        } elseif (!$request->has('status')) {
             $query->whereNotIn('status', [Planting::STATUS_HARVESTED, Planting::STATUS_FAILED]);
         }
 
-        $plantings = $query->with(['field', 'riceVariety'])->get();
+        $plantings = $query->with(['field', 'riceVariety', 'seedPlanting.riceVariety', 'inventoryItem'])->get();
 
         return response()->json([
             'plantings' => $plantings
@@ -161,6 +161,7 @@ class PlantingController extends Controller
         $planting = Planting::create([
             'field_id' => $request->field_id,
             'seed_planting_id' => $seedPlantingId,
+            'inventory_item_id' => $inventoryItem?->id,
             'rice_variety_id' => $varietyId,
             'crop_type' => $request->input('crop_name') ?? $request->input('crop_type') ?? 'Rice',
             'planting_date' => $plantingDate,
@@ -251,6 +252,8 @@ class PlantingController extends Controller
         $planting->load([
             'field',
             'riceVariety',
+            'seedPlanting.riceVariety',
+            'inventoryItem',
             'plantingStages.riceGrowthStage',
             'harvests',
             'tasks',
@@ -276,6 +279,8 @@ class PlantingController extends Controller
 
         $validator = Validator::make($request->all(), [
             'field_id'          => 'sometimes|required|exists:fields,id',
+            'inventory_item_id' => 'nullable|exists:inventory_items,id',
+            'seed_planting_id'  => 'nullable|exists:seed_plantings,id',
             'rice_variety_id'   => 'nullable|exists:rice_varieties,id',
             'crop_type'         => 'sometimes|required|string|max:255',
             'planting_date'     => 'sometimes|required|date',
@@ -312,6 +317,14 @@ class PlantingController extends Controller
             }
 
             $data['field_id'] = $field->id;
+        }
+
+        if ($request->has('inventory_item_id')) {
+            $data['inventory_item_id'] = $request->inventory_item_id;
+        }
+
+        if ($request->has('seed_planting_id')) {
+            $data['seed_planting_id'] = $request->seed_planting_id;
         }
 
         if ($request->has('rice_variety_id')) {
@@ -533,7 +546,7 @@ class PlantingController extends Controller
 
         return response()->json([
             'message' => 'Planting updated successfully',
-            'planting' => $planting->load(['field', 'riceVariety'])
+            'planting' => $planting->load(['field', 'riceVariety', 'seedPlanting.riceVariety', 'inventoryItem'])
         ]);
     }
 

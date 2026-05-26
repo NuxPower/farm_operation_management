@@ -5,13 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\SeedPlanting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SeedPlantingController extends Controller
 {
     public function index()
     {
         $seedPlantings = SeedPlanting::where('user_id', Auth::id())
-            ->with(['riceVariety'])
+            ->with(['riceVariety', 'inventoryItem'])
             ->latest('planting_date')
             ->get();
 
@@ -31,16 +33,33 @@ class SeedPlantingController extends Controller
             'batch_id' => 'nullable|string|max:50',
         ]);
 
-        // Deduct from inventory if inventory_item_id is provided
-        if (!empty($validated['inventory_item_id'])) {
-            $inventoryItem = \App\Models\InventoryItem::find($validated['inventory_item_id']);
+        $seedPlanting = DB::transaction(function () use ($validated) {
+            $inventoryItem = null;
+
+            if (!empty($validated['inventory_item_id'])) {
+                $inventoryItem = \App\Models\InventoryItem::find($validated['inventory_item_id']);
+
+                if ($inventoryItem && !$inventoryItem->removeStock($validated['quantity'])) {
+                    throw ValidationException::withMessages([
+                        'quantity' => "Insufficient stock. Available: {$inventoryItem->current_stock} {$inventoryItem->unit}",
+                    ]);
+                }
+            }
+
+            $seedPlanting = SeedPlanting::create([
+                'user_id' => Auth::id(),
+                'rice_variety_id' => $validated['rice_variety_id'],
+                'inventory_item_id' => $validated['inventory_item_id'] ?? null,
+                'planting_date' => $validated['planting_date'],
+                'expected_transplant_date' => $validated['expected_transplant_date'] ?? null,
+                'quantity' => $validated['quantity'],
+                'unit' => $validated['unit'],
+                'notes' => $validated['notes'] ?? null,
+                'batch_id' => $validated['batch_id'] ?? null,
+                'status' => 'sown'
+            ]);
 
             if ($inventoryItem) {
-                if (!$inventoryItem->removeStock($validated['quantity'])) {
-                    return response()->json(['message' => "Insufficient stock. Available: {$inventoryItem->current_stock} {$inventoryItem->unit}"], 422);
-                }
-
-                // Log transaction
                 \App\Models\InventoryTransaction::create([
                     'inventory_item_id' => $inventoryItem->id,
                     'user_id' => Auth::id(),
@@ -49,37 +68,16 @@ class SeedPlantingController extends Controller
                     'unit_cost' => $inventoryItem->unit_price,
                     'total_cost' => $validated['quantity'] * ($inventoryItem->unit_price ?? 0),
                     'reference_type' => 'SeedPlanting',
-                    'reference_id' => null, // Will update after creation
+                    'reference_id' => $seedPlanting->id,
                     'notes' => 'Used for nursery batch',
                     'transaction_date' => now(),
                 ]);
             }
-        }
 
-        $seedPlanting = SeedPlanting::create([
-            'user_id' => Auth::id(),
-            'rice_variety_id' => $validated['rice_variety_id'],
-            'planting_date' => $validated['planting_date'],
-            'expected_transplant_date' => $validated['expected_transplant_date'] ?? null,
-            'quantity' => $validated['quantity'],
-            'unit' => $validated['unit'],
-            'notes' => $validated['notes'] ?? null,
-            'batch_id' => $validated['batch_id'] ?? null,
-            'status' => 'sown'
-        ]);
+            return $seedPlanting;
+        });
 
-        // Update transaction reference if exists
-        $latestTransaction = \App\Models\InventoryTransaction::where('inventory_item_id', $validated['inventory_item_id'] ?? null)
-            ->where('reference_type', 'SeedPlanting')
-            ->whereNull('reference_id')
-            ->latest()
-            ->first();
-
-        if ($latestTransaction) {
-            $latestTransaction->update(['reference_id' => $seedPlanting->id]);
-        }
-
-        return response()->json($seedPlanting, 201);
+        return response()->json($seedPlanting->load(['riceVariety', 'inventoryItem']), 201);
     }
 
     public function show(SeedPlanting $seedPlanting)
@@ -88,7 +86,7 @@ class SeedPlantingController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json($seedPlanting->load('riceVariety', 'plantings'));
+        return response()->json($seedPlanting->load('riceVariety', 'inventoryItem', 'plantings'));
     }
 
     public function update(Request $request, SeedPlanting $seedPlanting)
@@ -108,9 +106,48 @@ class SeedPlantingController extends Controller
             'batch_id' => 'nullable|string|max:50',
         ]);
 
-        $seedPlanting->update($validated);
+        DB::transaction(function () use ($seedPlanting, $validated) {
+            if (array_key_exists('quantity', $validated) && $seedPlanting->inventory_item_id) {
+                $oldQuantity = (float) $seedPlanting->quantity;
+                $newQuantity = (float) $validated['quantity'];
+                $delta = $newQuantity - $oldQuantity;
 
-        return response()->json($seedPlanting);
+                if (abs($delta) > 0.00001) {
+                    $inventoryItem = $seedPlanting->inventoryItem()->lockForUpdate()->first();
+
+                    if ($inventoryItem) {
+                        if ($delta > 0 && !$inventoryItem->removeStock($delta)) {
+                            throw ValidationException::withMessages([
+                                'quantity' => "Insufficient stock. Available: {$inventoryItem->current_stock} {$inventoryItem->unit}",
+                            ]);
+                        }
+
+                        if ($delta < 0) {
+                            $inventoryItem->addStock(abs($delta));
+                        }
+
+                        \App\Models\InventoryTransaction::create([
+                            'inventory_item_id' => $inventoryItem->id,
+                            'user_id' => Auth::id(),
+                            'transaction_type' => $delta > 0 ? 'out' : 'in',
+                            'quantity' => abs($delta),
+                            'unit_cost' => $inventoryItem->unit_price,
+                            'total_cost' => abs($delta) * ($inventoryItem->unit_price ?? 0),
+                            'reference_type' => 'SeedPlanting',
+                            'reference_id' => $seedPlanting->id,
+                            'notes' => $delta > 0
+                                ? 'Additional seed used for nursery batch adjustment'
+                                : 'Returned from nursery batch quantity adjustment',
+                            'transaction_date' => now(),
+                        ]);
+                    }
+                }
+            }
+
+            $seedPlanting->update($validated);
+        });
+
+        return response()->json($seedPlanting->fresh()->load(['riceVariety', 'inventoryItem']));
     }
 
     public function destroy(SeedPlanting $seedPlanting)
@@ -131,7 +168,7 @@ class SeedPlantingController extends Controller
     {
         $ready = SeedPlanting::where('user_id', Auth::id())
             ->where('status', 'ready')
-            ->with('riceVariety')
+            ->with('riceVariety', 'inventoryItem')
             ->get();
 
         return response()->json($ready);
