@@ -267,9 +267,9 @@
         <p class="text-gray-500 mt-1">Click "Report Incident" to log a pest or disease issue</p>
       </div>
 
-      <!-- Create Modal -->
-      <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+	      <!-- Create Modal -->
+	      <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+	        <div class="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
           <h2 class="text-xl font-bold text-gray-900 mb-4">Report Pest Incident</h2>
           
           <form @submit.prevent="submitIncident">
@@ -347,19 +347,75 @@
             </div>
 
             <div class="flex gap-3">
-              <button type="button" @click="showCreateModal = false"
-                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-              >Cancel</button>
+	              <button type="button" @click="closeCreateModal"
+	                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+	              >Cancel</button>
               <button type="submit" :disabled="submitting"
                 class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >{{ submitting ? 'Saving...' : 'Save Incident' }}</button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
+	        </div>
+	      </div>
+
+	      <!-- Treatment Modal -->
+	      <div v-if="showTreatmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+	        <div class="bg-white rounded-xl max-w-lg w-full p-6">
+	          <h2 class="text-xl font-bold text-gray-900 mb-4">Record Treatment</h2>
+	          <form @submit.prevent="submitTreatment" class="space-y-4">
+	            <div>
+	              <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Applied</label>
+	              <textarea
+	                v-model="treatmentForm.treatment_applied"
+	                rows="3"
+	                required
+	                class="w-full px-3 py-2 border rounded-lg"
+	                placeholder="e.g., Fungicide, manual removal, pesticide spray..."
+	              ></textarea>
+	            </div>
+
+	            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+	              <div>
+	                <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Date & Time</label>
+	                <input
+	                  v-model="treatmentForm.treatment_date"
+	                  type="datetime-local"
+	                  required
+	                  class="w-full px-3 py-2 border rounded-lg"
+	                />
+	                <p class="mt-1 text-xs text-gray-500">Spray or pesticide treatments must be recorded between 7:00 and 8:00 AM.</p>
+	              </div>
+	              <div>
+	                <label class="block text-sm font-medium text-gray-700 mb-1">Treatment Cost</label>
+	                <input
+	                  v-model="treatmentForm.treatment_cost"
+	                  type="number"
+	                  min="0"
+	                  step="0.01"
+	                  class="w-full px-3 py-2 border rounded-lg"
+	                  placeholder="0.00"
+	                />
+	              </div>
+	            </div>
+
+	            <div class="flex gap-3 pt-2">
+	              <button
+	                type="button"
+	                @click="closeTreatmentModal"
+	                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+	              >Cancel</button>
+	              <button
+	                type="submit"
+	                :disabled="submittingTreatment"
+	                class="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+	              >{{ submittingTreatment ? 'Saving...' : 'Save Treatment' }}</button>
+	            </div>
+	          </form>
+	        </div>
+	      </div>
+	    </div>
+	  </div>
+	</template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
@@ -437,9 +493,9 @@ const loadAnalytics = async () => {
 // --- End Analytics ---
 
 const selectedPlanting = computed(() => {
-   if (!form.value.planting_id) return null
-   return plantings.value.find(p => p.id === form.value.planting_id)
-})
+	   if (!form.value.planting_id) return null
+	   return plantings.value.find(p => Number(p.id) === Number(form.value.planting_id))
+	})
 
 watch(selectedFieldId, (newFieldId) => {
   if (!newFieldId) {
@@ -449,7 +505,7 @@ watch(selectedFieldId, (newFieldId) => {
   
   // Find active planting for this field
   // Priority: Growing > Planted > Ready > Planned > Harvested
-  const fieldPlantings = plantings.value.filter(p => p.field_id === newFieldId)
+	  const fieldPlantings = plantings.value.filter(p => Number(p.field_id) === Number(newFieldId))
   
   if (fieldPlantings.length === 0) {
     form.value.planting_id = ''
@@ -475,6 +531,9 @@ watch(selectedFieldId, (newFieldId) => {
 
 const showCreateModal = ref(false)
 const submitting = ref(false)
+const showTreatmentModal = ref(false)
+const submittingTreatment = ref(false)
+const selectedIncident = ref(null)
 const filter = ref({ status: '', severity: '' })
 
 const form = ref({
@@ -486,6 +545,28 @@ const form = ref({
   affected_area: null,
   symptoms: '',
 })
+
+const treatmentForm = ref({
+  treatment_applied: '',
+  treatment_date: '',
+  treatment_cost: ''
+})
+
+const formatDateTimeForInput = (date) => {
+  const value = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(value.getTime())) return ''
+  const year = value.getFullYear()
+  const month = `${value.getMonth() + 1}`.padStart(2, '0')
+  const day = `${value.getDate()}`.padStart(2, '0')
+  const hours = `${value.getHours()}`.padStart(2, '0')
+  const minutes = `${value.getMinutes()}`.padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const closeCreateModal = () => {
+  showCreateModal.value = false
+  resetForm()
+}
 
 const loadData = async () => {
   loading.value = true
@@ -547,8 +628,8 @@ const submitIncident = async () => {
     await axios.post('/api/pest-incidents', form.value)
     showCreateModal.value = false
     resetForm()
-    loadData()
-    loadAnalytics() // Refresh analytics after new incident
+	    await loadData()
+	    await loadAnalytics() // Refresh analytics after new incident
   } catch (error) {
     alert(error.response?.data?.message || 'Failed to save incident')
   } finally {
@@ -557,18 +638,47 @@ const submitIncident = async () => {
 }
 
 const markTreated = async (incident) => {
-  const treatment = prompt('What treatment was applied?')
-  if (!treatment) return
+  selectedIncident.value = incident
+  const treatmentTime = new Date()
+  treatmentTime.setHours(7, 0, 0, 0)
+  treatmentForm.value = {
+    treatment_applied: incident.treatment_applied || '',
+    treatment_date: formatDateTimeForInput(incident.treatment_date || treatmentTime),
+    treatment_cost: incident.treatment_cost || ''
+  }
+  showTreatmentModal.value = true
+}
+
+const closeTreatmentModal = () => {
+  showTreatmentModal.value = false
+  selectedIncident.value = null
+  treatmentForm.value = {
+    treatment_applied: '',
+    treatment_date: '',
+    treatment_cost: ''
+  }
+}
+
+const submitTreatment = async () => {
+  if (!selectedIncident.value) return
+
+  submittingTreatment.value = true
   try {
-    await axios.put(`/api/pest-incidents/${incident.id}`, {
+    const payload = {
       status: 'treated',
-      treatment_applied: treatment,
-      treatment_date: new Date().toISOString().split('T')[0]
-    })
-    loadData()
-    loadAnalytics()
+      treatment_applied: treatmentForm.value.treatment_applied,
+      treatment_date: treatmentForm.value.treatment_date,
+      treatment_cost: treatmentForm.value.treatment_cost === '' ? null : treatmentForm.value.treatment_cost
+    }
+
+    await axios.put(`/api/pest-incidents/${selectedIncident.value.id}`, payload)
+    closeTreatmentModal()
+    await loadData()
+    await loadAnalytics()
   } catch (error) {
-    alert('Failed to update')
+    alert(error.response?.data?.message || 'Failed to update treatment')
+  } finally {
+    submittingTreatment.value = false
   }
 }
 
@@ -583,6 +693,7 @@ const markResolved = async (incident) => {
 }
 
 const resetForm = () => {
+  selectedFieldId.value = ''
   form.value = {
     pest_type: '',
     pest_name: '',
