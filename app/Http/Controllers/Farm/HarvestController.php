@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Farm;
 
 use App\Http\Controllers\Controller;
+use App\Models\Expense;
 use App\Models\Harvest;
-use App\Models\Planting;
 use App\Models\InventoryItem;
+use App\Models\InventoryTransaction;
+use App\Models\Planting;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -59,6 +61,15 @@ class HarvestController extends Controller
             'harvester_share_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
+        $validator->after(function ($validator) use ($request) {
+            $quantity = (float) $request->input('quantity', 0);
+            $harvesterShare = (float) $request->input('harvester_share', 0);
+
+            if ($harvesterShare > $quantity) {
+                $validator->errors()->add('harvester_share', 'The harvester share cannot exceed the harvest quantity.');
+            }
+        });
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -95,8 +106,8 @@ class HarvestController extends Controller
             // Reload harvest with planting relationship for inventory
             $harvest->load('planting.riceVariety', 'planting.field');
 
-            // Add to inventory automatically
-            $this->addHarvestToInventory($harvest, $user);
+            $this->syncHarvestInventory($harvest, $user, 0, null);
+            $this->syncHarvesterShareExpense($harvest, $user);
 
             // Update planting status to harvested
             $planting->update([
@@ -156,7 +167,18 @@ class HarvestController extends Controller
             'price_per_unit' => 'nullable|numeric|min:0',
             'total_value' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+            'harvester_share' => 'nullable|numeric|min:0',
+            'harvester_share_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
+
+        $validator->after(function ($validator) use ($request, $harvest) {
+            $quantity = (float) $request->input('quantity', $harvest->quantity);
+            $harvesterShare = (float) $request->input('harvester_share', $harvest->harvester_share ?? 0);
+
+            if ($harvesterShare > $quantity) {
+                $validator->errors()->add('harvester_share', 'The harvester share cannot exceed the harvest quantity.');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -181,11 +203,38 @@ class HarvestController extends Controller
             $updateData['yield'] = $updateData['quantity'];
         }
 
-        $harvest->update($updateData);
+        DB::beginTransaction();
+        try {
+            $originalQuantity = (float) $harvest->quantity;
+            $originalInventoryItem = $this->resolveHarvestInventoryItem($harvest, $user, false);
+
+            $harvest->update($updateData);
+
+            if (isset($updateData['harvest_date'])) {
+                $harvest->planting->update([
+                    'actual_harvest_date' => $updateData['harvest_date'],
+                ]);
+            }
+
+            $harvest->load('planting.riceVariety', 'planting.field');
+            $this->syncHarvestInventory($harvest, $user, $originalQuantity, $originalInventoryItem);
+            $this->syncHarvesterShareExpense($harvest, $user);
+
+            DB::commit();
+        } catch (\RuntimeException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
 
         return response()->json([
             'message' => 'Harvest updated successfully',
-            'harvest' => $harvest->load(['planting.field', 'planting.riceVariety'])
+            'harvest' => $harvest->load(['planting.field', 'planting.riceVariety', 'postHarvestProcesses'])
         ]);
     }
 
@@ -202,7 +251,37 @@ class HarvestController extends Controller
             ], 403);
         }
 
-        $harvest->delete();
+        if ($harvest->postHarvestProcesses()->exists()) {
+            return response()->json([
+                'message' => 'This harvest already has post-harvest processing records. Delete those records before deleting the harvest.'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $inventoryItem = $this->resolveHarvestInventoryItem($harvest, $user, false);
+            $quantity = (float) $harvest->quantity;
+
+            if ($inventoryItem && $quantity > 0) {
+                if (!$inventoryItem->removeStock($quantity)) {
+                    DB::rollBack();
+
+                    return response()->json([
+                        'message' => 'Unable to delete harvest because the related produce inventory no longer has enough stock to reverse this harvest.'
+                    ], 422);
+                }
+
+                $this->recordHarvestInventoryTransaction($inventoryItem, $harvest, $user, 'out', $quantity, 'Harvest deleted: reversed produce stock');
+            }
+
+            $this->deleteHarvesterShareExpense($harvest);
+            $harvest->delete();
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
 
         return response()->json([
             'message' => 'Harvest deleted successfully'
@@ -210,86 +289,138 @@ class HarvestController extends Controller
     }
 
     /**
-     * Add harvest to inventory automatically
+     * Keep produce inventory aligned with the harvest's current gross quantity.
      */
-    private function addHarvestToInventory(Harvest $harvest, $user): void
+    private function syncHarvestInventory(Harvest $harvest, $user, float $previousQuantity, ?InventoryItem $previousInventoryItem): void
     {
-        $planting = $harvest->planting;
-        if (!$planting) {
-            return;
-        }
+        $inventoryItem = $this->resolveHarvestInventoryItem($harvest, $user, true);
+        $currentQuantity = (float) $harvest->quantity;
 
-        // Reload planting with relationships if needed
-        if (!$planting->relationLoaded('riceVariety') || !$planting->relationLoaded('field')) {
-            $planting->load(['riceVariety', 'field']);
-        }
-
-        // Determine the product name from rice variety or crop type
-        $productName = $planting->riceVariety?->name ?? $planting->crop_type ?? 'Rice';
-
-        // Find or create inventory item for this product
-        $inventoryItem = InventoryItem::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'name' => $productName,
-                'category' => InventoryItem::CATEGORY_PRODUCE,
-                'unit' => $harvest->unit,
-            ],
-            [
-                'description' => 'Harvested from ' . ($planting->field?->name ?? 'field'),
-                'current_stock' => 0,
-                'minimum_stock' => 0,
-                'unit_price' => $harvest->price_per_unit ?? 0,
-                'notes' => 'Auto-created from harvest',
-            ]
-        );
-
-        // Add the FULL GROSS quantity to inventory.
-        // The harvester's share is tracked as a separate financial expense below,
-        // not as a physical inventory deduction.
-        if ($harvest->quantity > 0) {
-            $inventoryItem->addStock($harvest->quantity);
-        }
-
-        // Update unit price if provided and different
+        // Update unit price before writing movement history so the transaction uses the latest harvest price.
         if ($harvest->price_per_unit && $harvest->price_per_unit != $inventoryItem->unit_price) {
             $inventoryItem->unit_price = $harvest->price_per_unit;
             $inventoryItem->save();
         }
 
+        if ($previousInventoryItem && $previousInventoryItem->id !== $inventoryItem->id && $previousQuantity > 0) {
+            if (!$previousInventoryItem->removeStock($previousQuantity)) {
+                throw new \RuntimeException('Unable to reverse previous harvest inventory stock.');
+            }
+
+            $this->recordHarvestInventoryTransaction($previousInventoryItem, $harvest, $user, 'out', $previousQuantity, 'Harvest updated: reversed previous produce stock');
+            $previousQuantity = 0;
+        }
+
+        $delta = $currentQuantity - $previousQuantity;
+
+        if ($delta > 0) {
+            $inventoryItem->addStock($delta);
+            $this->recordHarvestInventoryTransaction($inventoryItem, $harvest, $user, 'in', $delta, 'Harvest recorded: added produce stock');
+        } elseif ($delta < 0) {
+            $quantityToRemove = abs($delta);
+            if (!$inventoryItem->removeStock($quantityToRemove)) {
+                throw new \RuntimeException('Unable to reduce harvest inventory because the related produce stock is insufficient.');
+            }
+
+            $this->recordHarvestInventoryTransaction($inventoryItem, $harvest, $user, 'out', $quantityToRemove, 'Harvest updated: reduced produce stock');
+        }
+    }
+
+    private function resolveHarvestInventoryItem(Harvest $harvest, $user, bool $create): ?InventoryItem
+    {
+        $planting = $harvest->planting;
+        if (!$planting) {
+            return null;
+        }
+
+        if (!$planting->relationLoaded('riceVariety') || !$planting->relationLoaded('field')) {
+            $planting->load(['riceVariety', 'field']);
+        }
+
+        $productName = $planting->riceVariety?->name ?? $planting->crop_type ?? 'Rice';
+        $attributes = [
+            'user_id' => $user->id,
+            'name' => $productName,
+            'category' => InventoryItem::CATEGORY_PRODUCE,
+            'unit' => $harvest->unit,
+        ];
+
+        if (!$create) {
+            return InventoryItem::where($attributes)->first();
+        }
+
+        return InventoryItem::firstOrCreate($attributes, [
+            'description' => 'Harvested from ' . ($planting->field?->name ?? 'field'),
+            'current_stock' => 0,
+            'minimum_stock' => 0,
+            'unit_price' => $harvest->price_per_unit ?? 0,
+            'notes' => 'Auto-created from harvest',
+        ]);
+    }
+
+    private function recordHarvestInventoryTransaction(InventoryItem $inventoryItem, Harvest $harvest, $user, string $type, float $quantity, string $notes): void
+    {
+        InventoryTransaction::create([
+            'inventory_item_id' => $inventoryItem->id,
+            'user_id' => $user->id,
+            'transaction_type' => $type,
+            'quantity' => $quantity,
+            'unit_cost' => $inventoryItem->unit_price ?? 0,
+            'total_cost' => $quantity * (float) ($inventoryItem->unit_price ?? 0),
+            'reference_type' => 'Harvest',
+            'reference_id' => $harvest->id,
+            'notes' => $notes,
+            'transaction_date' => now(),
+        ]);
+    }
+
+    private function syncHarvesterShareExpense(Harvest $harvest, $user): void
+    {
+        $this->deleteHarvesterShareExpense($harvest);
+
         // --- Record harvester share as a proper peso expense ---
         $harvesterShare = (float) ($harvest->harvester_share ?? 0);
-        if ($harvesterShare > 0) {
-            $pricePerUnit = (float) ($harvest->price_per_unit ?? 0);
-            $shareValue = $harvesterShare * $pricePerUnit;
-
-            $shareDescription = "Harvester crop share: {$harvesterShare} {$harvest->unit}";
-            if ($pricePerUnit > 0) {
-                $shareDescription .= " at ₱" . number_format($pricePerUnit, 2) . "/{$harvest->unit}";
-            }
-
-            $notes = "Auto-generated from harvest #{$harvest->id}. "
-                . "Gross: {$harvest->quantity} {$harvest->unit}, "
-                . "Share: {$harvesterShare} {$harvest->unit} "
-                . "({$harvest->harvester_share_percentage}%).";
-
-            if ($pricePerUnit <= 0) {
-                $notes .= " WARNING: price_per_unit was not set — expense amount is ₱0. "
-                    . "Update the harvest price to correct this.";
-            }
-
-            \App\Models\Expense::create([
-                'description' => $shareDescription,
-                'amount' => $shareValue,
-                'category' => \App\Models\Expense::CATEGORY_LABOR,
-                'date' => $harvest->harvest_date ?? now(),
-                'user_id' => $user->id,
-                'payment_method' => 'crop_share',
-                'notes' => $notes,
-                'related_entity_type' => \App\Models\Expense::ENTITY_TYPE_HARVEST,
-                'related_entity_id' => $harvest->id,
-                'planting_id' => $harvest->planting_id,
-            ]);
+        if ($harvesterShare <= 0) {
+            return;
         }
+
+        $pricePerUnit = (float) ($harvest->price_per_unit ?? 0);
+        $shareValue = $harvesterShare * $pricePerUnit;
+
+        $shareDescription = "Harvester crop share: {$harvesterShare} {$harvest->unit}";
+        if ($pricePerUnit > 0) {
+            $shareDescription .= " at ₱" . number_format($pricePerUnit, 2) . "/{$harvest->unit}";
+        }
+
+        $notes = "Auto-generated from harvest #{$harvest->id}. "
+            . "Gross: {$harvest->quantity} {$harvest->unit}, "
+            . "Share: {$harvesterShare} {$harvest->unit} "
+            . "({$harvest->harvester_share_percentage}%).";
+
+        if ($pricePerUnit <= 0) {
+            $notes .= " WARNING: price_per_unit was not set — expense amount is ₱0. "
+                . "Update the harvest price to correct this.";
+        }
+
+        Expense::create([
+            'description' => $shareDescription,
+            'amount' => $shareValue,
+            'category' => Expense::CATEGORY_LABOR,
+            'date' => $harvest->harvest_date ?? now(),
+            'user_id' => $user->id,
+            'payment_method' => 'crop_share',
+            'notes' => $notes,
+            'related_entity_type' => Expense::ENTITY_TYPE_HARVEST,
+            'related_entity_id' => $harvest->id,
+            'planting_id' => $harvest->planting_id,
+        ]);
+    }
+
+    private function deleteHarvesterShareExpense(Harvest $harvest): void
+    {
+        Expense::where('related_entity_type', Expense::ENTITY_TYPE_HARVEST)
+            ->where('related_entity_id', $harvest->id)
+            ->where('payment_method', 'crop_share')
+            ->delete();
     }
 }
