@@ -120,11 +120,11 @@
           <div>
             <h2 class="text-sm font-semibold text-amber-900">Post-Harvest Processing</h2>
             <p class="text-sm text-amber-800">
-              Choose a harvest and click <span class="font-semibold">Process</span> to record threshing, drying, or milling before publishing to the marketplace.
+              Choose a harvest and click <span class="font-semibold">Process</span> to follow the required threshing, drying, and milling pipeline before publishing to the marketplace.
             </p>
           </div>
           <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-amber-700">
-            Flexible workflow enabled
+            Fixed pipeline
           </span>
         </div>
       </div>
