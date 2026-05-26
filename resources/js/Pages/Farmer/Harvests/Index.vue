@@ -1,32 +1,32 @@
 <template>
-  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]">
+  <div :class="['min-h-screen', isProcessingFocus ? 'bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f1_45%,#f8fafc_100%)]' : 'bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]']">
     <div class="w-full mx-auto px-6 py-8 space-y-6">
-      <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+      <section :class="['overflow-hidden bg-white', isProcessingFocus ? 'rounded-xl border border-slate-200 shadow-sm' : 'rounded-2xl border border-white/80 shadow-[0_24px_70px_rgba(15,23,42,0.10)]']">
         <div class="grid grid-cols-1">
-          <div class="bg-[linear-gradient(135deg,#713f12_0%,#047857_52%,#14532d_100%)] p-4 text-white">
-            <p class="text-xs font-bold uppercase tracking-[0.24em] text-amber-100">Production Cycle</p>
-            <h1 class="mt-2 text-3xl font-bold leading-tight">Harvests</h1>
+          <div :class="[isProcessingFocus ? 'bg-slate-950 p-6' : 'bg-[linear-gradient(135deg,#713f12_0%,#047857_52%,#14532d_100%)] p-4', 'text-white']">
+            <p :class="['text-xs font-bold uppercase tracking-[0.24em]', isProcessingFocus ? 'text-emerald-200' : 'text-amber-100']">{{ isProcessingFocus ? 'Processing Pipeline' : 'Production Cycle' }}</p>
+            <h1 class="mt-2 text-3xl font-bold leading-tight">{{ isProcessingFocus ? 'Post-Harvest Queue' : 'Harvests' }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-white/75">
-              Log harvested output, quality notes, and processing readiness from every completed field cycle.
+              {{ isProcessingFocus ? 'Select a harvest batch and move it through threshing, drying, and milling before marketplace release.' : 'Log harvested output, quality notes, and processing readiness from every completed field cycle.' }}
             </p>
           </div>
           <div class="flex flex-col gap-4 bg-white p-5">
             <div>
-              <p class="text-sm font-semibold text-gray-500">Harvest summary</p>
+              <p class="text-sm font-semibold text-gray-500">{{ isProcessingFocus ? 'Processing summary' : 'Harvest summary' }}</p>
               <p class="mt-1 text-xl font-bold text-gray-900">{{ harvestStats.totalQuantity }} {{ harvestStats.unit }}</p>
-              <p class="mt-1 text-sm leading-6 text-gray-500">{{ harvestStats.total }} harvest{{ harvestStats.total === 1 ? '' : 's' }} recorded, {{ harvestStats.unprocessed }} awaiting processing.</p>
+              <p class="mt-1 text-sm leading-6 text-gray-500">{{ isProcessingFocus ? `${harvestStats.unprocessed} awaiting first process, ${harvestStats.processed} already in the pipeline.` : `${harvestStats.total} harvest${harvestStats.total === 1 ? '' : 's'} recorded, ${harvestStats.unprocessed} awaiting processing.` }}</p>
             </div>
             <div class="grid grid-cols-3 gap-2">
               <div class="min-w-0 rounded-md bg-emerald-50 p-2.5">
-                <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">Records</p>
+                <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">{{ isProcessingFocus ? 'Queue' : 'Records' }}</p>
                 <p class="mt-1 break-words text-lg font-bold leading-tight text-emerald-950">{{ harvestStats.total }}</p>
               </div>
               <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
-                <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Unprocessed</p>
+                <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">{{ isProcessingFocus ? 'To Start' : 'Unprocessed' }}</p>
                 <p class="mt-1 break-words text-lg font-bold leading-tight text-amber-950">{{ harvestStats.unprocessed }}</p>
               </div>
               <div class="min-w-0 rounded-md bg-sky-50 p-2.5">
-                <p class="break-words text-[11px] font-semibold leading-tight text-sky-700">Processed</p>
+                <p class="break-words text-[11px] font-semibold leading-tight text-sky-700">{{ isProcessingFocus ? 'In Flow' : 'Processed' }}</p>
                 <p class="mt-1 break-words text-lg font-bold leading-tight text-sky-950">{{ harvestStats.processed }}</p>
               </div>
             </div>
@@ -47,6 +47,7 @@
             Refresh
           </button>
           <button
+            v-if="!isProcessingFocus"
             @click="openCreateModal"
                 class="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
           >
@@ -65,7 +66,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search by field name…"
+            :placeholder="isProcessingFocus ? 'Search processing queue by field or variety…' : 'Search by field name…'"
             class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-sm"
           />
         </div>
@@ -114,17 +115,17 @@
 
       <div
         v-if="route.query.focus === 'processing' && !error"
-        class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm"
+        class="mb-6 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
       >
         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 class="text-sm font-semibold text-amber-900">Post-Harvest Processing</h2>
-            <p class="text-sm text-amber-800">
-              Choose a harvest and click <span class="font-semibold">Process</span> to follow the required threshing, drying, and milling pipeline before publishing to the marketplace.
+            <h2 class="text-sm font-semibold text-slate-950">Fixed post-harvest pipeline</h2>
+            <p class="text-sm text-slate-600">
+              Open a harvest batch to record threshing, drying, and milling in sequence.
             </p>
           </div>
-          <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-amber-700">
-            Fixed pipeline
+          <span class="inline-flex items-center rounded-md bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            Harvest -> Threshing -> Drying -> Milling
           </span>
         </div>
       </div>
@@ -179,40 +180,71 @@
           <button @click="clearFilters" class="text-sm text-green-700 hover:underline font-medium">Clear filters</button>
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <article
-            v-for="harvest in filteredHarvests"
-            :key="harvest.id"
-            class="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden"
-          >
-            <div class="h-full flex flex-col">
-              <!-- Header -->
-              <div class="p-6 pb-4">
-                <div class="flex items-start justify-between mb-4">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-2">
-                      <div class="h-10 w-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
+	        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+	          <article
+	            v-for="harvest in filteredHarvests"
+	            :key="harvest.id"
+	            :class="[
+	              'group bg-white/90 backdrop-blur-sm overflow-hidden transition-all duration-300',
+	              isProcessingFocus
+	                ? 'rounded-xl border border-slate-200 shadow-sm hover:shadow-md'
+	                : 'rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 border border-gray-100'
+	            ]"
+	          >
+	            <div class="h-full flex flex-col">
+	              <!-- Header -->
+	              <div class="p-6 pb-4">
+	                <div class="flex items-start justify-between mb-4">
+	                  <div class="flex-1">
+	                    <div class="flex items-center gap-2 mb-2">
+	                      <div :class="[isProcessingFocus ? 'bg-slate-950 rounded-lg' : 'bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-md', 'h-10 w-10 flex items-center justify-center']">
+	                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+	                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+	                        </svg>
                       </div>
                       <div>
                         <h3 class="text-xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">
-                          {{ harvest.quantity || harvest.yield || 0 }} {{ formatUnit(harvest.unit) || 'kg' }}
-                        </h3>
-                        <div class="flex items-center text-xs text-gray-500 mt-1">
+	                          {{ harvest.quantity || harvest.yield || 0 }} {{ formatUnit(harvest.unit) || 'kg' }}
+	                        </h3>
+	                        <div class="flex items-center text-xs text-gray-500 mt-1">
                           <svg class="h-3 w-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                           </svg>
-                          {{ harvest.planting?.field?.name || 'Unknown Field' }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+	                          {{ harvest.planting?.field?.name || 'Unknown Field' }}
+	                        </div>
+	                      </div>
+	                    </div>
+	                  </div>
+	                  <span
+	                    v-if="isProcessingFocus"
+	                    :class="['inline-flex rounded-md px-2.5 py-1 text-xs font-semibold', getProcessingBadgeClass(getProcessingStatus(harvest))]"
+	                  >
+	                    {{ getProcessingLabel(getProcessingStatus(harvest)) }}
+	                  </span>
+	                </div>
 
-                <!-- Crop Variety -->
-                <div v-if="harvest.planting?.riceVariety" class="mb-4 p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+	                <div v-if="isProcessingFocus" class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+	                  <div class="flex items-center justify-between gap-2">
+	                    <p class="text-xs font-semibold uppercase text-slate-500">Pipeline progress</p>
+	                    <p class="text-xs font-semibold text-slate-700">{{ getProcessingProgress(getProcessingStatus(harvest)) }}%</p>
+	                  </div>
+	                  <div class="mt-3 grid grid-cols-4 gap-1.5">
+	                    <div
+	                      v-for="stage in processingStages"
+	                      :key="stage.key"
+	                      :class="[
+	                        'h-2 rounded-full',
+	                        isStageComplete(getProcessingStatus(harvest), stage.key) ? 'bg-emerald-500' : 'bg-slate-200'
+	                      ]"
+	                    ></div>
+	                  </div>
+	                  <div class="mt-2 grid grid-cols-4 gap-1.5 text-[10px] font-semibold uppercase text-slate-500">
+	                    <span v-for="stage in processingStages" :key="stage.label" class="truncate">{{ stage.label }}</span>
+	                  </div>
+	                </div>
+
+	                <!-- Crop Variety -->
+	                <div v-if="harvest.planting?.riceVariety" class="mb-4 p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                   <div class="flex items-center gap-2">
                     <div class="h-6 w-6 bg-green-500 rounded-lg flex items-center justify-center">
                       <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,10 +312,18 @@
               </dl>
 
               <!-- Footer Actions -->
-              <div class="mt-auto pt-4 border-t border-gray-200">
-                <div class="flex divide-x divide-gray-200">
-                  <router-link
-                    :to="`/harvests/${harvest.id}/processing`"
+	              <div class="mt-auto pt-4 border-t border-gray-200">
+	                <div v-if="isProcessingFocus" class="p-3">
+	                  <router-link
+	                    :to="`/harvests/${harvest.id}/processing`"
+	                    class="inline-flex w-full items-center justify-center rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+	                  >
+	                    Open Pipeline
+	                  </router-link>
+	                </div>
+	                <div v-else class="flex divide-x divide-gray-200">
+	                  <router-link
+	                    :to="`/harvests/${harvest.id}/processing`"
                     class="flex-1 inline-flex items-center justify-center py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 rounded-bl-2xl transition-colors"
                   >
                     <svg class="h-4 w-4 mr-2 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -363,6 +403,14 @@ const searchQuery = ref('')
 const processingFilter = ref('')
 
 const harvests = computed(() => farmStore.harvests || [])
+const isProcessingFocus = computed(() => route.query.focus === 'processing')
+
+const processingStages = [
+  { key: 'harvest', label: 'Harvest' },
+  { key: 'threshed', label: 'Thresh' },
+  { key: 'dried', label: 'Dry' },
+  { key: 'milled', label: 'Mill' },
+]
 
 const harvestStats = computed(() => {
   const rows = harvests.value || []
@@ -395,6 +443,42 @@ const getProcessingStatus = (harvest) => {
     if (idx === 2) best = 'milled'
   })
   return best
+}
+
+const getProcessingLabel = (status) => {
+  const labels = {
+    unprocessed: 'Ready to start',
+    threshed: 'Threshed',
+    dried: 'Dried',
+    milled: 'Ready to publish',
+  }
+
+  return labels[status] || 'Processing'
+}
+
+const getProcessingBadgeClass = (status) => {
+  if (status === 'milled') return 'bg-emerald-50 text-emerald-700'
+  if (status === 'dried' || status === 'threshed') return 'bg-sky-50 text-sky-700'
+  return 'bg-amber-50 text-amber-700'
+}
+
+const getProcessingProgress = (status) => {
+  const progress = {
+    unprocessed: 25,
+    threshed: 50,
+    dried: 75,
+    milled: 100,
+  }
+
+  return progress[status] || 25
+}
+
+const isStageComplete = (status, stageKey) => {
+  const order = ['harvest', 'threshed', 'dried', 'milled']
+  const currentIndex = order.indexOf(status === 'unprocessed' ? 'harvest' : status)
+  const stageIndex = order.indexOf(stageKey)
+
+  return stageIndex <= currentIndex
 }
 
 const filteredHarvests = computed(() => {

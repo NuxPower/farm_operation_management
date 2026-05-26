@@ -1,178 +1,53 @@
 <template>
-  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef7f1_45%,#f8fafc_100%)]">
+  <div class="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#fff7ed_38%,#f8fafc_100%)]">
   <div class="w-full mx-auto px-6 py-8 space-y-6">
-    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div class="grid gap-0 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
-        <div class="bg-slate-950 p-6 text-white">
-          <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-200">Processing Pipeline</p>
+    <section class="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.10)]">
+      <div class="grid grid-cols-1">
+        <div class="bg-[linear-gradient(135deg,#78350f_0%,#047857_52%,#0f766e_100%)] p-4 text-white">
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-amber-100">Production Cycle</p>
           <h1 class="mt-2 text-3xl font-bold leading-tight">Post-Harvest Processing</h1>
-          <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-            {{ harvest ? `Move ${harvest.planting.rice_variety?.name || harvest.planting.riceVariety?.name || harvest.planting.crop_type || 'rice'} from harvest through threshing, drying, and milling.` : 'Move harvested rice through the required processing stages before marketplace release.' }}
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-white/75">
+            {{ harvest ? `Manage ${harvest.planting.rice_variety?.name || harvest.planting.crop_type} through threshing, drying, and milling.` : 'Manage processing steps after harvest before inventory and marketplace release.' }}
           </p>
-          <div class="mt-5 flex flex-wrap gap-2">
-            <span class="inline-flex items-center rounded-md bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
-              Fixed sequence
-            </span>
-            <span class="inline-flex items-center rounded-md bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100 ring-1 ring-white/15">
-              Harvest -> Threshing -> Drying -> Milling
-            </span>
-          </div>
         </div>
-
-        <div class="border-t border-slate-200 bg-white p-6 xl:border-l xl:border-t-0">
-          <p class="text-sm font-semibold text-slate-500">Current status</p>
-          <p class="mt-1 text-2xl font-bold leading-tight text-slate-950">
-            {{ pipelineStatus.is_complete ? 'Ready for marketplace' : pipelineStatus.next_step ? `Next: ${formatStepLabel(pipelineStatus.next_step)}` : 'Processing review' }}
-          </p>
-          <p class="mt-2 text-sm leading-6 text-slate-500">{{ processes.length }} process record{{ processes.length === 1 ? '' : 's' }} logged for this harvest.</p>
-          <div class="mt-4 flex flex-wrap gap-2">
+        <div class="flex flex-col gap-4 bg-white p-5">
+          <div>
+            <p class="text-sm font-semibold text-gray-500">Pipeline status</p>
+            <p class="mt-1 text-xl font-bold text-gray-900">{{ pipelineStatus.is_complete ? 'Ready for marketplace' : pipelineStatus.next_step ? `Next: ${pipelineStatus.next_step}` : 'Processing review' }}</p>
+            <p class="mt-1 text-sm leading-6 text-gray-500">{{ processes.length }} process record{{ processes.length === 1 ? '' : 's' }} logged for this harvest.</p>
+          </div>
+          <div v-if="summary" class="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <div class="min-w-0 rounded-md bg-sky-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-sky-700">Harvest</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-sky-950">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
+            </div>
+            <div class="min-w-0 rounded-md bg-emerald-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-emerald-700">Output</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-emerald-950">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
+            </div>
+            <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Recovery</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-amber-950">{{ summary.overall_recovery_rate }}%</p>
+            </div>
+            <div class="min-w-0 rounded-md bg-rose-50 p-2.5">
+              <p class="break-words text-[11px] font-semibold leading-tight text-rose-700">Cost</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-rose-950">₱{{ formatNumber(totalOperationalCost) }}</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
             <button
               v-if="harvest && pipelineStatus.is_complete"
               @click="openMarketplaceCreate"
-              class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+              class="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
               Publish to Marketplace
             </button>
-            <button @click="router.push('/harvests')" class="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+            <button @click="router.push('/harvests')" class="inline-flex items-center rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
               Back to Harvests
             </button>
           </div>
         </div>
       </div>
-    </section>
-
-    <section v-if="summary" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <div class="min-w-0 rounded-lg border border-sky-100 bg-white p-4 shadow-sm">
-        <p class="break-words text-[11px] font-semibold uppercase leading-tight text-sky-700">Harvest input</p>
-        <p class="mt-2 break-words text-xl font-bold leading-tight text-slate-950">{{ summary.original_quantity }} {{ displayUnit(summary.original_unit) }}</p>
-      </div>
-      <div class="min-w-0 rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
-        <p class="break-words text-[11px] font-semibold uppercase leading-tight text-emerald-700">Processed output</p>
-        <p class="mt-2 break-words text-xl font-bold leading-tight text-slate-950">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
-      </div>
-      <div class="min-w-0 rounded-lg border border-amber-100 bg-white p-4 shadow-sm">
-        <p class="break-words text-[11px] font-semibold uppercase leading-tight text-amber-700">Recovery rate</p>
-        <p class="mt-2 break-words text-xl font-bold leading-tight text-slate-950">{{ summary.overall_recovery_rate }}%</p>
-      </div>
-      <div class="min-w-0 rounded-lg border border-rose-100 bg-white p-4 shadow-sm">
-        <p class="break-words text-[11px] font-semibold uppercase leading-tight text-rose-700">Processing cost</p>
-        <p class="mt-2 break-words text-xl font-bold leading-tight text-slate-950">₱{{ formatNumber(totalOperationalCost) }}</p>
-      </div>
-    </section>
-
-    <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 class="text-lg font-semibold text-slate-950">Processing stages</h2>
-            <p class="text-sm text-slate-500">Each step unlocks only after the previous stage is completed.</p>
-          </div>
-          <span class="inline-flex w-max items-center rounded-md bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            Sequential workflow
-          </span>
-        </div>
-
-        <div class="mt-5 grid gap-3 lg:grid-cols-5">
-          <div
-            v-for="stage in stageCards"
-            :key="stage.key"
-            :class="[
-              'min-h-44 rounded-lg border p-4 transition',
-              getStageCardClass(stage),
-            ]"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="text-[11px] font-semibold uppercase text-slate-500">{{ stage.kind }}</p>
-                <h3 class="mt-1 text-base font-bold capitalize text-slate-950">{{ stage.label }}</h3>
-              </div>
-              <span :class="['inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold', getStageBadgeClass(stage)]">
-                <template v-if="stage.status === 'completed'">✓</template>
-                <template v-else-if="stage.status === 'locked'">-</template>
-                <template v-else>{{ stage.order }}</template>
-              </span>
-            </div>
-
-            <p class="mt-4 text-sm leading-5 text-slate-600">{{ getStageDetail(stage) }}</p>
-
-            <div class="mt-4">
-              <button
-                v-if="stage.action === 'start'"
-                @click="openProcessModal(stage.key)"
-                class="inline-flex w-full items-center justify-center rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-              >
-                Start {{ stage.label }}
-              </button>
-              <button
-                v-else-if="stage.action === 'complete'"
-                @click="completeProcess(stage.process)"
-                class="inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-              >
-                Complete {{ stage.label }}
-              </button>
-              <button
-                v-else-if="stage.action === 'view'"
-                @click="viewProcess(stage.process)"
-                class="inline-flex w-full items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-              >
-                View record
-              </button>
-              <button
-                v-else-if="stage.action === 'publish'"
-                @click="openMarketplaceCreate"
-                class="inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-              >
-                Publish
-              </button>
-              <span
-                v-else
-                class="inline-flex w-full items-center justify-center rounded-md bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500"
-              >
-                {{ getStageActionLabel(stage) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <aside class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm font-semibold text-slate-500">Current action</p>
-        <h2 class="mt-1 text-xl font-bold text-slate-950">
-          {{ pipelineStatus.is_complete ? 'Publish processed rice' : pipelineStatus.next_step ? `Prepare ${formatStepLabel(pipelineStatus.next_step)}` : 'Review processing' }}
-        </h2>
-        <p class="mt-2 text-sm leading-6 text-slate-500">
-          {{ pipelineStatus.is_complete ? 'Milling is complete, so this harvest can now be carried into marketplace product creation.' : pipelineStatus.next_step ? 'Use the next available stage to keep inventory, recovery, cost, and labor records aligned.' : 'Check the processing records before continuing.' }}
-        </p>
-        <div class="mt-5 space-y-2">
-          <button
-            v-if="pipelineStatus.is_complete && harvest"
-            @click="openMarketplaceCreate"
-            class="inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-          >
-            Publish to Marketplace
-          </button>
-          <button
-            v-else-if="pipelineStatus.next_step && !hasActiveProcess(pipelineStatus.next_step)"
-            @click="openProcessModal(pipelineStatus.next_step)"
-            class="inline-flex w-full items-center justify-center rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
-          >
-            Start {{ formatStepLabel(pipelineStatus.next_step) }}
-          </button>
-          <button
-            v-else-if="activeNextProcess"
-            @click="completeProcess(activeNextProcess)"
-            class="inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-          >
-            Complete {{ formatStepLabel(activeNextProcess.process_type) }}
-          </button>
-          <button
-            @click="router.push('/harvests')"
-            class="inline-flex w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            Choose Another Harvest
-          </button>
-        </div>
-      </aside>
     </section>
 
     <div v-if="pipelineStatus.is_complete && summary?.final_quantity" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
@@ -196,6 +71,69 @@
               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fixed Pipeline Visualization -->
+    <div class="bg-white border border-gray-200 shadow-sm rounded-xl p-6">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">Processing Pipeline</h3>
+      
+      <div class="relative overflow-x-auto pb-2">
+        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+          <div class="w-full border-t border-gray-300"></div>
+        </div>
+        <div class="relative flex justify-between">
+          <!-- Harvest node (always completed) -->
+          <div class="flex flex-col items-center">
+            <span class="h-8 w-8 rounded-full bg-emerald-600 flex items-center justify-center ring-8 ring-white">
+              <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </span>
+            <span class="mt-2 text-sm font-medium text-gray-900">Harvest</span>
+            <span class="text-xs text-gray-500">{{ harvest?.quantity }} {{ displayUnit(harvest?.unit) }}</span>
+            <span v-if="harvest?.harvester_share > 0" class="text-xs text-amber-600 font-medium">Net: {{ netHarvestQuantity }} {{ displayUnit(harvest?.unit) }}</span>
+          </div>
+
+          <!-- Fixed pipeline steps: Threshing → Drying → Milling -->
+          <div v-for="(stepType, index) in pipelineOrder" :key="stepType" class="flex flex-col items-center relative group">
+            <span :class="[
+              'h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white transition-transform',
+              getStepStatus(stepType) === 'completed' ? 'bg-emerald-600 cursor-pointer group-hover:scale-110' :
+              getStepStatus(stepType) === 'in_progress' ? 'bg-amber-500 border-2 border-white cursor-pointer group-hover:scale-110' :
+              getStepStatus(stepType) === 'pending' ? 'bg-amber-400 cursor-pointer group-hover:scale-110' :
+              getStepStatus(stepType) === 'cancelled' ? 'bg-red-400 cursor-pointer' :
+              'bg-gray-200'
+            ]" @click="getStepProcess(stepType) ? viewProcess(getStepProcess(stepType)) : null">
+              <span v-if="getStepStatus(stepType) === 'completed'" class="text-white text-xs font-bold">✓</span>
+              <span v-else-if="getStepStatus(stepType) === 'locked'" class="text-gray-400 text-xs font-bold">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+              </span>
+              <span v-else class="text-white text-xs font-bold">{{ index + 1 }}</span>
+            </span>
+            <span class="mt-2 text-sm font-medium capitalize" :class="getStepStatus(stepType) === 'locked' ? 'text-gray-400' : 'text-gray-900'">{{ stepType }}</span>
+            
+            <template v-if="getStepStatus(stepType) === 'completed'">
+              <span class="text-xs text-emerald-600 font-medium">{{ getStepProcess(stepType)?.output_quantity }} {{ displayUnit(getStepProcess(stepType)?.output_unit) }}</span>
+              <span class="text-xs text-gray-500">Loss: {{ getStepProcess(stepType)?.weight_loss_percentage }}%</span>
+            </template>
+            <template v-else-if="getStepStatus(stepType) === 'cancelled'">
+              <span class="text-xs text-red-500 font-medium line-through">Cancelled</span>
+            </template>
+            <template v-else-if="getStepStatus(stepType) === 'in_progress' || getStepStatus(stepType) === 'pending'">
+              <span class="text-xs text-amber-600 font-medium">{{ getStepStatus(stepType).replace('_', ' ') }}</span>
+              <button @click="completeProcess(getStepProcess(stepType))" class="mt-1 text-xs text-primary hover:underline">Complete</button>
+            </template>
+            <template v-else-if="getStepStatus(stepType) === 'locked'">
+              <span class="text-xs text-gray-400">Locked</span>
+            </template>
+            <template v-else-if="getStepStatus(stepType) === 'ready'">
+              <button @click="openProcessModal(stepType)" class="mt-1 inline-flex items-center px-3 py-1 text-xs font-medium rounded-full text-white bg-primary hover:bg-primary-dark shadow-sm transition-all">
+                Start {{ stepType.charAt(0).toUpperCase() + stepType.slice(1) }}
+              </button>
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -364,103 +302,6 @@ const getStepProcess = (stepType) => {
 // Check if there's an active (non-cancelled, non-completed) process for a step
 const hasActiveProcess = (stepType) => {
   return processes.value.some(p => p.process_type === stepType && !['cancelled', 'completed'].includes(p.status));
-};
-
-const activeNextProcess = computed(() => {
-  if (!pipelineStatus.value.next_step) return null;
-  return processes.value.find(p =>
-    p.process_type === pipelineStatus.value.next_step &&
-    !['cancelled', 'completed'].includes(p.status)
-  ) || null;
-});
-
-const formatStepLabel = (stepType) => {
-  if (!stepType) return '';
-  return stepType.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
-};
-
-const stageCards = computed(() => {
-  const harvestQuantity = harvest.value
-    ? `${harvest.value.quantity || 0} ${displayUnit(harvest.value.unit)}`
-    : 'No harvest loaded';
-  const harvestDetail = harvest.value?.harvester_share > 0
-    ? `Gross ${harvestQuantity}; net ${netHarvestQuantity.value} ${displayUnit(harvest.value.unit)} after harvester share.`
-    : `Gross ${harvestQuantity} available for the first process.`;
-
-  const processCards = pipelineOrder.map((stepType, index) => {
-    const process = getStepProcess(stepType);
-    const status = getStepStatus(stepType);
-    let action = 'locked';
-    if (status === 'ready') action = 'start';
-    if (['pending', 'in_progress'].includes(status)) action = 'complete';
-    if (status === 'completed') action = 'view';
-
-    return {
-      key: stepType,
-      kind: 'Process',
-      label: formatStepLabel(stepType),
-      order: index + 1,
-      status,
-      action,
-      process,
-    };
-  });
-
-  return [
-    {
-      key: 'harvest',
-      kind: 'Source',
-      label: 'Harvest',
-      order: 'H',
-      status: 'completed',
-      action: 'done',
-      detail: harvestDetail,
-    },
-    ...processCards,
-    {
-      key: 'marketplace',
-      kind: 'Release',
-      label: 'Marketplace',
-      order: 'M',
-      status: pipelineStatus.value.is_complete ? 'ready' : 'locked',
-      action: pipelineStatus.value.is_complete ? 'publish' : 'locked',
-      detail: pipelineStatus.value.is_complete
-        ? `${summary.value?.final_quantity || 0} ${displayUnit(summary.value?.final_unit)} ready for product creation.`
-        : 'Locked until milling is complete.',
-    },
-  ];
-});
-
-const getStageCardClass = (stage) => {
-  if (stage.status === 'completed') return 'border-emerald-200 bg-emerald-50/60';
-  if (stage.action === 'publish') return 'border-emerald-200 bg-emerald-50/60';
-  if (['pending', 'in_progress', 'ready'].includes(stage.status)) return 'border-amber-200 bg-amber-50/70';
-  return 'border-slate-200 bg-slate-50';
-};
-
-const getStageBadgeClass = (stage) => {
-  if (stage.status === 'completed') return 'bg-emerald-600 text-white';
-  if (stage.action === 'publish') return 'bg-emerald-600 text-white';
-  if (['pending', 'in_progress', 'ready'].includes(stage.status)) return 'bg-amber-500 text-white';
-  return 'bg-slate-200 text-slate-500';
-};
-
-const getStageDetail = (stage) => {
-  if (stage.detail) return stage.detail;
-  if (stage.process && stage.status === 'completed') {
-    return `${stage.process.output_quantity} ${displayUnit(stage.process.output_unit)} output, ${stage.process.weight_loss_percentage || 0}% loss.`;
-  }
-  if (stage.process) {
-    return `${stage.process.input_quantity} ${displayUnit(stage.process.input_unit)} input is recorded and waiting for completion.`;
-  }
-  if (stage.status === 'ready') return 'Ready to start from the latest available inventory.';
-  return 'Complete the previous stage first.';
-};
-
-const getStageActionLabel = (stage) => {
-  if (stage.status === 'completed') return 'Completed';
-  if (stage.status === 'locked') return 'Locked';
-  return formatStepLabel(stage.status);
 };
 
 const openProcessModal = (processType) => {
