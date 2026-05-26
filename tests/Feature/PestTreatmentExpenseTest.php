@@ -9,6 +9,8 @@ use App\Models\Farm;
 use App\Models\Field;
 use App\Models\Planting;
 use App\Models\PestIncident;
+use App\Models\InventoryItem;
+use App\Models\InventoryTransaction;
 use App\Models\PlantingStage;
 use App\Models\RiceGrowthStage;
 use App\Models\Expense;
@@ -123,5 +125,88 @@ class PestTreatmentExpenseTest extends TestCase
         ]);
 
         $this->assertEquals(1, Expense::where('related_entity_type', 'pest_incident')->where('related_entity_id', $incident->id)->count());
+    }
+
+    public function test_recording_treatment_with_inventory_deducts_stock_and_logs_transaction()
+    {
+        $user = User::factory()->create(['role' => 'farmer']);
+        $farm = Farm::factory()->create(['user_id' => $user->id]);
+        $field = Field::factory()->create(['user_id' => $user->id, 'farm_id' => $farm->id]);
+        $planting = Planting::factory()->create(['field_id' => $field->id, 'status' => 'growing']);
+
+        $inventoryItem = InventoryItem::factory()->create([
+            'user_id' => $user->id,
+            'category' => InventoryItem::CATEGORY_PESTICIDE,
+            'name' => 'Fungicide',
+            'unit' => 'liters',
+            'current_stock' => 10,
+            'unit_price' => 120,
+        ]);
+
+        $incident = PestIncident::create([
+            'user_id' => $user->id,
+            'planting_id' => $planting->id,
+            'pest_type' => 'disease',
+            'pest_name' => 'Blast',
+            'severity' => 'medium',
+            'detected_date' => now(),
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($user)->putJson("/api/pest-incidents/{$incident->id}", [
+            'treatment_applied' => 'Fungicide',
+            'treatment_date' => now()->toDateTimeString(),
+            'status' => 'treated',
+            'inventory_item_id' => $inventoryItem->id,
+            'inventory_quantity_used' => 2.5,
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertEquals(7.5, (float) $inventoryItem->fresh()->current_stock);
+        $this->assertDatabaseHas('inventory_transactions', [
+            'inventory_item_id' => $inventoryItem->id,
+            'user_id' => $user->id,
+            'transaction_type' => 'out',
+            'quantity' => 2.5,
+            'reference_type' => 'PestIncident',
+            'reference_id' => $incident->id,
+        ]);
+    }
+
+    public function test_pest_treatment_inventory_usage_blocks_insufficient_stock()
+    {
+        $user = User::factory()->create(['role' => 'farmer']);
+        $farm = Farm::factory()->create(['user_id' => $user->id]);
+        $field = Field::factory()->create(['user_id' => $user->id, 'farm_id' => $farm->id]);
+        $planting = Planting::factory()->create(['field_id' => $field->id, 'status' => 'growing']);
+
+        $inventoryItem = InventoryItem::factory()->create([
+            'user_id' => $user->id,
+            'category' => InventoryItem::CATEGORY_PESTICIDE,
+            'current_stock' => 1,
+            'unit' => 'liters',
+        ]);
+
+        $incident = PestIncident::create([
+            'user_id' => $user->id,
+            'planting_id' => $planting->id,
+            'pest_type' => 'disease',
+            'pest_name' => 'Blast',
+            'severity' => 'medium',
+            'detected_date' => now(),
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($user)->putJson("/api/pest-incidents/{$incident->id}", [
+            'treatment_applied' => 'Fungicide',
+            'status' => 'treated',
+            'inventory_item_id' => $inventoryItem->id,
+            'inventory_quantity_used' => 2,
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertEquals(1, (float) $inventoryItem->fresh()->current_stock);
+        $this->assertEquals(0, InventoryTransaction::where('reference_type', 'PestIncident')->where('reference_id', $incident->id)->count());
     }
 }

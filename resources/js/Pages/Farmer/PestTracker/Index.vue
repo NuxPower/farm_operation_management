@@ -398,6 +398,40 @@
 	              </div>
 	            </div>
 
+	            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+	              <div>
+	                <label class="block text-sm font-medium text-gray-700 mb-1">Inventory Used (Optional)</label>
+	                <select
+	                  v-model="treatmentForm.inventory_item_id"
+	                  class="w-full px-3 py-2 border rounded-lg bg-white"
+	                >
+	                  <option value="">No inventory item</option>
+	                  <option v-for="item in pesticideInventoryItems" :key="item.id" :value="item.id">
+	                    {{ item.name }} - {{ formatNumber(item.current_stock) }} {{ item.unit }} available
+	                  </option>
+	                </select>
+	              </div>
+
+	              <div v-if="selectedInventoryItem">
+	                <label class="block text-sm font-medium text-gray-700 mb-1">
+	                  Quantity Used ({{ selectedInventoryItem.unit }})
+	                </label>
+	                <input
+	                  v-model="treatmentForm.inventory_quantity_used"
+	                  type="number"
+	                  min="0.01"
+	                  :max="selectedInventoryItem.current_stock"
+	                  step="0.01"
+	                  class="w-full px-3 py-2 border rounded-lg bg-white"
+	                  placeholder="0.00"
+	                  required
+	                />
+	                <p class="mt-1 text-xs text-gray-500">
+	                  This will deduct stock and add a recent inventory transaction.
+	                </p>
+	              </div>
+	            </div>
+
 	            <div class="flex gap-3 pt-2">
 	              <button
 	                type="button"
@@ -427,6 +461,7 @@ const { errors: clientErrors, rules, validateForm, sanitizeForm, clearErrors } =
 const incidents = ref([])
 const stats = ref({ total: 0, active: 0, treated: 0, resolved: 0 })
 const plantings = ref([])
+const inventoryItems = ref([])
 const selectedFieldId = ref('')
 
 // --- Analytics ---
@@ -549,7 +584,18 @@ const form = ref({
 const treatmentForm = ref({
   treatment_applied: '',
   treatment_date: '',
-  treatment_cost: ''
+  treatment_cost: '',
+  inventory_item_id: '',
+  inventory_quantity_used: ''
+})
+
+const pesticideInventoryItems = computed(() => {
+  return inventoryItems.value.filter(item => item.category === 'pesticide')
+})
+
+const selectedInventoryItem = computed(() => {
+  if (!treatmentForm.value.inventory_item_id) return null
+  return pesticideInventoryItems.value.find(item => Number(item.id) === Number(treatmentForm.value.inventory_item_id))
 })
 
 const formatDateTimeForInput = (date) => {
@@ -604,6 +650,16 @@ const loadFields = async () => {
   }
 }
 
+const loadPesticideInventory = async () => {
+  try {
+    const response = await axios.get('/api/inventory', { params: { category: 'pesticide' } })
+    inventoryItems.value = response.data.inventory_items || response.data || []
+  } catch (error) {
+    console.error('Failed to load pesticide inventory:', error)
+    inventoryItems.value = []
+  }
+}
+
 const submitIncident = async () => {
   submitting.value = true
   
@@ -644,8 +700,11 @@ const markTreated = async (incident) => {
   treatmentForm.value = {
     treatment_applied: incident.treatment_applied || '',
     treatment_date: formatDateTimeForInput(incident.treatment_date || treatmentTime),
-    treatment_cost: incident.treatment_cost || ''
+    treatment_cost: incident.treatment_cost || '',
+    inventory_item_id: incident.inventory_item_id || '',
+    inventory_quantity_used: incident.inventory_quantity_used || ''
   }
+  loadPesticideInventory()
   showTreatmentModal.value = true
 }
 
@@ -655,7 +714,9 @@ const closeTreatmentModal = () => {
   treatmentForm.value = {
     treatment_applied: '',
     treatment_date: '',
-    treatment_cost: ''
+    treatment_cost: '',
+    inventory_item_id: '',
+    inventory_quantity_used: ''
   }
 }
 
@@ -668,11 +729,16 @@ const submitTreatment = async () => {
       status: 'treated',
       treatment_applied: treatmentForm.value.treatment_applied,
       treatment_date: treatmentForm.value.treatment_date,
-      treatment_cost: treatmentForm.value.treatment_cost === '' ? null : treatmentForm.value.treatment_cost
+      treatment_cost: treatmentForm.value.treatment_cost === '' ? null : treatmentForm.value.treatment_cost,
+      inventory_item_id: treatmentForm.value.inventory_item_id || null,
+      inventory_quantity_used: treatmentForm.value.inventory_item_id
+        ? treatmentForm.value.inventory_quantity_used
+        : null
     }
 
     await axios.put(`/api/pest-incidents/${selectedIncident.value.id}`, payload)
     closeTreatmentModal()
+    await loadPesticideInventory()
     await loadData()
     await loadAnalytics()
   } catch (error) {
@@ -735,9 +801,10 @@ const getStatusClass = (status) => {
 }
 
 onMounted(() => {
-  loadData()
-  loadPlantings()
-  loadFields()
-  loadAnalytics()
+	loadData()
+	loadPlantings()
+	loadFields()
+	loadPesticideInventory()
+	loadAnalytics()
 })
 </script>

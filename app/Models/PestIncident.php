@@ -19,6 +19,8 @@ class PestIncident extends Model
         'treatment_applied',
         'treatment_date',
         'treatment_cost',
+        'inventory_item_id',
+        'inventory_quantity_used',
         'status',
         'notes',
         'images',
@@ -29,6 +31,7 @@ class PestIncident extends Model
         'treatment_date' => 'date',
         'affected_area' => 'decimal:2',
         'treatment_cost' => 'decimal:2',
+        'inventory_quantity_used' => 'decimal:2',
         'images' => 'array',
     ];
 
@@ -73,6 +76,11 @@ class PestIncident extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
     }
 
     public function scopeActive($query)

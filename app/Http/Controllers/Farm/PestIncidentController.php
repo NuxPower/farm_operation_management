@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Farm;
 use App\Http\Controllers\Controller;
 use App\Models\PestIncident;
 use App\Models\Expense;
+use App\Models\InventoryItem;
+use App\Models\InventoryTransaction;
 use App\Models\Planting;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
@@ -20,7 +23,7 @@ class PestIncidentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = PestIncident::where('user_id', Auth::id())
-            ->with(['planting.field', 'planting.riceVariety'])
+            ->with(['planting.field', 'planting.riceVariety', 'inventoryItem'])
             ->orderBy('detected_date', 'desc');
 
         if ($request->status) {
@@ -67,6 +70,8 @@ class PestIncidentController extends Controller
             'treatment_applied' => 'nullable|string|max:500',
             'treatment_date' => 'nullable|date',
             'treatment_cost' => 'nullable|numeric|min:0',
+            'inventory_item_id' => 'nullable|exists:inventory_items,id|required_with:inventory_quantity_used',
+            'inventory_quantity_used' => 'nullable|numeric|min:0.01|required_with:inventory_item_id',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -87,40 +92,34 @@ class PestIncidentController extends Controller
             return $validationResponse;
         }
 
-        $incident = PestIncident::create([
-            ...$request->only([
-                'planting_id',
-                'pest_type',
-                'pest_name',
-                'severity',
-                'affected_area',
-                'detected_date',
-                'symptoms',
-                'treatment_applied',
-                'treatment_date',
-                'treatment_cost',
-                'notes'
-            ]),
-            'user_id' => Auth::id(),
-            'status' => $request->treatment_applied ? PestIncident::STATUS_TREATED : PestIncident::STATUS_ACTIVE,
-        ]);
-
-        $incident->load(['planting.field']);
-
-        // Auto-create expense if treatment cost is provided
-        if ($incident->treatment_cost && $incident->treatment_cost > 0) {
-            Expense::create([
-                'description' => "Pest treatment: {$incident->pest_name}",
-                'amount' => $incident->treatment_cost,
-                'category' => Expense::CATEGORY_PESTICIDE,
-                'date' => $incident->treatment_date ?? $incident->detected_date,
-                'planting_id' => $incident->planting_id,
+        $incident = DB::transaction(function () use ($request) {
+            $incident = PestIncident::create([
+                ...$request->only([
+                    'planting_id',
+                    'pest_type',
+                    'pest_name',
+                    'severity',
+                    'affected_area',
+                    'detected_date',
+                    'symptoms',
+                    'treatment_applied',
+                    'treatment_date',
+                    'treatment_cost',
+                    'inventory_item_id',
+                    'inventory_quantity_used',
+                    'notes'
+                ]),
                 'user_id' => Auth::id(),
-                'related_entity_type' => 'pest_incident',
-                'related_entity_id' => $incident->id,
-                'notes' => "Auto-generated from pest incident #{$incident->id}",
+                'status' => $request->treatment_applied ? PestIncident::STATUS_TREATED : PestIncident::STATUS_ACTIVE,
             ]);
-        }
+
+            $this->syncTreatmentInventoryUsage($incident, null, null);
+            $this->syncTreatmentExpense($incident);
+
+            return $incident;
+        });
+
+        $incident->load(['planting.field', 'inventoryItem']);
 
         return response()->json([
             'message' => 'Pest incident recorded',
@@ -137,7 +136,7 @@ class PestIncidentController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $pestIncident->load(['planting.field', 'planting.riceVariety']);
+        $pestIncident->load(['planting.field', 'planting.riceVariety', 'inventoryItem']);
 
         return response()->json(['incident' => $pestIncident]);
     }
@@ -160,6 +159,8 @@ class PestIncidentController extends Controller
             'treatment_applied' => 'nullable|string|max:500',
             'treatment_date' => 'nullable|date',
             'treatment_cost' => 'nullable|numeric|min:0',
+            'inventory_item_id' => 'nullable|exists:inventory_items,id|required_with:inventory_quantity_used',
+            'inventory_quantity_used' => 'nullable|numeric|min:0.01|required_with:inventory_item_id',
             'status' => 'sometimes|in:active,treated,resolved',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -172,42 +173,121 @@ class PestIncidentController extends Controller
             return $validationResponse;
         }
 
-        $pestIncident->update($request->only([
-            'pest_type',
-            'pest_name',
-            'severity',
-            'affected_area',
-            'symptoms',
-            'treatment_applied',
-            'treatment_date',
-            'treatment_cost',
-            'status',
-            'notes'
-        ]));
+        DB::transaction(function () use ($request, $pestIncident) {
+            $oldInventoryItemId = $pestIncident->inventory_item_id;
+            $oldQuantityUsed = $pestIncident->inventory_quantity_used;
 
-        // Sync expense record if treatment cost changed
-        if ($pestIncident->treatment_cost && $pestIncident->treatment_cost > 0) {
-            Expense::updateOrCreate(
-                [
-                    'related_entity_type' => 'pest_incident',
-                    'related_entity_id' => $pestIncident->id,
-                ],
-                [
-                    'description' => "Pest treatment: {$pestIncident->pest_name}",
-                    'amount' => $pestIncident->treatment_cost,
-                    'category' => Expense::CATEGORY_PESTICIDE,
-                    'date' => $pestIncident->treatment_date ?? $pestIncident->detected_date,
-                    'planting_id' => $pestIncident->planting_id,
-                    'user_id' => Auth::id(),
-                    'notes' => "Auto-generated from pest incident #{$pestIncident->id}",
-                ]
-            );
-        }
+            $pestIncident->update($request->only([
+                'pest_type',
+                'pest_name',
+                'severity',
+                'affected_area',
+                'symptoms',
+                'treatment_applied',
+                'treatment_date',
+                'treatment_cost',
+                'inventory_item_id',
+                'inventory_quantity_used',
+                'status',
+                'notes'
+            ]));
+
+            $this->syncTreatmentInventoryUsage($pestIncident->fresh(), $oldInventoryItemId, $oldQuantityUsed);
+            $this->syncTreatmentExpense($pestIncident->fresh());
+        });
 
         return response()->json([
             'message' => 'Pest incident updated',
-            'incident' => $pestIncident->fresh()
+            'incident' => $pestIncident->fresh()->load(['planting.field', 'planting.riceVariety', 'inventoryItem'])
         ]);
+    }
+
+    private function syncTreatmentInventoryUsage(PestIncident $incident, $oldInventoryItemId, $oldQuantityUsed): void
+    {
+        $newInventoryItemId = $incident->inventory_item_id;
+        $newQuantityUsed = (float) ($incident->inventory_quantity_used ?? 0);
+        $oldQuantityUsed = (float) ($oldQuantityUsed ?? 0);
+
+        if (!$oldInventoryItemId && !$newInventoryItemId) {
+            return;
+        }
+
+        if ($oldInventoryItemId && (!$newInventoryItemId || (int) $oldInventoryItemId !== (int) $newInventoryItemId)) {
+            $oldItem = InventoryItem::where('user_id', Auth::id())->lockForUpdate()->find($oldInventoryItemId);
+            if ($oldItem && $oldQuantityUsed > 0) {
+                $oldItem->addStock($oldQuantityUsed);
+                $this->recordInventoryTransaction($oldItem, $incident, 'in', $oldQuantityUsed, 'Returned from pest treatment adjustment');
+            }
+            $oldQuantityUsed = 0;
+        }
+
+        if (!$newInventoryItemId) {
+            return;
+        }
+
+        $newItem = InventoryItem::where('user_id', Auth::id())->lockForUpdate()->find($newInventoryItemId);
+        if (!$newItem) {
+            abort(response()->json(['message' => 'Inventory item not found'], 404));
+        }
+
+        $quantityDelta = (int) $oldInventoryItemId === (int) $newInventoryItemId
+            ? $newQuantityUsed - $oldQuantityUsed
+            : $newQuantityUsed;
+
+        if (abs($quantityDelta) < 0.00001) {
+            return;
+        }
+
+        if ($quantityDelta > 0) {
+            if (!$newItem->removeStock($quantityDelta)) {
+                abort(response()->json([
+                    'message' => "Insufficient stock. Available: {$newItem->current_stock} {$newItem->unit}"
+                ], 422));
+            }
+            $this->recordInventoryTransaction($newItem, $incident, 'out', $quantityDelta, "Used for pest treatment: {$incident->pest_name}");
+            return;
+        }
+
+        $returnQuantity = abs($quantityDelta);
+        $newItem->addStock($returnQuantity);
+        $this->recordInventoryTransaction($newItem, $incident, 'in', $returnQuantity, 'Returned from pest treatment adjustment');
+    }
+
+    private function recordInventoryTransaction(InventoryItem $item, PestIncident $incident, string $type, float $quantity, string $notes): void
+    {
+        InventoryTransaction::create([
+            'inventory_item_id' => $item->id,
+            'user_id' => Auth::id(),
+            'transaction_type' => $type,
+            'quantity' => $quantity,
+            'unit_cost' => $item->unit_price,
+            'total_cost' => $quantity * ($item->unit_price ?? 0),
+            'reference_type' => 'PestIncident',
+            'reference_id' => $incident->id,
+            'notes' => $notes,
+            'transaction_date' => now(),
+        ]);
+    }
+
+    private function syncTreatmentExpense(PestIncident $incident): void
+    {
+        if ($incident->treatment_cost && $incident->treatment_cost > 0) {
+            Expense::updateOrCreate(
+                [
+                    'related_entity_type' => 'pest_incident',
+                    'related_entity_id' => $incident->id,
+                ],
+                [
+                    'description' => "Pest treatment: {$incident->pest_name}",
+                    'amount' => $incident->treatment_cost,
+                    'category' => Expense::CATEGORY_PESTICIDE,
+                    'date' => $incident->treatment_date ?? $incident->detected_date,
+                    'planting_id' => $incident->planting_id,
+                    'user_id' => Auth::id(),
+                    'notes' => "Auto-generated from pest incident #{$incident->id}",
+                ]
+            );
+        }
     }
 
     /**
