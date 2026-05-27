@@ -392,6 +392,7 @@ const formatDate = (dateString) => {
 const displayUnit = (unit) => {
   const map = {
     sacks_palay: 'sacks (palay)',
+    sacks_dried_palay: 'sacks (dried palay)',
     sacks_rice: 'sacks (rice)',
   };
   return map[unit] || unit;

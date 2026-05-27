@@ -301,13 +301,14 @@ const laborerGroups = ref([]);
 // Unit label helpers based on process type
 const UNIT_MAP = {
   threshing: { input: 'bushels', output: 'sacks_palay' },
-  drying:    { input: 'sacks_palay',   output: 'dried palay' },
-  milling:   { input: 'dried palay', output: 'sacks_rice' },
+  drying:    { input: 'sacks_palay', output: 'sacks_dried_palay' },
+  milling:   { input: 'sacks_dried_palay', output: 'sacks_rice' },
 };
 
 // Human-readable display labels
 const UNIT_DISPLAY_MAP = {
   sacks_palay: 'sacks (palay)',
+  sacks_dried_palay: 'sacks (dried palay)',
   sacks_rice: 'sacks (rice)',
 };
 

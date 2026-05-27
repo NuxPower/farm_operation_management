@@ -156,7 +156,7 @@ class DataAnalysisTest extends TestCase
             'user_id' => $this->farmer->id,
             'name' => 'NSIC Rc222 - Dried Palay',
             'category' => InventoryItem::CATEGORY_PRODUCE,
-            'unit' => 'dried_palay',
+            'unit' => 'sacks_dried_palay',
             'current_stock' => 0,
             'minimum_stock' => 0,
             'unit_price' => 0,

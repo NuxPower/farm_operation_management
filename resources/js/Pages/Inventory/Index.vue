@@ -243,6 +243,7 @@ const displayUnit = (unit) => {
   if (!unit) return ''
   const displayLabels = {
     'sacks_palay': 'sacks (palay)',
+    'sacks_dried_palay': 'sacks (dried palay)',
     'sacks_rice': 'sacks (rice)',
   }
   return displayLabels[unit] || unit

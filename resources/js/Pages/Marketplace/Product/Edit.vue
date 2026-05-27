@@ -361,7 +361,7 @@ const form = reactive({
   notes: ''
 })
 
-const units = ['kg', 'tons', 'sacks', 'sacks_rice', 'sacks_palay', 'bushels', 'pounds', 'grams']
+const units = ['kg', 'tons', 'sacks', 'sacks_rice', 'sacks_palay', 'sacks_dried_palay', 'bushels', 'pounds', 'grams']
 const qualityGrades = {
   premium: 'Premium',
   grade_a: 'Grade A',
@@ -375,6 +375,7 @@ const processingMethods = {
 
 const UNIT_DISPLAY_LABELS = {
   sacks_palay: 'Sacks (Palay)',
+  sacks_dried_palay: 'Sacks (Dried Palay)',
   sacks_rice: 'Sacks (Rice)',
   kg: 'Kg',
   tons: 'Tons',

@@ -527,7 +527,7 @@ class EntireSystemSeeder extends Seeder
             'input_quantity' => 126,
             'input_unit' => 'sacks_palay',
             'output_quantity' => 104,
-            'output_unit' => 'dried_palay',
+            'output_unit' => 'sacks_dried_palay',
             'weight_loss_percentage' => 17.46,
             'process_date' => now()->subDays(7)->toDateString(),
             'completed_date' => now()->subDays(5)->toDateString(),
@@ -642,4 +642,3 @@ class EntireSystemSeeder extends Seeder
         ]);
     }
 }
-

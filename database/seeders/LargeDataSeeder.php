@@ -290,8 +290,8 @@ class LargeDataSeeder extends Seeder
                     // Post-harvest pipeline: threshing → drying → milling
                     $pipeline = [
                         ['type' => PostHarvestProcess::TYPE_THRESHING, 'in_unit' => 'bushels',    'out_unit' => 'sacks_palay', 'rate' => 0.95],
-                        ['type' => PostHarvestProcess::TYPE_DRYING,    'in_unit' => 'sacks_palay', 'out_unit' => 'dried palay', 'rate' => 0.82],
-                        ['type' => PostHarvestProcess::TYPE_MILLING,   'in_unit' => 'dried palay', 'out_unit' => 'sacks_rice',  'rate' => 0.65],
+                        ['type' => PostHarvestProcess::TYPE_DRYING,    'in_unit' => 'sacks_palay', 'out_unit' => 'sacks_dried_palay', 'rate' => 0.82],
+                        ['type' => PostHarvestProcess::TYPE_MILLING,   'in_unit' => 'sacks_dried_palay', 'out_unit' => 'sacks_rice',  'rate' => 0.65],
                     ];
                     $prevProcess = null;
                     $curQty      = $qty;

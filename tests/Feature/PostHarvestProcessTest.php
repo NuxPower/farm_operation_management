@@ -193,6 +193,16 @@ class PostHarvestProcessTest extends TestCase
             ->assertJsonPath('message', 'Input quantity cannot exceed the available net harvest quantity (800).');
     }
 
+    public function test_post_harvest_pipeline_units_use_sack_specific_dried_palay()
+    {
+        $this->assertSame('sacks_palay', PostHarvestProcess::getOutputUnitLabel(PostHarvestProcess::TYPE_THRESHING));
+        $this->assertSame('sacks_palay', PostHarvestProcess::getInputUnitLabel(PostHarvestProcess::TYPE_DRYING));
+        $this->assertSame('sacks_dried_palay', PostHarvestProcess::getOutputUnitLabel(PostHarvestProcess::TYPE_DRYING));
+        $this->assertSame('sacks_dried_palay', PostHarvestProcess::getInputUnitLabel(PostHarvestProcess::TYPE_MILLING));
+        $this->assertSame('sacks_rice', PostHarvestProcess::getOutputUnitLabel(PostHarvestProcess::TYPE_MILLING));
+        $this->assertSame('sacks (dried palay)', PostHarvestProcess::humanReadableUnit('sacks_dried_palay'));
+    }
+
     public function test_completing_process_deducts_and_adds_inventory_with_expense()
     {
         $process = PostHarvestProcess::create([

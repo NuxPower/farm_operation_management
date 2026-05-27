@@ -217,7 +217,7 @@ class PostHarvestProcess extends Model
         return match ($processType) {
             self::TYPE_THRESHING => 'bushels',
             self::TYPE_DRYING => 'sacks_palay',
-            self::TYPE_MILLING => 'dried palay',
+            self::TYPE_MILLING => 'sacks_dried_palay',
             default => 'bushels',
         };
     }
@@ -229,7 +229,7 @@ class PostHarvestProcess extends Model
     {
         return match ($processType) {
             self::TYPE_THRESHING => 'sacks_palay',
-            self::TYPE_DRYING => 'dried palay',
+            self::TYPE_DRYING => 'sacks_dried_palay',
             self::TYPE_MILLING => 'sacks_rice',
             default => 'sacks_palay',
         };
@@ -241,8 +241,9 @@ class PostHarvestProcess extends Model
     public static function humanReadableUnit(string $unit): string
     {
         return match ($unit) {
-            'sacks_palay' => 'sacks',
-            'sacks_rice' => 'sacks',
+            'sacks_palay' => 'sacks (palay)',
+            'sacks_dried_palay' => 'sacks (dried palay)',
+            'sacks_rice' => 'sacks (rice)',
             default => $unit,
         };
     }

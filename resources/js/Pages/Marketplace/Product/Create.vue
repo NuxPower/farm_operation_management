@@ -484,7 +484,7 @@ const form = reactive({
   notes: ''
 })
 
-const units = ['kg', 'tons', 'sacks', 'sacks_palay', 'sacks_rice', 'bushels', 'pounds', 'grams']
+const units = ['kg', 'tons', 'sacks', 'sacks_palay', 'sacks_dried_palay', 'sacks_rice', 'bushels', 'pounds', 'grams']
 const qualityGrades = {
   premium: 'Premium',
   grade_a: 'Grade A',
@@ -570,6 +570,7 @@ const getProcessStageLabel = (type) => {
 // Unit display helper
 const UNIT_DISPLAY_LABELS = {
   sacks_palay: 'Sacks (Palay)',
+  sacks_dried_palay: 'Sacks (Dried Palay)',
   sacks_rice: 'Sacks (Rice)',
   kg: 'Kg',
   tons: 'Tons',
