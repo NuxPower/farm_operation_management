@@ -371,7 +371,9 @@ class PostHarvestProcessTest extends TestCase
             ->getJson("/api/post-harvest/harvest/{$this->harvest->id}/efficiency");
 
         $response->assertStatus(200)
-            ->assertJsonPath('efficiency.overall_recovery_rate', 82)
+            ->assertJsonPath('efficiency.pipeline_step_count', 3)
+            ->assertJsonPath('efficiency.completed_processes', 1)
+            ->assertJsonPath('efficiency.processing_progress_percentage', 33.33)
             ->assertJsonPath('efficiency.average_weight_loss_percentage', 18)
             ->assertJsonPath('efficiency.cost_per_output_unit', 1.22)
             ->assertJsonPath('efficiency.total_cost', 1000)

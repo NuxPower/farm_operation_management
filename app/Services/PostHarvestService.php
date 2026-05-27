@@ -666,18 +666,21 @@ class PostHarvestService
         $averageWeightLoss = $completed->count() > 0 ? round($completed->avg('weight_loss_percentage'), 2) : 0;
         $totalCost = (float) $completed->sum('cost');
         $costPerOutputUnit = $finalOutputQuantity > 0 ? round($totalCost / $finalOutputQuantity, 2) : 0;
+        $pipelineStepCount = count(PostHarvestProcess::PIPELINE_ORDER);
+        $pipelineProgress = $pipelineStepCount > 0
+            ? round(($completed->count() / $pipelineStepCount) * 100, 2)
+            : 0;
 
         return [
             'total_processes' => $processes->count(),
             'completed_processes' => $completed->count(),
+            'pipeline_step_count' => $pipelineStepCount,
+            'processing_progress_percentage' => $pipelineProgress,
             'total_cost' => $totalCost,
             'original_quantity' => $originalQuantity,
             'original_unit' => $harvest->unit,
             'final_quantity' => $finalOutputQuantity,
             'final_unit' => $completed->last()?->output_unit ?? $harvest->unit,
-            'overall_recovery_rate' => $harvest->quantity > 0 && $completed->count() > 0
-                ? round(($finalOutputQuantity / $harvest->quantity) * 100, 2)
-                : 100.0,
             'average_weight_loss_percentage' => $averageWeightLoss,
             'cost_per_output_unit' => $costPerOutputUnit,
             'efficiency_breakdown' => $completed->values()->map(fn($p) => [
@@ -709,7 +712,9 @@ class PostHarvestService
         return [
             'harvest_id' => $harvest->id,
             'planting_id' => $harvest->planting_id,
-            'overall_recovery_rate' => $summary['overall_recovery_rate'],
+            'pipeline_step_count' => $summary['pipeline_step_count'],
+            'completed_processes' => $summary['completed_processes'],
+            'processing_progress_percentage' => $summary['processing_progress_percentage'],
             'average_weight_loss_percentage' => $summary['average_weight_loss_percentage'],
             'cost_per_output_unit' => $summary['cost_per_output_unit'],
             'total_cost' => $summary['total_cost'],

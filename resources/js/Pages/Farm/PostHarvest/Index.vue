@@ -26,8 +26,9 @@
               <p class="mt-1 break-words text-base font-bold leading-tight text-emerald-950">{{ summary.final_quantity }} {{ displayUnit(summary.final_unit) }}</p>
             </div>
             <div class="min-w-0 rounded-md bg-amber-50 p-2.5">
-              <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Recovery</p>
-              <p class="mt-1 break-words text-base font-bold leading-tight text-amber-950">{{ summary.overall_recovery_rate }}%</p>
+              <p class="break-words text-[11px] font-semibold leading-tight text-amber-700">Progress</p>
+              <p class="mt-1 break-words text-base font-bold leading-tight text-amber-950">{{ summary.processing_progress_percentage }}%</p>
+              <p class="mt-0.5 break-words text-[11px] leading-tight text-amber-700">{{ summary.completed_processes }} of {{ summary.pipeline_step_count }} steps</p>
             </div>
             <div class="min-w-0 rounded-md bg-rose-50 p-2.5">
               <p class="break-words text-[11px] font-semibold leading-tight text-rose-700">Cost</p>
