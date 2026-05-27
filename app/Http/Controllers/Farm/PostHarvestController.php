@@ -232,7 +232,7 @@ class PostHarvestController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'output_quantity' => ['required', 'numeric', 'min:0', 'max:' . $process->input_quantity],
+            'output_quantity' => ['required', 'numeric', 'min:0'],
             'output_unit' => 'nullable|string',
             'completed_date' => 'nullable|date',
             'cost' => 'nullable|numeric|min:0',
@@ -240,6 +240,19 @@ class PostHarvestController extends Controller
             'process_data' => 'nullable|array',
             'notes' => 'nullable|string',
         ]);
+
+        $validator->after(function ($validator) use ($request, $process) {
+            $outputUnit = $request->input('output_unit', $process->input_unit);
+            $outputQuantity = (float) $request->input('output_quantity', 0);
+            $inputQuantity = (float) $process->input_quantity;
+
+            if ($outputUnit === $process->input_unit && $outputQuantity > $inputQuantity) {
+                $validator->errors()->add(
+                    'output_quantity',
+                    "Output quantity cannot exceed input quantity when both are measured in {$process->input_unit}."
+                );
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([

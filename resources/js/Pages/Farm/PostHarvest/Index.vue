@@ -117,7 +117,7 @@
             
             <template v-if="getStepStatus(stepType) === 'completed'">
               <span class="text-xs text-emerald-600 font-medium">{{ getStepProcess(stepType)?.output_quantity }} {{ displayUnit(getStepProcess(stepType)?.output_unit) }}</span>
-              <span class="text-xs text-gray-500">Loss: {{ getStepProcess(stepType)?.weight_loss_percentage }}%</span>
+              <span class="text-xs text-gray-500">Loss: {{ formatLoss(getStepProcess(stepType)) }}</span>
             </template>
             <template v-else-if="getStepStatus(stepType) === 'cancelled'">
               <span class="text-xs text-red-500 font-medium line-through">Cancelled</span>
@@ -374,6 +374,14 @@ const closeModal = () => {
 
 const formatNumber = (num) => {
   return Number(num || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const formatLoss = (process) => {
+  if (!process || process.weight_loss_percentage === null || process.weight_loss_percentage === undefined) {
+    return 'N/A';
+  }
+
+  return `${process.weight_loss_percentage}%`;
 };
 
 const formatDate = (dateString) => {

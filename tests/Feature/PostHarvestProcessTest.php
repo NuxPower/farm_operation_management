@@ -310,6 +310,61 @@ class PostHarvestProcessTest extends TestCase
         ]);
     }
 
+    public function test_completion_allows_output_greater_than_input_when_units_differ()
+    {
+        $process = PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_THRESHING,
+            'input_quantity' => 100,
+            'input_unit' => 'kg',
+            'process_date' => now(),
+            'status' => PostHarvestProcess::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson("/api/post-harvest/{$process->id}/complete", [
+                'output_quantity' => 120,
+                'output_unit' => 'sacks_palay',
+                'completed_date' => now()->toDateString(),
+            ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('post_harvest_processes', [
+            'id' => $process->id,
+            'status' => PostHarvestProcess::STATUS_COMPLETED,
+            'output_quantity' => 120,
+            'output_unit' => 'sacks_palay',
+            'weight_loss_percentage' => null,
+        ]);
+    }
+
+    public function test_completion_rejects_output_greater_than_input_when_units_match()
+    {
+        $process = PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_DRYING,
+            'input_quantity' => 100,
+            'input_unit' => 'kg',
+            'process_date' => now(),
+            'status' => PostHarvestProcess::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson("/api/post-harvest/{$process->id}/complete", [
+                'output_quantity' => 120,
+                'output_unit' => 'kg',
+                'completed_date' => now()->toDateString(),
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('output_quantity');
+    }
+
     public function test_completing_process_requires_sufficient_source_inventory()
     {
         $process = PostHarvestProcess::create([

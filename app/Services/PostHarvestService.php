@@ -272,15 +272,17 @@ class PostHarvestService
             $outputQty = (float) $completionData['output_quantity'];
             $outputUnit = $completionData['output_unit'] ?? $process->input_unit;
             $inputQty = (float) $process->input_quantity;
+            $isSameUnit = $outputUnit === $process->input_unit;
 
-            if ($outputQty > $inputQty) {
-                throw new \InvalidArgumentException('Output quantity (' . $outputQty . ') cannot exceed input quantity (' . $inputQty . ').');
+            if ($isSameUnit && $outputQty > $inputQty) {
+                throw new \InvalidArgumentException(
+                    "Output quantity ({$outputQty} {$outputUnit}) cannot exceed input quantity ({$inputQty} {$process->input_unit})."
+                );
             }
 
-            // Calculate weight loss percentage
-            $weightLoss = $inputQty > 0
+            $weightLoss = $isSameUnit && $inputQty > 0
                 ? round((($inputQty - $outputQty) / $inputQty) * 100, 2)
-                : 0;
+                : null;
 
             // Recalculate cost for per-unit if cost_per_unit provided at completion
             $cost = (float) ($completionData['cost'] ?? $process->cost);
