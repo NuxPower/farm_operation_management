@@ -348,6 +348,7 @@ class PostHarvestService
         $sourceItem = InventoryItem::where('user_id', $userId)
             ->where('category', InventoryItem::CATEGORY_PRODUCE)
             ->where('name', $sourceItemName)
+            ->where('unit', $process->input_unit)
             ->first();
 
         if ($sourceItem && $inputQty > 0) {
@@ -370,11 +371,11 @@ class PostHarvestService
 
             if (!$deducted) {
                 throw new \InvalidArgumentException(
-                    "Insufficient {$sourceItemName} inventory. Available: {$sourceItem->current_stock}, requested: {$inputQty}."
+                    "Insufficient {$sourceItemName} inventory. Available: {$sourceItem->current_stock} {$process->input_unit}, requested: {$inputQty} {$process->input_unit}."
                 );
             }
         } else {
-            throw new \InvalidArgumentException("Source inventory item not found for {$sourceItemName}.");
+            throw new \InvalidArgumentException("Source inventory item not found for {$sourceItemName} ({$process->input_unit}).");
         }
 
         // ── 2. Add to output inventory ──

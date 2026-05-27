@@ -264,6 +264,52 @@ class PostHarvestProcessTest extends TestCase
         ]);
     }
 
+    public function test_threshing_completion_uses_source_inventory_with_matching_unit()
+    {
+        InventoryItem::create([
+            'user_id' => $this->farmer->id,
+            'name' => 'NSIC Rc222 (Grade A)',
+            'category' => InventoryItem::CATEGORY_PRODUCE,
+            'unit' => 'sacks_rice',
+            'current_stock' => 133,
+            'unit_price' => 20,
+        ]);
+
+        $process = PostHarvestProcess::create([
+            'harvest_id' => $this->harvest->id,
+            'planting_id' => $this->harvest->planting_id,
+            'user_id' => $this->farmer->id,
+            'process_type' => PostHarvestProcess::TYPE_THRESHING,
+            'input_quantity' => 888,
+            'input_unit' => 'kg',
+            'process_date' => now(),
+            'status' => PostHarvestProcess::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($this->farmer)
+            ->postJson("/api/post-harvest/{$process->id}/complete", [
+                'output_quantity' => 800,
+                'output_unit' => 'sacks_palay',
+                'completed_date' => now()->toDateString(),
+            ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('inventory_items', [
+            'user_id' => $this->farmer->id,
+            'name' => 'NSIC Rc222 (Grade A)',
+            'unit' => 'kg',
+            'current_stock' => 112,
+        ]);
+
+        $this->assertDatabaseHas('inventory_items', [
+            'user_id' => $this->farmer->id,
+            'name' => 'NSIC Rc222 (Grade A)',
+            'unit' => 'sacks_rice',
+            'current_stock' => 133,
+        ]);
+    }
+
     public function test_completing_process_requires_sufficient_source_inventory()
     {
         $process = PostHarvestProcess::create([
