@@ -175,6 +175,9 @@ const milledOnly = ref(false)
 const totalItems = computed(() => items.value.length)
 const totalValue = computed(() => items.value.reduce((sum, i) => sum + (Number(i.current_stock || 0) * Number(i.unit_price || 0)), 0))
 const lowStockItems = computed(() => items.value.filter(i => {
+  const restockableCategories = ['seeds', 'fertilizer', 'pesticide', 'equipment', 'tools']
+  if (!restockableCategories.includes(i.category)) return false
+
   const stock = Number(i.current_stock || 0)
   const min = Number(i.minimum_stock || 0)
   return stock > 0 && stock <= min

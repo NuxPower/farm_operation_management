@@ -42,6 +42,7 @@ class InventoryItem extends Model
     const CATEGORY_FERTILIZER = 'fertilizer';
     const CATEGORY_PESTICIDE = 'pesticide';
     const CATEGORY_EQUIPMENT = 'equipment';
+    const CATEGORY_TOOLS = 'tools';
     const CATEGORY_PRODUCE = 'produce';
 
     /**
@@ -52,6 +53,7 @@ class InventoryItem extends Model
         self::CATEGORY_FERTILIZER,
         self::CATEGORY_PESTICIDE,
         self::CATEGORY_EQUIPMENT,
+        self::CATEGORY_TOOLS,
         self::CATEGORY_PRODUCE,
     ];
 

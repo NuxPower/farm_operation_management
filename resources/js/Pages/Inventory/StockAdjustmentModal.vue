@@ -14,7 +14,7 @@
       <!-- Content -->
       <form @submit.prevent="handleSubmit" class="p-6">
         <div class="mb-6">
-          <p class="text-sm text-gray-600 mb-2">Current Stock: <span class="font-semibold text-gray-900">{{ item?.quantity || 0 }} {{ item?.unit || 'units' }}</span></p>
+          <p class="text-sm text-gray-600 mb-2">Current Stock: <span class="font-semibold text-gray-900">{{ currentStock }} {{ displayUnit(item?.unit) }}</span></p>
           
           <div class="flex gap-4 mb-4">
             <button
@@ -131,6 +131,18 @@ const totalCost = computed(() => {
   if (!quantity.value || !unitCost.value) return 0
   return quantity.value * unitCost.value
 })
+
+const currentStock = computed(() => props.item?.current_stock ?? props.item?.quantity ?? 0)
+
+const displayUnit = (unit) => {
+  const labels = {
+    sacks_palay: 'sacks (palay)',
+    sacks_dried_palay: 'sacks (dried palay)',
+    sacks_rice: 'sacks (rice)',
+  }
+
+  return labels[unit] || unit || 'units'
+}
 
 const handleModelValueUpdate = (val) => {
   if (!val) closeModal()

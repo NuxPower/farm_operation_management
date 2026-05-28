@@ -9,6 +9,7 @@ export const useInventoryStore = defineStore('inventory', {
       { value: 'fertilizer', label: 'Fertilizers' },
       { value: 'pesticide', label: 'Pesticides' },
       { value: 'equipment', label: 'Equipment' },
+      { value: 'tools', label: 'Tools' },
       { value: 'produce', label: 'Harvested Rice' },
     ],
     riceVarietals: [
@@ -26,7 +27,7 @@ export const useInventoryStore = defineStore('inventory', {
         if (!Array.isArray(state.items)) return [];
         // Exclude 'produce' category — these are harvested/processed rice items
         // that come from harvest or post-harvest operations and are not restockable supplies.
-        const nonProduceCategories = ['seeds', 'fertilizer', 'pesticide', 'equipment'];
+        const nonProduceCategories = ['seeds', 'fertilizer', 'pesticide', 'equipment', 'tools'];
         return state.items.filter(item => {
           if (!item) return false;
           // Skip produce/harvest items — they are outputs, not supply items

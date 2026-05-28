@@ -50,7 +50,7 @@
             <h2 class="text-xl font-semibold mb-4">Item Overview</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="text-center">
-                <div class="text-2xl font-bold text-blue-600">{{ itemQuantity }} {{ item.unit }}</div>
+                <div class="text-2xl font-bold text-blue-600">{{ itemQuantity }} {{ itemUnit }}</div>
                 <div class="text-sm text-gray-600">Current Stock</div>
               </div>
               <div class="text-center">
@@ -74,19 +74,19 @@
             <div class="space-y-4">
               <div class="flex justify-between items-center">
                 <span class="text-gray-600">Current Stock</span>
-                <span class="font-medium">{{ itemQuantity }} {{ item.unit }}</span>
+                <span class="font-medium">{{ itemQuantity }} {{ itemUnit }}</span>
               </div>
               <div class="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <div class="flex justify-between text-sm mb-1">
                     <span class="text-gray-600">Min Stock:</span>
-                    <span class="font-medium">{{ itemMinStock }} {{ item.unit }}</span>
+                    <span class="font-medium">{{ itemMinStock }} {{ itemUnit }}</span>
                   </div>
                 </div>
                 <div>
                   <div class="flex justify-between text-sm mb-1">
                     <span class="text-gray-600">Max Stock:</span>
-                    <span class="font-medium">{{ itemMaxStock }} {{ item.unit }}</span>
+                    <span class="font-medium">{{ itemMaxStock }} {{ itemUnit }}</span>
                   </div>
                 </div>
               </div>
@@ -132,7 +132,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span v-if="(transaction.transaction_type || transaction.type) === 'out' || transaction.quantity < 0">-</span>
-                      <span v-else>+</span>{{ Math.abs(transaction.quantity) }} {{ item.unit }}
+                      <span v-else>+</span>{{ Math.abs(transaction.quantity) }} {{ itemUnit }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {{ transaction.notes || transaction.reason || 'No notes' }}
@@ -172,7 +172,7 @@
                   <div class="text-xs text-gray-500 mt-1">{{ formatDate(usage.transaction_date || usage.date) }}</div>
                 </div>
                 <div class="text-sm font-medium text-gray-900">
-                  {{ Math.abs(usage.quantity) }} {{ item.unit }}
+                  {{ Math.abs(usage.quantity) }} {{ itemUnit }}
                 </div>
               </div>
             </div>
@@ -195,7 +195,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Unit:</span>
-                <span class="font-medium">{{ item.unit }}</span>
+                <span class="font-medium">{{ itemUnit }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Status:</span>
@@ -267,7 +267,7 @@
               >
                 <div class="font-medium text-gray-900">{{ supplier.name }}</div>
                 <div v-if="supplier.contact" class="text-sm text-gray-600">{{ supplier.contact }}</div>
-                <div v-if="supplier.price" class="text-sm text-gray-600">{{ formatCurrency(supplier.price) }} per {{ item.unit }}</div>
+                <div v-if="supplier.price" class="text-sm text-gray-600">{{ formatCurrency(supplier.price) }} per {{ itemUnit }}</div>
               </div>
             </div>
           </div>
@@ -330,6 +330,7 @@ const totalValue = computed(() => {
 const itemQuantity = computed(() => item.value.current_stock || item.value.quantity || 0)
 const itemMinStock = computed(() => item.value.minimum_stock || item.value.min_stock || 0)
 const itemMaxStock = computed(() => item.value.max_stock || item.value.maximum_stock || 0)
+const itemUnit = computed(() => displayUnit(item.value.unit))
 const itemStatus = computed(() => {
   if (item.value.status) return item.value.status
   // Derive status from stock levels
@@ -361,6 +362,16 @@ const getTransactionBadgeClass = (type) => {
 const formatDate = (date) => {
   if (!date) return 'Not set'
   return new Date(date).toLocaleDateString()
+}
+
+const displayUnit = (unit) => {
+  const labels = {
+    sacks_palay: 'sacks (palay)',
+    sacks_dried_palay: 'sacks (dried palay)',
+    sacks_rice: 'sacks (rice)',
+  }
+
+  return labels[unit] || unit || 'units'
 }
 
 const editItem = () => {
@@ -506,7 +517,7 @@ const loadUsageHistory = async (itemId) => {
       .map(t => ({
         id: t.id,
         activity: t.reference_type ? t.reference_type.charAt(0).toUpperCase() + t.reference_type.slice(1) : 'Usage',
-        description: t.notes || `Used ${Math.abs(t.quantity)} ${item.value.unit}`,
+        description: t.notes || `Used ${Math.abs(t.quantity)} ${itemUnit.value}`,
         quantity: t.quantity,
         transaction_date: t.transaction_date || t.date,
         date: t.transaction_date || t.date

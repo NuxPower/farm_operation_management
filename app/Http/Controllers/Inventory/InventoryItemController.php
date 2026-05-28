@@ -88,6 +88,7 @@ class InventoryItemController extends Controller
             $category = match ($category) {
                 'fertilizer', 'fertilizers' => 'fertilizer',
                 'pesticide', 'pesticides' => 'pesticide',
+                'tool', 'tools' => 'tools',
                 'produce', 'harvest', 'harvested_rice' => 'produce',
                 default => $category,
             };
@@ -242,6 +243,7 @@ class InventoryItemController extends Controller
             $data['category'] = match (strtolower($request->category)) {
                 'fertilizer', 'fertilizers' => 'fertilizer',
                 'pesticide', 'pesticides' => 'pesticide',
+                'tool', 'tools' => 'tools',
                 'produce', 'harvest', 'harvested_rice' => 'produce',
                 default => strtolower($request->category),
             };
@@ -436,6 +438,7 @@ class InventoryItemController extends Controller
             InventoryItem::CATEGORY_FERTILIZER => \App\Models\Expense::CATEGORY_FERTILIZER,
             InventoryItem::CATEGORY_PESTICIDE => \App\Models\Expense::CATEGORY_PESTICIDE,
             InventoryItem::CATEGORY_EQUIPMENT => \App\Models\Expense::CATEGORY_EQUIPMENT,
+            InventoryItem::CATEGORY_TOOLS => \App\Models\Expense::CATEGORY_EQUIPMENT,
             InventoryItem::CATEGORY_PRODUCE => \App\Models\Expense::CATEGORY_OTHER, // Mapped to safe category
             // String fallbacks for categories that may exist in database but not as constants
             'feed' => \App\Models\Expense::CATEGORY_OTHER,
@@ -463,8 +466,29 @@ class InventoryItemController extends Controller
             return response()->json(['message' => 'Validation failed', 'errors' => $validator->errors()], 422);
         }
 
-        $item->current_stock = max(0, ($item->current_stock ?? 0) - (float) $request->quantity);
+        $quantity = (float) $request->quantity;
+        $currentStock = (float) ($item->current_stock ?? 0);
+
+        if ($quantity > $currentStock) {
+            return response()->json([
+                'message' => "Insufficient stock. Available: {$item->current_stock} {$item->unit}",
+            ], 422);
+        }
+
+        $item->current_stock = $currentStock - $quantity;
         $item->save();
+
+        InventoryTransaction::create([
+            'inventory_item_id' => $item->id,
+            'user_id' => $user->id,
+            'transaction_type' => 'out',
+            'quantity' => $quantity,
+            'unit_cost' => $item->unit_price ?? 0,
+            'total_cost' => $quantity * ($item->unit_price ?? 0),
+            'reference_type' => 'Manual',
+            'notes' => $request->input('notes', 'Manual stock removal'),
+            'transaction_date' => now(),
+        ]);
 
         return response()->json([
             'message' => 'Stock removed successfully',
@@ -482,8 +506,8 @@ class InventoryItemController extends Controller
         $query = InventoryItem::where('user_id', $user->id);
 
         // Exclude produce items — these are harvested/post-harvest outputs,
-        // not restockable supplies. Only warn about seeds, fertilizer,
-        // pesticide, and equipment running low.
+        // not restockable supplies. Warn about seeds, fertilizer,
+        // pesticide, equipment, and tools running low.
         $lowStockItems = $query
             ->whereNotIn('category', [InventoryItem::CATEGORY_PRODUCE])
             ->whereRaw('current_stock <= minimum_stock')
