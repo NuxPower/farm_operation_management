@@ -22,7 +22,6 @@ class Laborer extends Model
         'rate_type',
         'status',
         'hire_date',
-        'hire_date',
         'emergency_contact_name',
         'emergency_contact_phone',
         'notes',

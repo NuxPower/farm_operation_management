@@ -115,8 +115,11 @@ class LaborerGroupController extends Controller
         // Task breakdown by status
         $statusBreakdown = $tasks->groupBy('status')->map->count();
 
-        // Total Daily Cost (sum of rates)
-        $totalDailyCost = $laborerGroup->laborers->sum('rate');
+        // Total Daily Cost only counts daily-rate members; per-job and share rates
+        // are task-specific and should not inflate the standing daily cost.
+        $totalDailyCost = $laborerGroup->laborers
+            ->filter(fn ($laborer) => in_array($laborer->rate_type, ['daily', 'per_day'], true))
+            ->sum('rate');
 
         $laborerGroup->stats = [
             'active_tasks' => $activeTaskCount,

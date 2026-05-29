@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Labor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Laborer;
+use App\Models\LaborerGroup;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
@@ -60,6 +61,8 @@ class LaborerController extends Controller
             'groups.*' => 'exists:laborer_groups,id',
         ]);
 
+        $this->validateOwnedGroups($validator, $request);
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -109,7 +112,12 @@ class LaborerController extends Controller
             ], 403);
         }
 
-        $laborer->load(['tasks.planting.field', 'wages', 'groups']);
+        $laborer->load(['tasks.planting.field', 'wages', 'groups.tasks.planting.field']);
+        $combinedTasks = $laborer->tasks
+            ->concat($laborer->groups->flatMap(fn ($group) => $group->tasks))
+            ->unique('id')
+            ->values();
+        $laborer->setRelation('tasks', $combinedTasks);
 
         return response()->json([
             'laborer' => $laborer
@@ -146,6 +154,8 @@ class LaborerController extends Controller
             'groups' => 'nullable|array',
             'groups.*' => 'exists:laborer_groups,id',
         ]);
+
+        $this->validateOwnedGroups($validator, $request);
 
         if ($validator->fails()) {
             return response()->json([
@@ -195,6 +205,12 @@ class LaborerController extends Controller
             ], 403);
         }
 
+        if ($laborer->tasks()->exists() || $laborer->wages()->exists()) {
+            return response()->json([
+                'message' => 'This laborer has task or wage history. Set the laborer status to inactive instead of deleting.',
+            ], 422);
+        }
+
         // Clean up profile picture if exists
         if ($laborer->profile_picture) {
             $path = str_replace(asset('storage/'), '', $laborer->profile_picture);
@@ -203,6 +219,7 @@ class LaborerController extends Controller
             }
         }
 
+        $laborer->groups()->detach();
         $laborer->delete();
 
         return response()->json([
@@ -224,19 +241,22 @@ class LaborerController extends Controller
         }
 
         $tasks = $laborer->tasks();
+        $wages = $laborer->wages();
 
         if ($request->has('date_from')) {
             $tasks->where('created_at', '>=', $request->date_from);
+            $wages->where('date', '>=', $request->date_from);
         }
 
         if ($request->has('date_to')) {
             $tasks->where('created_at', '<=', $request->date_to);
+            $wages->where('date', '<=', $request->date_to);
         }
 
-        $completedTasks = $tasks->where('status', 'completed')->count();
-        $totalTasks = $tasks->count();
-        $totalHours = $tasks->where('status', 'completed')->sum('hours_worked');
-        $totalWages = $laborer->wages()->sum('amount');
+        $totalTasks = (clone $tasks)->count();
+        $completedTasks = (clone $tasks)->where('status', 'completed')->count();
+        $totalHours = (clone $wages)->sum('hours_worked');
+        $totalWages = (clone $wages)->sum('wage_amount');
 
         return response()->json([
             'laborer' => $laborer,
@@ -355,5 +375,27 @@ class LaborerController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function validateOwnedGroups($validator, Request $request): void
+    {
+        $validator->after(function ($validator) use ($request) {
+            if (!$request->has('groups') || !is_array($request->groups)) {
+                return;
+            }
+
+            $groupIds = collect($request->groups)->filter()->unique()->values();
+            if ($groupIds->isEmpty()) {
+                return;
+            }
+
+            $ownedCount = LaborerGroup::where('user_id', $request->user()->id)
+                ->whereIn('id', $groupIds)
+                ->count();
+
+            if ($ownedCount !== $groupIds->count()) {
+                $validator->errors()->add('groups', 'One or more selected groups do not belong to your farm.');
+            }
+        });
     }
 }
